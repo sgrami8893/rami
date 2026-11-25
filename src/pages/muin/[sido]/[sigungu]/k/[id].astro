@@ -44,8 +44,10 @@ const missing = (o: Kiosk) => sortDocs(o.docs.filter((d) => !k.docs.includes(d) 
 const site = Astro.site!;
 const url = new URL(kioskPath(k), site).href;
 const report = reportUrl(k.id, k.name);
-const title = kioskTitle(k);
-const description = kioskDescription(k);
+// 같은 이름·설치 위치의 기기가 또 있으면 제목·설명에 발급 서류 수를 붙여 구분한다
+const twin = kiosks.some((o) => o.id !== k.id && o.sido === k.sido && o.sigungu === k.sigungu && o.name === k.name && o.locationDetail === k.locationDetail);
+const title = kioskTitle(k, twin);
+const description = kioskDescription(k, twin);
 const crumbs = [
   ...MUIN_CRUMBS,
   { name: sidoShort(k.sido), href: regionPath(k.sido) },
@@ -199,7 +201,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 
   <!-- 하단 고정 길찾기 버튼(모바일): 푸터 뒤에 버튼 높이만큼 여백을 둬 마지막 내용이 가려지지 않게 한다 -->
   <div slot="bottom" aria-hidden="true" class="h-[calc(96px+env(safe-area-inset-bottom))] lg:hidden"></div>
-  <div slot="bottom" class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur">
+  <div slot="bottom" role="region" aria-label="길찾기·주소 복사" class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur">
     <div class="mx-auto flex max-w-2xl gap-2 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-[1.4] items-center justify-center gap-1.5 rounded-2xl bg-brand text-[16px] font-bold text-white hover:brightness-95">
         <Icon name="direction-sign" size={20} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}

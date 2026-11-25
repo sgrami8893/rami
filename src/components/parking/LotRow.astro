@@ -1,0 +1,14 @@
+---
+import { lotPath, FEE_LABEL, LOT_TYPE, hoursText, type ParkingLot } from '../../lib/parking.ts';
+interface Props { l: ParkingLot }
+const { l } = Astro.props;
+const tone = l.fee.type === 'free' ? 'text-ok' : l.fee.type === 'unknown' ? 'text-warn' : 'text-ink-2';
+---
+<article class="relative -mx-5 px-5 py-[18px] active:bg-subtle lg:-mx-3 lg:rounded-xl lg:px-3 lg:hover:bg-subtle">
+  <div class="flex items-start justify-between gap-3">
+    <h3 class="text-[17px] font-semibold leading-snug text-ink"><a href={lotPath(l)} class="after:absolute after:inset-0">{l.name}</a></h3>
+    <span class={`shrink-0 text-cap font-semibold ${tone}`}>{FEE_LABEL[l.fee.type]}</span>
+  </div>
+  <p class="mt-1 text-[14px] text-ink-2">평일 {hoursText(l.hours.weekday)} · {LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
+  <p class="mt-0.5 truncate text-cap text-ink-3">{l.roadAddress}</p>
+</article>

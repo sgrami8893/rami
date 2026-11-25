@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import MockBanner from '../../../../components/parking/MockBanner.astro';
+import LotRow from '../../../../components/parking/LotRow.astro';
+import MapPanel from '../../../../components/MapPanel.astro';
+import { SIDOS, lots, sidoName, sidoShort, parkingPath, freePath, regionsOf, freeHubIndexable, toPoint, IS_MOCK, type ParkingLot } from '../../../../lib/parking.ts';
+import { SIGUNGU, type SidoSlug } from '../../../../../scripts/lib/regions.ts';
+export function getStaticPaths() { return SIDOS.map((sido) => ({ params: { sido } })); }
+const sido = Astro.params.sido as SidoSlug;
+if (SIGUNGU[sido].some((s) => s.slug === 'free')) throw new Error('free 경로가 시·군·구 slug와 겹침');
+const st = freeHubIndexable(lots as ParkingLot[], sido);
+const groups = regionsOf(sido).map((r) => ({ ...r, items: r.lots.filter((l) => l.fee.type === 'free') })).filter((g) => g.items.length);
+const free = groups.flatMap((g) => g.items);
+const pts = free.filter((l) => l.lat !== null && l.lng !== null);
+const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }, { name: '무료', href: freePath(sido) }];
+---
+<BaseLayout tool="parking" title={`${sidoShort(sido)} 무료 공영주차장 ${st.count}곳 | 시·군·구별 위치`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !st.indexable} canvas="white" sidebar={false}>
+  <MockBanner />
+  <h1 class="text-title font-bold text-ink">{sidoShort(sido)} 무료 공영주차장 {st.count}곳</h1>
+  <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} 전체 {st.total}곳 중 {st.count}곳 · {st.regions}개 시·군·구 · 색인 판정: {st.indexable ? '색인 대상' : 'noindex(기준 미달)'}</p>
+  <MapPanel points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} />
+  <div class="mt-6 space-y-8">
+    {groups.map((g) => (
+      <section id={g.sigungu}><h2 class="text-[15px] font-bold text-ink-2">{g.name} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
+        <div>{g.items.map((l) => <LotRow l={l} />)}</div></section>
+    ))}
+  </div>
+</BaseLayout>

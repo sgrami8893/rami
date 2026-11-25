@@ -15,9 +15,20 @@ async function mount(panel: HTMLElement) {
   await import('leaflet.markercluster');
   canvas.querySelector('.map-loading')?.remove();
 
-  const map = L.map(canvas, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
+  // 남용 완화: 수도권 밖으로 끌고 가거나 아주 멀리 축소하지 못하게 해서 사용자 한 명이 만드는 타일 요청 수를 줄인다.
+  const area = L.latLngBounds([36.8, 124.5], [38.4, 128.0]);
+  const map = L.map(canvas, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, maxBounds: area, maxBoundsViscosity: 1, minZoom: 9 });
   map.attributionControl.setPrefix('Leaflet');
-  L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, crossOrigin: false }).addTo(map);
+  const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 9, bounds: area, keepBuffer: 1 }).addTo(map);
+  // 타일이 계속 실패하면(키 한도 초과·차단 등) 빈 지도 대신 안내 문구를 띄운다.
+  let failed = 0;
+  tiles.on('tileerror', () => {
+    if (++failed !== 12) return;
+    const note = document.createElement('p');
+    note.className = 'absolute inset-x-3 top-3 z-[1000] rounded-xl bg-card px-3 py-2 text-cap text-ink-2 shadow';
+    note.textContent = '배경지도를 불러오지 못하고 있어요. 핀 위치와 아래 목록은 그대로 볼 수 있어요.';
+    canvas.parentElement?.appendChild(note);
+  });
 
   // 핀·클러스터 모양은 우리 CSS(global.css .map-pin/.map-cluster)로 그린다(타사 아이콘 이미지 없음).
   const pin = L.divIcon({ className: 'map-pin', iconSize: [22, 22], iconAnchor: [11, 11] });

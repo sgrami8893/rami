@@ -66,3 +66,9 @@ export const MAP = env('MAP_TILE_URL')
   : preset && preset.url && mapKey
     ? { enabled: true, url: preset.url.replace('{key}', encodeURIComponent(mapKey)), attribution: preset.attribution, maxZoom: preset.maxZoom, name: preset.name, policyUrl: preset.policyUrl }
     : { enabled: false, url: '', attribution: '', maxZoom: 19, name: '', policyUrl: '' };
+
+/**
+ * /parking/ 골격 미리보기. PARKING_PREVIEW=1 로 빌드할 때만 주차장 페이지를 만든다(가짜 데이터, 모두 noindex).
+ * Cloudflare Pages 환경변수에는 넣지 않는다 → 배포 빌드에는 /parking/ 페이지가 하나도 생기지 않는다.
+ */
+export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';

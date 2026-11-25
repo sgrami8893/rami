@@ -10,6 +10,8 @@ const kiosks = JSON.parse(readFileSync(new URL('./src/data/kiosks.json', import.
 const noindex = new Set(kiosks.filter((k) => !k.nearby?.length).map((k) => `/muin/${k.sido}/${k.sigungu}/k/${k.id}/`));
 // 조건 허브(24h·weekend·registry·family) 중 색인 기준 미달 페이지도 제외 (src/lib/hubs.ts HUB_RULE)
 hubNoindexPaths(kiosks, ['seoul', 'gyeonggi', 'incheon']).forEach((p) => noindex.add(p));
+// 준비 중(status 'soon') 도구 경로는 미리보기 빌드에서 페이지가 생겨도 사이트맵에 넣지 않는다
+const notLive = TOOLS.filter((t) => t.status !== 'live').map((t) => t.path);
 
 // 도구별 독립 사이트맵: sitemap-muin-0.xml, sitemap-waste-0.xml … + 허브 공통 페이지는 sitemap-0.xml
 const chunks = Object.fromEntries(
@@ -20,6 +22,6 @@ export default defineConfig({
   site: SITE_URL, // robots.txt 도 이 값으로 생성(src/pages/robots.txt.ts)
   trailingSlash: 'always',
   build: { format: 'directory' },
-  integrations: [sitemap({ filter: (page) => !noindex.has(new URL(page).pathname), chunks })],
+  integrations: [sitemap({ filter: (page) => { const p = new URL(page).pathname; return !noindex.has(p) && !notLive.some((t) => p.startsWith(t)); }, chunks })],
   vite: { plugins: [tailwindcss()] },
 });

@@ -1,4 +1,7 @@
 ---
+import { HUB_LABEL, hubStats, hubPath, type HubCond } from '../../../lib/hubs.ts';
+import { kiosks } from '../../../lib/data.ts';
+import { SIDO_URL_NAME } from '../../../lib/copy.ts';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AdSlot from '../../../components/AdSlot.astro';
 import { GUIDES, guidePath, GUIDE_BASE, type Guide } from '../../../lib/guides.ts';
@@ -15,6 +18,16 @@ const crumbs = [...MUIN_CRUMBS, { name: '이용 가이드', href: GUIDE_BASE }, 
 // set:html 은 직접 작성한 가이드 문장에만 쓴다(공공데이터 원문 텍스트는 넣지 않음: 숫자·고정 지역명만 보간).
 const blocks = g.blocks();
 const related = g.related().filter((r) => r.links.length);
+// 가이드 주제와 이어지는 시·도 조건 허브 (색인 기준을 통과한 허브만)
+const GUIDE_HUBS: Record<string, HubCond[]> = {
+  'court-documents-hours': ['registry', 'family'], '24h-weekend': ['24h', 'weekend'], 'how-to-use': ['24h', 'weekend'],
+  'fees-and-payment': ['24h', 'weekend'], 'resident-registration-copy': ['24h', 'weekend'], 'real-estate-contract-documents': ['registry'],
+  'land-building-register': ['registry'], 'tax-payment-certificate': ['24h'], 'fingerprint-error': ['24h'], accessibility: ['24h'],
+};
+const hubLinks = (GUIDE_HUBS[g.slug] ?? []).flatMap((c) => (['seoul', 'gyeonggi', 'incheon'] as const)
+  .map((sd) => ({ c, sd, st: hubStats(kiosks, sd, c) }))
+  .filter((x) => x.st.indexable)
+  .map((x) => ({ href: hubPath(x.sd, x.c), label: `${SIDO_URL_NAME[x.sd]} ${HUB_LABEL[x.c].chip}`, n: x.st.count })));
 const others = GUIDES.filter((o) => o.slug !== g.slug);
 ---
 <BaseLayout tool="muin" title={g.title} description={g.description} crumbs={crumbs}
@@ -36,6 +49,14 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
       </>
     ))}
 
+    {hubLinks.length > 0 && (
+      <section class="border-t border-line py-6">
+        <h2 class="mb-3 text-h2 font-bold text-ink">시·도별로 모아보기</h2>
+        <ul class="flex flex-wrap gap-2">
+          {hubLinks.map((l) => <li><a href={l.href} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{l.label}<span class="ml-1 text-ink-3">· {l.n.toLocaleString('ko-KR')}곳</span></a></li>)}
+        </ul>
+      </section>
+    )}
     {related.map((r) => (
       <section class="border-t border-line py-6">
         <h2 class="mb-3 text-h2 font-bold text-ink">{r.title}</h2>

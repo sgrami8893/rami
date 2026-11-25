@@ -1,0 +1,24 @@
+---
+// /parking/ 첫 화면 (골격). PARKING_PREVIEW=1 빌드에서만 생성된다.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MockBanner from '../../components/parking/MockBanner.astro';
+import { PARKING_PREVIEW } from '../../config.ts';
+import { lots, SIDOS, sidoName, parkingPath, freePath, regionsOf } from '../../lib/parking.ts';
+export function getStaticPaths() { return PARKING_PREVIEW ? [{ params: { index: undefined } }] : []; }
+const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }];
+---
+<BaseLayout tool="parking" title={`수도권 공영주차장 ${lots.length}곳 | 무료 주차장 찾기`} description="골격 미리보기" crumbs={crumbs} noindex sidebar={false}>
+  <MockBanner />
+  <h1 class="text-title font-bold text-ink">수도권 공영주차장 {lots.length}곳</h1>
+  <ul class="mt-4 divide-y divide-line">
+    {SIDOS.map((s) => {
+      const rs = regionsOf(s); const n = rs.reduce((a, r) => a + r.lots.length, 0); const f = rs.reduce((a, r) => a + r.free, 0);
+      return (
+        <li class="flex min-h-14 items-center justify-between gap-3 py-3">
+          <a href={parkingPath(s)} class="text-[17px] font-semibold text-ink hover:text-brand">{sidoName(s)} <span class="text-cap font-normal text-ink-3">{n}곳</span></a>
+          <a href={freePath(s)} class="text-[14px] font-semibold text-brand">무료 {f}곳</a>
+        </li>
+      );
+    })}
+  </ul>
+</BaseLayout>

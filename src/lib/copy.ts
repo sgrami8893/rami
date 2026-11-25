@@ -49,14 +49,18 @@ export function regionSummary(st: RegionStats): string {
 // ④ 기기 상세
 /** 도로명주소 괄호 안에 상세위치가 이미 있으면 다시 붙이지 않는다. */
 const detailOf = (k: Kiosk) => (k.locationDetail && !k.roadAddress.includes(k.locationDetail) ? k.locationDetail : '');
-export const kioskTitle = (k: Kiosk) => {
+/** twin: 같은 이름·설치 위치에 기기가 여러 대일 때 제목·설명이 겹치지 않게 발급 서류 수를 붙인다. */
+export const kioskTitle = (k: Kiosk, twin = false) => {
   const loc = k.locationDetail && k.locationDetail.length <= 16 ? `(${k.locationDetail})` : '';
   const area = k.name.includes(k.sigunguName.replace(/[시군구]$/, '')) ? '' : ` - ${k.sigunguName}`;
-  return `${k.name} 무인민원발급기${loc} 운영시간·발급 서류${area}`;
+  return `${k.name} 무인민원발급기${loc} 운영시간·발급 서류${twin ? ` ${k.docCount}종` : ''}${area}`;
 };
-export const kioskDescription = (k: Kiosk) => {
+export const kioskDescription = (k: Kiosk, twin = false) => {
   const d = detailOf(k);
-  return `${k.sigunguName} ${k.name} 무인민원발급기 안내. ${k.roadAddress}${d ? ` ${d}` : ''}. 요일별 운영시간, 등기부등본·가족관계증명서 발급 여부와 같은 동네의 다른 기기를 확인하세요.`;
+  const tail = `요일별 운영시간, 등기부등본·가족관계증명서 발급 여부와 같은 동네의 다른 기기를 확인하세요.`;
+  const head = `${k.sigunguName} ${k.name} 무인민원발급기${twin ? `(발급 서류 ${k.docCount}종)` : ''} 안내.`;
+  const full = `${head} ${k.roadAddress}${d ? ` ${d}` : ''}. ${tail}`;
+  return full.length <= 160 ? full : `${head} ${k.roadAddress}. ${tail}`; // 검색 결과에서 잘리지 않게 상세위치를 뺀다
 };
 
 export const SIDO_URL_NAME: Record<SidoSlug, string> = { seoul: '서울', gyeonggi: '경기', incheon: '인천' };
