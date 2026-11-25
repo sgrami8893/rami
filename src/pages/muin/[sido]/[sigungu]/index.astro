@@ -13,6 +13,7 @@ import { regionFaq } from '../../../../lib/faq.ts';
 import { regionPageTitle, regionDescription, regionSummary } from '../../../../lib/copy.ts';
 import { faqPage, breadcrumb, itemList } from '../../../../lib/jsonld.ts';
 import { km } from '../../../../lib/format.ts';
+import GuideList from '../../../../components/GuideList.astro';
 
 export function getStaticPaths() {
   return stats.map((s) => ({ params: { sido: s.sido, sigungu: s.sigungu } }));
@@ -130,6 +131,7 @@ const crumbs = [
   )}
 
   <p class="mt-8 text-xs text-slate-500">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>
+  <GuideList limit={4} />
 </BaseLayout>
 
 <script>

@@ -3,6 +3,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { SITE_NAME, SITE_DESC, SITE_URL, TOOLS } from '../config.ts';
 import { kiosks } from '../lib/data.ts';
+import GuideList from '../components/GuideList.astro';
 
 const counts: Record<string, string> = { muin: `수도권 ${kiosks.length.toLocaleString('ko-KR')}곳` };
 const live = TOOLS.filter((t) => t.status === 'live');
@@ -24,6 +25,8 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
       </a>
     ))}
   </section>
+
+  <GuideList title="생활 정보 가이드" />
 
   {soon.length > 0 && (
     <section class="mt-8">

@@ -36,3 +36,11 @@ export function place(k: Kiosk, url: string) {
     ...(k.phone ? { telephone: k.phone } : {}),
   };
 }
+
+export const article = (a: { headline: string; description: string; url: string; published: string; modified: string; publisher: string; citations: string[] }) => ({
+  '@context': 'https://schema.org', '@type': 'Article',
+  headline: a.headline, description: a.description, datePublished: a.published, dateModified: a.modified,
+  mainEntityOfPage: a.url, inLanguage: 'ko-KR',
+  author: { '@type': 'Organization', name: a.publisher }, publisher: { '@type': 'Organization', name: a.publisher },
+  citation: a.citations,
+});

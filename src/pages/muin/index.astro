@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SIDO_ORDER, regionsIn, sidoName, regionPath, kiosks, MUIN_CRUMBS } from '../../lib/data.ts';
 import { homeTitle, homeDescription } from '../../lib/copy.ts';
+import GuideList from '../../components/GuideList.astro';
 const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) => x.regions.length);
 ---
 <BaseLayout title={homeTitle} description={homeDescription(kiosks.length)} crumbs={MUIN_CRUMBS} tool="muin">
@@ -17,4 +18,5 @@ const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) =
       </div>
     </section>
   ))}
+  <GuideList />
 </BaseLayout>
