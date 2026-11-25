@@ -1,5 +1,8 @@
 ---
+import '../styles/fonts/pretendard/pretendard.css'; // Pretendard Variable 동적 서브셋(OFL), 자체 호스팅
 import '../styles/global.css';
+// 가장 자주 쓰는 글자(라틴 + 상위 한글) 서브셋 1개만 미리 받는다. 나머지는 unicode-range로 필요할 때만.
+import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91.woff2?url';
 import { SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, type ToolSlug } from '../config.ts';
 import Breadcrumb from '../components/Breadcrumb.astro';
 import { kiosks } from '../lib/data.ts';
@@ -40,41 +43,43 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="ko_KR" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={fontPreload} as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#F2F4F6" />
     {jsonld.map((j) => <script type="application/ld+json" set:html={safeJsonLd(j)} />)}
     {ADSENSE.client && (
       <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE.client}`} crossorigin="anonymous" />
     )}
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+  <body class="min-h-screen bg-bg text-ink antialiased">
+    <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <a href="/" class="font-bold text-brand">{SITE_NAME}</a>
+        <a href="/" class="text-[18px] font-extrabold tracking-tight text-brand">{SITE_NAME}</a>
         {tool === 'muin' ? (
-          <nav class="flex items-center gap-3 text-sm text-slate-600">
-            <a href="/muin/" class="font-medium text-slate-800 hover:text-brand">무인발급기</a>
+          <nav class="flex items-center gap-4 text-[14px] font-medium text-ink-2">
+            <a href="/muin/" class="text-ink hover:text-brand">무인발급기</a>
             <a href="/muin/seoul/" class="hover:text-brand">서울</a>
             <a href="/muin/gyeonggi/" class="hover:text-brand">경기</a>
             <a href="/muin/incheon/" class="hover:text-brand">인천</a>
           </nav>
         ) : (
-          <nav class="flex gap-3 text-sm text-slate-600">
+          <nav class="flex gap-4 text-[14px] font-medium text-ink-2">
             {TOOLS.filter((t) => t.status === 'live').map((t) => <a href={t.path} class="hover:text-brand">{t.name}</a>)}
           </nav>
         )}
       </div>
     </header>
-    <main class={`mx-auto px-4 pb-16 pt-4 ${wide ? 'max-w-5xl' : 'max-w-3xl'}`}>
+    <main class={`mx-auto px-4 pb-16 pt-4 ${wide ? 'max-w-5xl' : 'max-w-2xl'}`}>
       {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
       <slot />
     </main>
-    <footer class="border-t border-slate-200 bg-white">
-      <div class="mx-auto max-w-5xl space-y-2 px-4 py-8 text-xs leading-relaxed text-slate-500">
-        <p class="font-medium text-slate-600">본 사이트는 정부·지자체 공식 사이트가 아닌 민간 정보 제공 서비스입니다.</p>
+    <footer class="bg-card">
+      <div class="mx-auto max-w-5xl space-y-2 px-4 py-8 text-cap text-ink-3">
+        <p class="font-semibold text-ink-2">본 사이트는 정부·지자체 공식 사이트가 아닌 민간 정보 제공 서비스입니다.</p>
         {sources.map((s) => (
           <p>출처: <a href={s.url} class="underline" rel="noopener noreferrer" target="_blank">{s.name}</a>(기준일 {s.date}). 공공데이터를 가공해 제공합니다.</p>
         ))}
         {toolInfo?.slug === 'muin' && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있습니다. 중요한 방문 전에는 관리기관에 확인하세요.</p>}
-        <p class="flex gap-3"><a href="/about/" class="underline">소개</a><a href="/privacy/" class="underline">개인정보처리방침</a><a href="/contact/" class="underline">문의</a></p>
+        <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-ink-2"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
       </div>
     </footer>
   </body>

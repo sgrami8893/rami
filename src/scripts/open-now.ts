@@ -28,9 +28,9 @@ export function nextOpen(h: Hours, now: KstNow): string | null {
 }
 
 const BADGE = {
-  open: ['운영 중', 'bg-emerald-50', 'text-emerald-700'],
-  closed: ['운영 종료', 'bg-slate-100', 'text-slate-600'],
-  unknown: ['시간 확인 필요', 'bg-amber-50', 'text-amber-700'],
+  open: ['운영 중', 'bg-ok-bg', 'text-ok'],
+  closed: ['운영 종료', 'bg-off-bg', 'text-off'],
+  unknown: ['시간 확인 필요', 'bg-off-bg', 'text-warn'],
 } as const;
 
 export type OpenState = keyof typeof BADGE;
@@ -48,7 +48,7 @@ export function refreshOpenState(root: ParentNode = document): KstNow {
     if (badge) {
       const [label, bg, fg] = BADGE[state];
       badge.textContent = label;
-      badge.className = `open-badge rounded-full px-2 py-0.5 font-medium ${bg} ${fg}`;
+      badge.className = `open-badge badge ${bg} ${fg}`;
     }
     const next = el.querySelector<HTMLElement>('.next-open');
     if (next) {
