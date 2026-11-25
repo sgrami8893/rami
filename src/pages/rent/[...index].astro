@@ -1,0 +1,22 @@
+---
+// /rent/ 첫 화면 (골격). RENT_PREVIEW=1 빌드에서만 생성된다.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MockBanner from '../../components/rent/MockBanner.astro';
+import { RENT_PREVIEW } from '../../config.ts';
+import { SIDOS, sidoName, sigunguOf, rentPath, periodText } from '../../lib/rent.ts';
+export function getStaticPaths() { return RENT_PREVIEW ? [{ params: { index: undefined } }] : []; }
+const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }];
+---
+<BaseLayout title="동네 빌라·오피스텔 전월세 실거래 시세 | 서울·경기·인천" description="골격 미리보기" crumbs={crumbs} noindex sidebar={false}>
+  <MockBanner />
+  <h1 class="text-title font-bold text-ink">동네 빌라·오피스텔 전월세 실거래</h1>
+  <p class="mt-1 text-body text-ink-2">{periodText()} 신고된 전월세 거래를 동네별로 모았어요. 아파트는 다루지 않아요.</p>
+  {SIDOS.map((s) => (
+    <section class="mt-6" aria-labelledby={`h-${s}`}>
+      <h2 id={`h-${s}`} class="text-h2 font-bold text-ink"><a href={rentPath(s)} class="hover:text-brand">{sidoName(s)}</a></h2>
+      <div class="mt-2 flex flex-wrap gap-2">
+        {sigunguOf(s).map((a) => <a href={rentPath(s, a.sigungu)} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{a.sigunguName}<span class="text-ink-3">{a.n}건</span></a>)}
+      </div>
+    </section>
+  ))}
+</BaseLayout>

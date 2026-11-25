@@ -1,0 +1,15 @@
+---
+// 출처·기준·면책(모든 /rent/ 페이지 하단 공통)
+import { periodText } from '../../lib/rent.ts';
+import { K_MIN } from '../../../scripts/lib/rent.ts';
+---
+<section aria-labelledby="rent-notes-h" class="mt-8 rounded-2xl bg-bg px-4 py-4 text-cap text-ink-2">
+  <h2 id="rent-notes-h" class="text-body font-bold text-ink">이 숫자는 이렇게 만들었어요</h2>
+  <ul class="mt-2 list-disc space-y-1 pl-5">
+    <li>출처: 국토교통부 연립다세대·오피스텔 전월세 실거래가 자료(공공데이터포털). 계약 기간: {periodText()}.</li>
+    <li>신고된 실거래만 모은 통계예요. 지금 나와 있는 매물 가격이나 시세 판단이 아니에요.</li>
+    <li>동은 주소의 법정동 기준이라 행정동(○○1동 등)과 다를 수 있어요.</li>
+    <li>개인정보 보호를 위해 지번·건물명·층·계약일은 보여 주지 않고, 거래가 {K_MIN}건 미만인 칸은 숫자를 숨겨요.</li>
+    <li>신고 지연으로 최근 1~2개월 거래는 나중에 늘어날 수 있어요. 해제된 거래가 반영되지 않았을 수 있어요.</li>
+  </ul>
+</section>

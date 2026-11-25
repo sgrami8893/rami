@@ -12,7 +12,7 @@ const noindex = new Set(kiosks.filter((k) => !k.nearby?.length).map((k) => `/mui
 hubNoindexPaths(kiosks, ['seoul', 'gyeonggi', 'incheon']).forEach((p) => noindex.add(p));
 if (!CHECKLIST_VERIFIED) noindex.add('/muin/checklist/');
 // 준비 중(status 'soon') 도구 경로는 미리보기 빌드에서 페이지가 생겨도 사이트맵에 넣지 않는다
-const notLive = TOOLS.filter((t) => t.status !== 'live').map((t) => t.path);
+const notLive = [...TOOLS.filter((t) => t.status !== 'live').map((t) => t.path), '/rent/']; // /rent/: 전월세 시세 골격(미리보기 전용)
 
 // 도구별 독립 사이트맵: sitemap-muin-0.xml, sitemap-waste-0.xml … + 허브 공통 페이지는 sitemap-0.xml
 const chunks = Object.fromEntries(
