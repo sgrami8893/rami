@@ -6,14 +6,20 @@ import GuideList from '../../components/GuideList.astro';
 const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) => x.regions.length);
 ---
 <BaseLayout title={homeTitle} description={homeDescription(kiosks.length)} crumbs={MUIN_CRUMBS} tool="muin">
-  <h1 class="text-2xl font-bold">가까운 무인민원발급기, 지금 열려 있는 곳만</h1>
-  <p class="mt-2 text-slate-700">서울·경기·인천 무인민원발급기 {kiosks.length}곳의 위치와 운영시간을 지역별로 정리했습니다. 24시간, 주말·공휴일, 등기부등본, 가족관계증명서 조건으로 바로 걸러 보세요.</p>
+  <section class="card mt-1 bg-brand text-white">
+    <p class="text-cap font-semibold text-white/80">서울·경기·인천 {kiosks.length.toLocaleString('ko-KR')}곳</p>
+    <h1 class="mt-1 text-title font-bold">가까운 무인민원발급기,<br />지금 열려 있는 곳만</h1>
+    <p class="mt-2 text-body text-white/90">24시간, 주말·공휴일, 등기부등본, 가족관계증명서 조건으로 바로 걸러 보세요.</p>
+  </section>
   {cards.map(({ s, regions }) => (
-    <section class="mt-6">
-      <h2 class="mb-2 text-lg font-bold"><a href={regionPath(s)} class="hover:text-brand">{sidoName(s)}</a> <span class="text-sm font-normal text-slate-500">{regions.reduce((a, r) => a + r.total, 0)}곳</span></h2>
-      <div class="flex flex-wrap gap-2">
+    <section class="mt-8">
+      <h2 class="mb-3 flex items-baseline justify-between px-1">
+        <a href={regionPath(s)} class="text-h2 font-bold text-ink hover:text-brand">{sidoName(s)}</a>
+        <span class="text-cap text-ink-3">{regions.reduce((a, r) => a + r.total, 0)}곳</span>
+      </h2>
+      <div class="card flex flex-wrap gap-2 p-4">
         {regions.map((r) => (
-          <a href={regionPath(r.sido, r.sigungu)} class="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm hover:border-brand">{r.sigunguName} <span class="text-slate-500">{r.total}</span></a>
+          <a href={regionPath(r.sido, r.sigungu)} class="flex h-9 items-center rounded-full bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{r.sigunguName}<span class="ml-1 text-ink-3">{r.total}</span></a>
         ))}
       </div>
     </section>

@@ -24,9 +24,10 @@ const btn = 'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-
   data-subgu={k.subGu ?? ''}
 >
   <div class="flex flex-wrap items-center gap-1.5">
-    <span class="open-badge badge hidden" aria-live="polite"></span>
+    <span class="open-badge badge invisible bg-off-bg text-off" aria-live="polite">운영 확인 중</span>
     {k.is24h && <span class="badge bg-info-bg text-info">24시간</span>}
     {distance !== undefined && <span class="badge bg-off-bg text-off">{km(distance)}</span>}
+    <span class="next-open hidden text-cap text-ink-3"></span>
   </div>
   <h3 class="mt-2 text-h2 font-bold text-ink">
     <a href={kioskPath(k)} class="group flex items-center justify-between gap-2">
@@ -42,7 +43,6 @@ const btn = 'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-
       <dd>
         {k.hoursConfidence === 'unknown' ? <span class="text-warn">운영시간 확인 필요</span> : hoursLine(k.hours)}
         {k.hoursConfidence === 'partial' && <span class="ml-1 text-cap text-warn" title={k.hoursRaw}>일부 추정</span>}
-        <span class="next-open hidden block text-cap text-ink-3"></span>
       </dd>
     </div>
     {!compact && docs.length > 0 && (

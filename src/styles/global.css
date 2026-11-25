@@ -3,7 +3,7 @@
 /* 웹폰트가 늦게 와도 줄 높이·글자 폭이 크게 바뀌지 않도록 시스템 폰트 메트릭을 Pretendard에 맞춘 폴백 (CLS 방지) */
 @font-face {
   font-family: "Pretendard Fallback";
-  src: local("Apple SD Gothic Neo"), local("AppleSDGothicNeo-Regular"), local("Malgun Gothic"), local("Noto Sans KR"), local("Roboto"), local("Arial");
+  src: local("Apple SD Gothic Neo"), local("AppleSDGothicNeo-Regular"), local("Noto Sans CJK KR"), local("Source Han Sans KR"), local("Malgun Gothic"), local("Noto Sans KR");
   ascent-override: 95.2%;
   descent-override: 24.1%;
   line-gap-override: 0%;
@@ -14,20 +14,20 @@
 @theme {
   --font-sans: "Pretendard Variable", "Pretendard Fallback", system-ui, sans-serif;
 
-  --color-bg: #F2F4F6;        /* 페이지 배경 */
+  --color-bg: #F3F5F8;        /* 페이지 배경 */
   --color-card: #FFFFFF;      /* 카드 (보더 없음) */
-  --color-brand: #2F6FED;     /* 포인트 1색 */
+  --color-brand: #2563EB;     /* 포인트 1색 (흰 글자·밝은 배경 위 글자 모두 4.5:1 이상) */
   --color-brand-weak: #EAF1FE;
-  --color-ink: #191F28;       /* 본문 진하게 */
-  --color-ink-2: #4E5968;     /* 보조 텍스트 */
-  --color-ink-3: #8B95A1;     /* 캡션·비활성 */
-  --color-line: #E5E8EB;      /* 구분선(필요할 때만) */
+  --color-ink: #1A2029;       /* 본문 진하게 */
+  --color-ink-2: #485463;     /* 보조 텍스트 */
+  --color-ink-3: #5F6B78;     /* 캡션·비활성 (#8B95A1에서 명도 대비 4.5:1 이상으로 조정) */
+  --color-line: #E4E8EE;      /* 구분선(필요할 때만) */
 
-  /* 파스텔 배지 3종 */
-  --color-ok-bg: #E8F7EE;   --color-ok: #1B8A4B;    /* 운영 중 */
-  --color-info-bg: #EAF1FE; --color-info: #2F6FED;  /* 24시간·정보 */
-  --color-off-bg: #F2F4F6;  --color-off: #6B7684;   /* 운영 종료·확인 필요 */
-  --color-warn: #B25E09;    /* 일부 추정 표시 텍스트 */
+  /* 파스텔 배지 3종 (글자색은 WCAG AA 4.5:1 이상) */
+  --color-ok-bg: #E8F7EE;   --color-ok: #1A7F45;    /* 운영 중 */
+  --color-info-bg: #EAF1FE; --color-info: #1B64DA;  /* 24시간·정보 */
+  --color-off-bg: #F3F5F8;  --color-off: #5B6573;   /* 운영 종료·확인 필요 */
+  --color-warn: #A35300;    /* 일부 추정 표시 텍스트 */
 
   /* 타이포 22 / 17 / 15 / 13 */
   --text-title: 22px;  --text-title--line-height: 1.4;

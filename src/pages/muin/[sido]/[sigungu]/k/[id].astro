@@ -61,14 +61,14 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 >
   <div id="self" class="kiosk" data-id={k.id} data-hours={JSON.stringify(k.hours)} data-conf={k.hoursConfidence}>
     <div class="flex flex-wrap items-center gap-1.5">
-      <span class="open-badge badge hidden"></span>
+      <span class="open-badge badge invisible bg-off-bg text-off">운영 확인 중</span>
       {k.is24h && <span class="badge bg-info-bg text-info">24시간</span>}
       {k.placeType && <span class="badge bg-off-bg text-off">{k.placeType}</span>}
+      <span class="next-open hidden text-cap text-ink-3"></span>
     </div>
     <h1 class="mt-2 text-title font-bold text-ink">{k.name}</h1>
     {k.locationDetail && <p class="mt-0.5 text-body text-ink-2">{k.locationDetail}</p>}
     <p class="mt-1 flex items-start gap-1 text-cap text-ink-3"><Icon name="map-pin" size={14} class="mt-[3px]" />{k.roadAddress}</p>
-    <p class="next-open mt-1 hidden text-cap text-ink-3"></p>
   </div>
 
   <section class="card mt-4">
@@ -84,7 +84,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
       </tbody>
     </table>
     {k.hoursConfidence !== 'ok' && <p class="mt-2 rounded-xl bg-bg px-3 py-2 text-cap text-warn">일부 추정 · 원문: {k.hoursRaw || '정보 없음'}</p>}
-    {(k.docs.includes('registry') || k.docs.includes('family')) && <p class="mt-2 text-cap text-ink-3">등기부등본·가족관계 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다. <a href="/muin/guide/court-documents-hours/" class="font-semibold text-brand">자세히</a></p>}
+    {(k.docs.includes('registry') || k.docs.includes('family')) && <p class="mt-2 text-cap text-ink-3">등기부등본·가족관계 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다. <a href="/muin/guide/court-documents-hours/" class="font-semibold text-brand">대법원 서류 발급 시간 안내</a></p>}
   </section>
 
   <section class="card mt-3">
