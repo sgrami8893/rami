@@ -1,4 +1,4 @@
-// "지금 운영 중" badges, evaluated in KST on load and every minute.
+// "운영시간 내/외" badges (기기 실제 상태가 아니라 공개된 운영시간으로 계산), evaluated in KST on load and every minute.
 import { isOpenAt, kstNow, toMin, type Hours, type KstNow } from '../../scripts/lib/hours.ts';
 import holidaysJson from '../data/holidays.json';
 
@@ -28,8 +28,8 @@ export function nextOpen(h: Hours, now: KstNow): string | null {
 }
 
 const BADGE = {
-  open: ['운영 중', 'bg-ok-bg', 'text-ok'],
-  closed: ['운영 종료', 'bg-off-bg', 'text-off'],
+  open: ['운영시간 내', 'bg-ok-bg', 'text-ok'],
+  closed: ['운영시간 외', 'bg-off-bg', 'text-off'],
   unknown: ['시간 확인 필요', 'bg-off-bg', 'text-warn'],
 } as const;
 
@@ -58,4 +58,9 @@ export function refreshOpenState(root: ParentNode = document): KstNow {
     }
   });
   return now;
+}
+
+/** 오늘(KST)이 운영시간 표의 어느 줄인지: 공휴일 > 일 > 토 > 평일 */
+export function todayKey(now: KstNow = kstNow()): keyof Hours {
+  return holidays.has(now.ymd) ? 'holiday' : now.dow === 0 ? 'sun' : now.dow === 6 ? 'sat' : 'weekday';
 }

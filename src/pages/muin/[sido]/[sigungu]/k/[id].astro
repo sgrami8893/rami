@@ -28,7 +28,7 @@ const fallback = noindex
   : [];
 const altTitle = noindex
   ? `${k.sigunguName}의 다른 무인민원발급기`
-  : byCoords ? `반경 2km 안의 다른 무인민원발급기 (${nearby.length}곳)` : `${k.dong ?? k.subGu ?? k.sigunguName} 주변 다른 무인민원발급기 (${nearby.length}곳)`;
+  : byCoords ? `반경 2km 안의 다른 무인민원발급기 (${nearby.length}곳)` : `${k.dong ?? k.subGu ?? k.sigunguName}의 다른 무인민원발급기 (${nearby.length}곳)`;
 const alt = noindex ? fallback : nearby;
 
 // What the alternatives issue that this kiosk does not.
@@ -49,6 +49,10 @@ const rows: [string, keyof Kiosk['hours']][] = [['평일', 'weekday'], ['토요�
 const allDocs = Object.keys(DOC_LABELS).filter((d) => d !== 'other') as DocCode[];
 const available = sortDocs(k.docs).filter((d) => d !== 'other');
 const unavailable = allDocs.filter((d) => !k.docs.includes(d));
+// 핵심 6종(주민등록·가족관계·등기부·토지·지방세 순, docOrder)만 먼저 보여 주고 나머지는 접는다(JS 없이 <details>).
+const SHOW_DOCS = 6;
+const docsHead = available.slice(0, SHOW_DOCS), docsRest = available.slice(SHOW_DOCS);
+const chip = 'rounded-xl bg-bg px-2.5 py-1 text-cap font-medium text-ink-2';
 const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roadAddress);
 ---
 <BaseLayout
@@ -61,14 +65,19 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 >
   <div id="self" class="kiosk" data-id={k.id} data-hours={JSON.stringify(k.hours)} data-conf={k.hoursConfidence}>
     <div class="flex flex-wrap items-center gap-1.5">
-      <span class="open-badge badge invisible bg-off-bg text-off">운영 확인 중</span>
+      <span class="open-badge badge invisible bg-off-bg text-off">운영시간 내</span>
       {k.is24h && <span class="badge bg-info-bg text-info">24시간</span>}
       {k.placeType && <span class="badge bg-off-bg text-off">{k.placeType}</span>}
       <span class="next-open hidden text-cap text-ink-3"></span>
     </div>
     <h1 class="mt-2 text-title font-bold text-ink">{k.name}</h1>
     {k.locationDetail && <p class="mt-0.5 text-body text-ink-2">{k.locationDetail}</p>}
-    <p class="mt-1 flex items-start gap-1 text-cap text-ink-3"><Icon name="map-pin" size={14} class="mt-[3px]" />{k.roadAddress}</p>
+    <div class="mt-1 flex items-start gap-2">
+      <p class="flex min-w-0 flex-1 items-start gap-1 text-cap text-ink-3"><Icon name="map-pin" size={14} class="mt-[3px] shrink-0" />{k.roadAddress}</p>
+      <button type="button" data-copy={k.roadAddress} class="flex h-7 shrink-0 items-center gap-1 rounded-lg border border-line bg-card px-2 text-[12px] font-semibold text-ink-2 hover:bg-bg">
+        <Icon name="copy" size={13} /><span>주소 복사</span>
+      </button>
+    </div>
   </div>
 
   <div class="mt-4 hidden gap-2 lg:flex">
@@ -78,27 +87,38 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 
   <section class="card mt-4">
     <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="clock" size={18} class="text-brand" />운영시간</h2>
-    <table class="w-full text-body">
+    <!-- 오늘(KST·공휴일 반영)에 해당하는 줄은 스크립트가 연한 배경과 '오늘' 배지로 강조한다 -->
+    <table class="-mx-2 w-[calc(100%+16px)] text-body">
       <tbody>
         {rows.map(([label, key]) => (
-          <tr class="border-t border-line first:border-0">
-            <th class="py-2 text-left font-normal text-ink-3">{label}</th>
-            <td class={`py-2 text-right font-semibold ${k.hours[key] === null ? 'text-ink-3' : 'text-ink'}`}>{fmtRange(k.hours[key])}</td>
+          <tr data-hkey={key} class="border-t border-line first:border-0">
+            <th class="rounded-l-lg px-2 py-2 text-left font-normal text-ink-3">{label}<span data-today hidden class="badge ml-1.5 bg-brand text-white">오늘</span></th>
+            <td class={`rounded-r-lg px-2 py-2 text-right font-semibold ${k.hours[key] === null ? 'text-ink-3' : 'text-ink'}`}>{fmtRange(k.hours[key])}</td>
           </tr>
         ))}
       </tbody>
     </table>
-    {k.hoursConfidence !== 'ok' && <p class="mt-2 rounded-xl bg-bg px-3 py-2 text-cap text-warn">일부 추정 · 원문: {k.hoursRaw || '정보 없음'}</p>}
-    {(k.docs.includes('registry') || k.docs.includes('family')) && <p class="mt-2 text-cap text-ink-3">등기부등본·가족관계 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다. <a href="/muin/guide/court-documents-hours/" class="font-semibold text-brand">대법원 서류 발급 시간 안내</a></p>}
+    {k.hoursConfidence !== 'ok' && <p class="mt-2 rounded-xl bg-bg px-3 py-2 text-cap text-warn">{k.hoursConfidence === 'partial' ? '주말·공휴일 정보 없음(휴무로 표시)' : '운영시간 정보 없음'} · 원문: {k.hoursRaw || '정보 없음'}</p>}
+    {(k.docs.includes('registry') || k.docs.includes('family')) && <p class="mt-2 text-cap text-ink-3">등기부등본·가족관계증명서 같은 법원 발급 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다. <a href="/muin/guide/court-documents-hours/" class="font-semibold text-brand">법원 서류 발급 시간 안내</a></p>}
   </section>
 
   <section class="card mt-3">
     <h2 class="mb-3 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="file-text" size={18} class="text-brand" />발급 가능 서류</h2>
     <ul class="flex flex-wrap gap-1.5">
-      {available.map((d) => <li class="rounded-xl bg-bg px-2.5 py-1 text-cap font-medium text-ink-2">{DOC_LABELS[d]}</li>)}
+      {docsHead.map((d) => <li class={chip}>{DOC_LABELS[d]}</li>)}
     </ul>
+    {docsRest.length > 0 && (
+      <details class="group mt-1.5">
+        <summary class="inline-flex cursor-pointer list-none items-center gap-0.5 rounded-xl px-1 py-1 text-cap font-semibold text-brand [&::-webkit-details-marker]:hidden">
+          <span class="group-open:hidden">+ {docsRest.length}종 더보기</span><span class="hidden group-open:inline">접기</span>
+        </summary>
+        <ul class="mt-1 flex flex-wrap gap-1.5">
+          {docsRest.map((d) => <li class={chip}>{DOC_LABELS[d]}</li>)}
+        </ul>
+      </details>
+    )}
     {unavailable.length > 0 && <p class="mt-3 text-cap text-ink-3">발급 안 됨 또는 정보 없음: {unavailable.map((d) => DOC_LABELS[d]).join(', ')}</p>}
-    {k.docCount ? <p class="mt-1 text-cap text-ink-3">세부 민원 사무 기준 총 {k.docCount}종 (원천 데이터)</p> : null}
+    {k.docCount ? <p class="mt-1 text-cap text-ink-3">세부 종류로 나누면 이 기기에서 발급할 수 있는 서류는 {k.docCount}종입니다(원천 데이터 기준).</p> : null}
   </section>
 
   {(k.a11y?.length ?? 0) > 0 && (
@@ -135,9 +155,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 
   <div class="mt-8 flex flex-col gap-2 px-1 text-body">
     <a href={regionPath(k.sido, k.sigungu)} class="flex items-center gap-1 font-semibold text-brand">{k.sigunguName} 무인민원발급기 전체 보기<Icon name="chevron-right" size={16} /></a>
-    {report
-      ? <a href={report} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-cap text-ink-3"><Icon name="triangle-alert" size={14} />정보 오류 제보</a>
-      : <p class="flex items-center gap-1 text-cap text-ink-3"><Icon name="triangle-alert" size={14} />정보 오류 제보 (구글 폼 연결 전)</p>}
+    {report && <a href={report} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-cap text-ink-3"><Icon name="triangle-alert" size={14} />정보 오류 제보</a>}
   </div>
 
   <!-- 하단 고정 길찾기 버튼: 푸터 뒤에 버튼 높이만큼 여백을 둬 마지막 내용이 가려지지 않게 한다 -->
@@ -155,7 +173,17 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 </BaseLayout>
 
 <script>
-  import { refreshOpenState } from '../../../../../scripts/open-now.ts';
-  refreshOpenState();
-  setInterval(() => refreshOpenState(), 60_000);
+  import { refreshOpenState, todayKey } from '../../../../../scripts/open-now.ts';
+  import { initCopy } from '../../../../../scripts/copy.ts';
+  const markToday = () => {
+    const key = todayKey(refreshOpenState());
+    document.querySelectorAll<HTMLElement>('tr[data-hkey]').forEach((tr) => {
+      const on = tr.dataset.hkey === key;
+      tr.querySelectorAll('th, td').forEach((c) => c.classList.toggle('bg-brand-weak', on));
+      tr.querySelector<HTMLElement>('[data-today]')!.hidden = !on;
+    });
+  };
+  markToday();
+  setInterval(markToday, 60_000);
+  initCopy();
 </script>

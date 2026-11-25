@@ -1,8 +1,17 @@
 ---
 // PC(1024px+) 우측 사이드바: 지역별 빠른 탐색 + 세로형 스티키 광고 1개(설정 시에만).
+// 지금 보고 있는 시·군·구(목록·상세)는 활성 표시하고, 상위 8곳에 없으면 맨 앞에 넣는다.
 import AdSlot from './AdSlot.astro';
 import { SIDO_ORDER, regionsIn, sidoName, regionPath } from '../lib/data.ts';
-const groups = SIDO_ORDER.map((s) => ({ s, top: [...regionsIn(s)].sort((a, b) => b.total - a.total).slice(0, 8) })).filter((g) => g.top.length);
+const path = Astro.url.pathname;
+const isCurrent = (r: { sido: string; sigungu: string }) => path.startsWith(regionPath(r.sido as never, r.sigungu));
+const groups = SIDO_ORDER.map((s) => {
+  const all = [...regionsIn(s)].sort((a, b) => b.total - a.total);
+  const top = all.slice(0, 8);
+  const cur = all.find(isCurrent);
+  return { s, top: cur && !top.includes(cur) ? [cur, ...top.slice(0, 7)] : top };
+}).filter((g) => g.top.length);
+const base = 'rounded-xl px-2.5 py-1 text-cap';
 ---
 <aside class="hidden lg:block" aria-label="지역별 빠른 탐색">
   <div class="sticky top-[72px] space-y-4">
@@ -12,7 +21,9 @@ const groups = SIDO_ORDER.map((s) => ({ s, top: [...regionsIn(s)].sort((a, b) =>
         <div class="mb-3 last:mb-0">
           <a href={regionPath(s)} class="text-cap font-semibold text-ink-2 hover:text-brand">{sidoName(s)} 전체</a>
           <div class="mt-1.5 flex flex-wrap gap-1.5">
-            {top.map((r) => <a href={regionPath(r.sido, r.sigungu)} class="rounded-xl bg-bg px-2.5 py-1 text-cap text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
+            {top.map((r) => isCurrent(r)
+              ? <a href={regionPath(r.sido, r.sigungu)} aria-current="page" class={`${base} bg-brand-weak font-semibold text-brand`}>{r.sigunguName}</a>
+              : <a href={regionPath(r.sido, r.sigungu)} class={`${base} bg-bg text-ink-2 hover:text-brand`}>{r.sigunguName}</a>)}
           </div>
         </div>
       ))}

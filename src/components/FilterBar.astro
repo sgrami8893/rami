@@ -3,7 +3,7 @@
 interface Props { dongs: string[]; subGu: string[] }
 const { dongs, subGu } = Astro.props;
 const chips = [
-  ['open', '지금 운영 중'], ['24h', '24시간'], ['weekend', '주말·공휴일'], ['registry', '등기부등본'], ['family', '가족관계증명서'],
+  ['open', '지금 운영시간 내'], ['24h', '24시간'], ['weekend', '주말·공휴일'], ['registry', '등기부등본'], ['family', '가족관계증명서'],
 ];
 const sel = 'h-9 min-w-0 rounded-xl bg-card px-3 text-[14px] text-ink-2';
 ---
@@ -16,8 +16,10 @@ const sel = 'h-9 min-w-0 rounded-xl bg-card px-3 text-[14px] text-ink-2';
       </button>
     ))}
   </div>
+  <!-- 구·동 선택과 결과 수(현재 시각 기준)를 한 줄에: 좁으면 결과 수만 다음 줄로 내려간다 -->
+  <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
   {(subGu.length > 0 || dongs.length > 1) && (
-    <div class="mt-2 flex items-center gap-2">
+    <div class="flex items-center gap-2">
       {subGu.length > 0 && (
         <select id="f-subgu" class={sel} aria-label="구 선택">
           <option value="">구 전체</option>
@@ -32,5 +34,7 @@ const sel = 'h-9 min-w-0 rounded-xl bg-card px-3 text-[14px] text-ink-2';
       )}
     </div>
   )}
-  <p id="f-count" class="mt-2 text-cap text-ink-3" aria-live="polite"></p>
+  <p id="f-count" class="text-cap text-ink-3" aria-live="polite"></p>
+  </div>
+  <p id="f-note" class="mt-1 text-cap text-ink-3" hidden>등기부등본·가족관계증명서는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다.</p>
 </div>

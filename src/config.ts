@@ -9,14 +9,14 @@ export const PROD_URL = 'https://dongnenow.kr';
 export const SITE_URL = (globalThis.process?.env?.SITE_URL || PROD_URL).replace(/\/$/, '');
 /** 정식 도메인이 아닌 주소(*.pages.dev 등)로 빌드하면 검색엔진 수집을 막는다(임시 주소 색인·중복 방지). */
 export const NOINDEX_ALL = new URL(SITE_URL).hostname !== new URL(PROD_URL).hostname;
-export const SITE_DESC = '무인민원발급기 위치·운영시간처럼 동네에서 바로 쓰는 생활 공공정보를 한곳에서 찾아보는 민간 정보 서비스.';
+export const SITE_DESC = '서울·경기·인천 무인민원발급기 2,100여 곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스입니다.';
 
 /**
  * 허브(/)에 노출할 도구. 도구마다 독립 하위 폴더 + 독립 사이트맵(sitemap-<slug>-0.xml).
  * status 'soon' 은 링크 없이 "준비 중"으로만 표시(빈 페이지를 색인시키지 않음).
  */
 export const TOOLS = [
-  { slug: 'muin', name: '무인민원발급기 찾기', path: '/muin/', status: 'live', desc: '서울·경기·인천 무인민원발급기 위치, 지금 운영 중인 곳, 24시간·주말 운영, 등기부등본·가족관계증명서 발급 기기.' },
+  { slug: 'muin', name: '무인민원발급기 찾기', path: '/muin/', status: 'live', desc: '서울·경기·인천 무인민원발급기 위치, 지금 운영시간인 곳, 24시간·주말 운영, 등기부등본·가족관계증명서 발급 기기.' },
   { slug: 'waste', name: '대형폐기물 수수료', path: '/waste/', status: 'soon', desc: '가구·가전 버릴 때 우리 동네 대형폐기물 배출 수수료 확인.' },
   { slug: 'parking', name: '공영주차장', path: '/parking/', status: 'soon', desc: '동네 공영주차장 위치와 요금.' },
   { slug: 'cert', name: '국가기술자격 시험', path: '/cert/', status: 'soon', desc: '국가기술자격 시험 일정과 합격률.' },

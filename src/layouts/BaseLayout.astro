@@ -83,11 +83,11 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
     </div>
     <footer class="bg-ink">
       <div class={`mx-auto space-y-2 px-4 py-8 text-cap text-white/70 ${frame}`}>
-        <p class="font-semibold text-white">본 사이트는 정부·지자체 공식 사이트가 아닌 민간 정보 제공 서비스입니다.</p>
+        <p class="font-semibold text-white">동네나우는 정부·지자체 공식 사이트가 아닌 민간 정보 서비스입니다.</p>
         {sources.map((s) => (
           <p>출처: <a href={s.url} class="underline" rel="noopener noreferrer" target="_blank">{s.name}</a>(기준일 {s.date}). 공공데이터를 가공해 제공합니다.</p>
         ))}
-        {toolInfo?.slug === 'muin' && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있습니다. 중요한 방문 전에는 관리기관에 확인하세요.</p>}
+        {toolInfo?.slug === 'muin' && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있습니다. 중요한 방문 전에는 기기 상세의 관리기관 안내 페이지 등에서 다시 확인하세요.</p>}
         <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-white/85"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
       </div>
     </footer>

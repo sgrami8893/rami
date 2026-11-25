@@ -5,10 +5,10 @@ import { homeTitle, homeDescription } from '../../lib/copy.ts';
 import GuideList from '../../components/GuideList.astro';
 const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) => x.regions.length);
 ---
-<BaseLayout title={homeTitle} description={homeDescription(kiosks.length)} crumbs={MUIN_CRUMBS} tool="muin">
+<BaseLayout title={homeTitle(kiosks.length)} description={homeDescription(kiosks.length)} crumbs={MUIN_CRUMBS} tool="muin">
   <section class="card mt-1 bg-brand text-white">
     <p class="text-cap font-semibold text-white/80">서울·경기·인천 {kiosks.length.toLocaleString('ko-KR')}곳</p>
-    <h1 class="mt-1 text-title font-bold">가까운 무인민원발급기,<br />지금 열려 있는 곳만</h1>
+    <h1 class="mt-1 text-title font-bold">수도권 무인민원발급기,<br />지금 운영시간 바로 확인</h1>
     <p class="mt-2 text-body text-white/90">24시간, 주말·공휴일, 등기부등본, 가족관계증명서 조건으로 바로 걸러 보세요.</p>
   </section>
   {cards.map(({ s, regions }) => (

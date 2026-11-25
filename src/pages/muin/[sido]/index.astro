@@ -20,9 +20,9 @@ const abs = (p: string) => new URL(p, Astro.site).href;
 <BaseLayout title={title} crumbs={crumbs} tool="muin"
   description={sidoDescription(sido, totals)}
   jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) }))), itemList(regions.map((r) => ({ name: r.sigunguName, url: abs(regionPath(r.sido, r.sigungu)) })))]}>
-  <h1 class="text-title font-bold text-ink">{title}</h1>
+  <h1 class="text-title font-bold text-ink">{sidoName(sido)} 무인민원발급기 {total.toLocaleString('ko-KR')}곳</h1>
   <p class="card mt-3 text-body text-ink-2">
-    {sidoName(sido)}에는 무인민원발급기가 {total}곳 있습니다. 24시간 운영 {sum((r) => r.is24h)}곳, 주말 운영 {sum((r) => r.openWeekend)}곳, 평일 밤 10시 이후 운영 {sum((r) => r.openAfter22)}곳입니다. 시·군·구를 고르면 지금 운영 중인 곳과 발급 서류별로 찾아볼 수 있습니다.
+    {sidoName(sido)}에는 무인민원발급기가 {total.toLocaleString('ko-KR')}곳 있습니다. 24시간 운영 {sum((r) => r.is24h)}곳, 주말·공휴일 운영 {sum((r) => r.openWeekend)}곳, 평일 밤 10시 이후 운영 {sum((r) => r.openAfter22)}곳입니다. 시·군·구를 고르면 지금 운영시간인 곳과 발급 서류별로 찾아볼 수 있습니다.
   </p>
   <AdSlot name="A" />
   <ul class="grid gap-2 sm:grid-cols-2">

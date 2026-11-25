@@ -53,18 +53,25 @@ function apply(kstLabel: string) {
     g.hidden = !any;
   });
 
+  const filtered = state.chips.size > 0 || !!state.subgu || !!state.dong;
   document.querySelectorAll<HTMLButtonElement>('[data-chip]').forEach((b) => b.setAttribute('aria-pressed', String(state.chips.has(b.dataset.chip!))));
+  // 통계 타일도 같은 상태를 보여 준다('전체'는 아무 필터도 없을 때 눌린 상태)
+  document.querySelectorAll<HTMLButtonElement>('[data-stat-chip]').forEach((b) => {
+    const c = b.dataset.statChip!;
+    b.setAttribute('aria-pressed', String(c ? state.chips.has(c) : !filtered));
+  });
   const total = cards().length;
-  const parts = [`${kstLabel} 기준`, state.chips.size || state.subgu || state.dong ? `${total}곳 중 ${shown}곳` : `전체 ${total}곳`];
+  const parts = [`${kstLabel} 기준`, filtered ? `${total}곳 중 ${shown}곳` : `전체 ${total}곳`];
   if (unknownHidden) parts.push(`운영시간 미확인 ${unknownHidden}곳 제외`);
-  if (state.chips.has('registry') || state.chips.has('family')) parts.push('등기부·가족관계 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다');
   $('#f-count')!.textContent = parts.join(' · ');
+  const note = $('#f-note');
+  if (note) note.hidden = !(state.chips.has('registry') || state.chips.has('family'));
   $('#empty-state')!.hidden = shown > 0;
   writeQuery();
 }
 
 function kstText(m: number) {
-  return `현재 ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')} (KST)`;
+  return `지금 ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
 
 export function initFilters() {
@@ -80,13 +87,20 @@ export function initFilters() {
     state.chips.has(c) ? state.chips.delete(c) : state.chips.add(c);
     run();
   }));
+  const reset = () => {
+    state.chips.clear(); state.subgu = ''; state.dong = '';
+    if (subSel) subSel.value = '';
+    if (dongSel) dongSel.value = '';
+    run();
+  };
+  // 통계 타일: 해당 칩을 켜고 끈다(칩과 양방향 동기화). '전체'는 필터 초기화.
   document.querySelectorAll<HTMLButtonElement>('[data-stat-chip]').forEach((b) => b.addEventListener('click', () => {
     const c = b.dataset.statChip!;
-    state.chips.clear();
-    if (c) state.chips.add(c);
+    if (!c) return reset();
+    state.chips.has(c) ? state.chips.delete(c) : state.chips.add(c);
     run();
-    $('#filters')?.scrollIntoView({ behavior: 'smooth' });
   }));
+  document.getElementById('reset-filters')?.addEventListener('click', reset);
   subSel?.addEventListener('change', () => { state.subgu = subSel.value; run(); });
   dongSel?.addEventListener('change', () => { state.dong = dongSel.value; run(); });
   run();

@@ -13,6 +13,7 @@ import { regionFaq } from '../../../../lib/faq.ts';
 import { regionPageTitle, regionDescription, regionSummary } from '../../../../lib/copy.ts';
 import { faqPage, breadcrumb, itemList } from '../../../../lib/jsonld.ts';
 import { km } from '../../../../lib/format.ts';
+import { REPORT_FORM } from '../../../../config.ts';
 import GuideList from '../../../../components/GuideList.astro';
 import Icon from '../../../../components/Icon.astro';
 
@@ -40,6 +41,8 @@ let cardIndex = 0;
 const faq = regionFaq(sido, sigungu);
 const fallback = nearestOutside(sido, sigungu, () => true, 3);
 const neighbours = nearbyRegions(sido, sigungu);
+// 좌표가 없으면 nearbyRegions는 거리순이 아니라 같은 시·도의 다른 지역을 준다 → 제목도 그에 맞춘다.
+const byDistance = ks.some((k) => k.lat !== null && k.lng !== null);
 const site = Astro.site!;
 const abs = (p: string) => new URL(p, site).href;
 const title = regionPageTitle(st);
@@ -89,9 +92,11 @@ const crumbs = [
 
   <div id="empty-state" class="card mt-3" hidden>
     <p class="text-body font-semibold text-ink">조건에 맞는 곳이 {st.sigunguName}에 없습니다.</p>
+    <p class="mt-1 text-body text-ink-2">조건을 줄이거나, 다른 지역에서 찾아보세요.</p>
+    <button type="button" id="reset-filters" class="mt-3 flex h-9 items-center gap-1 rounded-xl bg-brand px-3.5 text-[14px] font-semibold text-white hover:brightness-95">필터 초기화</button>
     {fallback.length > 0 && (
       <>
-        <p class="mt-1 text-body text-ink-2">가까운 다른 지역의 무인민원발급기:</p>
+        <p class="mt-4 text-body text-ink-2">{byDistance ? '가까운 다른 지역의 무인민원발급기:' : '다른 지역의 무인민원발급기:'}</p>
         <ul class="mt-2 space-y-1 text-body">
           {fallback.map(({ k, m }) => (
             <li><a class="font-medium text-brand" href={kioskPath(k)}>{k.sigunguName} {k.name}</a> {m !== undefined && <span class="text-ink-3">약 {km(m)}</span>}</li>
@@ -109,8 +114,8 @@ const crumbs = [
   <section class="card mt-3 text-body text-ink-2">
     <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="info" size={18} class="text-brand" />이용 전 알아두세요</h2>
     <ul class="list-disc space-y-1 pl-5 marker:text-ink-3">
-      <li>주민등록 등·초본, 가족관계증명서처럼 본인 확인이 필요한 서류는 지문 인식으로 확인합니다.</li>
-      <li>등기부등본·가족관계등록부 같은 대법원 서류는 24시간 기기라도 평일 낮에만 발급되는 곳이 있습니다.</li>
+      <li>주민등록 등·초본, 가족관계증명서처럼 본인 확인이 필요한 서류는 주민등록증을 만들 때 등록한 지문으로 확인합니다.</li>
+      <li>등기부등본·가족관계증명서 같은 법원 발급 서류는 24시간 기기라도 평일 낮에만 발급되는 곳이 있습니다.</li>
       <li>수수료는 서류마다 다르고 현금만 받는 기기가 있으니 현금을 준비하면 안전합니다.</li>
       <li>시설 휴관·기기 점검 시간에는 이용할 수 없습니다.</li>
     </ul>
@@ -122,7 +127,7 @@ const crumbs = [
 
   {neighbours.length > 0 && (
     <section class="mt-10">
-      <h2 class="mb-3 text-h2 font-bold text-ink">가까운 지역</h2>
+      <h2 class="mb-3 text-h2 font-bold text-ink">{byDistance ? '가까운 지역' : `${sidoShort(sido)}의 다른 지역`}</h2>
       <div class="flex flex-wrap gap-2">
         {neighbours.map((n) => (
           <a href={regionPath(n.sido, n.sigungu)} class="flex h-9 items-center rounded-full bg-card px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">
@@ -133,7 +138,7 @@ const crumbs = [
     </section>
   )}
 
-  <p class="mt-8 px-1 text-cap text-ink-3">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>
+  {REPORT_FORM.formId && <p class="mt-8 px-1 text-cap text-ink-3">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>}
   <GuideList limit={4} />
 </BaseLayout>
 
