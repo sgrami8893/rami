@@ -42,6 +42,8 @@
 html { -webkit-text-size-adjust: 100%; }
 body { word-break: keep-all; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; border-radius: 8px; }
+/* 검색 입력창은 감싸는 상자가 focus-within 링을 그리므로 입력창 자체 외곽선은 끈다(이중 포커스 방지) */
+input[type="search"]:focus-visible { outline: none; }
 .scrollbar-none { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
