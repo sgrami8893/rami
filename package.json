@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "update-data": "node scripts/build-data.ts",
     "mock-data": "node scripts/mock-data.ts",
+    "fetch-parking": "node --env-file-if-exists=.env scripts/fetch-parking.ts",
     "test": "node --test scripts/test/*.test.ts"
   },
   "dependencies": {

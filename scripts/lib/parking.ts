@@ -72,7 +72,8 @@ export const inCapitalArea = (lat: number, lng: number) => lat >= 36.8 && lat <=
 
 export function normalizeParking(row: Record<string, string>): ParkingLot | null {
   const g = (k: keyof typeof FIELD) => (row[FIELD[k]] ?? '').trim();
-  const region = resolveRegion(g('road'), g('jibun'));
+  // 도로명주소가 빈 행이 많아서(실제 응답 확인) 지번주소로도 지역을 찾는다
+  const region = resolveRegion(g('road') || g('jibun'), g('jibun'));
   if (!region || !g('name')) return null;
   const flags: ParkingLot['flags'] = [];
   const wd = dayHours(g('wdOpen'), g('wdClose')), sat = dayHours(g('satOpen'), g('satClose')), hol = dayHours(g('holOpen'), g('holClose'));
@@ -80,6 +81,8 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
   const amounts = { baseMin: num(g('baseMin')), baseFee: num(g('baseFee')), unitMin: num(g('unitMin')), unitFee: num(g('unitFee')), dayPass: num(g('dayPass')), monthly: num(g('monthly')) };
   const fee = classifyFee(g('feeInfo'), [amounts.baseFee, amounts.unitFee, amounts.dayPass, amounts.monthly]);
   if (fee.conflict) flags.push('feeConflict');
+  // 실제 응답(2026-11-25)에 '무료'인데 basicTime=30 같은 의미 없는 값이 있어서, 무료로 확정되면 요금 숫자는 버린다
+  if (fee.type === 'free') for (const k of Object.keys(amounts) as (keyof typeof amounts)[]) amounts[k] = null;
   let lat = num(g('lat')), lng = num(g('lng'));
   if (lat !== null && lng !== null && !inCapitalArea(lat, lng)) { flags.push('coordOutOfRange'); lat = lng = null; }
   if (lat === null || lng === null) lat = lng = null;
@@ -93,7 +96,7 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
     lotType: type.includes('노상') ? 'onStreet' : type.includes('노외') ? 'offStreet' : type.includes('부설') ? 'attached' : 'unknown',
     sido: region.sido, sigungu: region.sigungu, sigunguName: region.sigunguName,
     roadAddress: g('road'), jibunAddress: g('jibun'), lat, lng,
-    spaces: num(g('spaces')),
+    spaces: num(g('spaces')) || null, // 0은 '구획 수 미상'으로 본다(실제 응답에 0이 많음)
     hours: { weekday: wd.h, sat: sat.h, holiday: hol.h },
     fee: { type: fee.type, ...amounts },
     dayPassHours: g('dayPassHours'), days: g('days'), grade: g('grade'), oddEven: g('oddEven'),

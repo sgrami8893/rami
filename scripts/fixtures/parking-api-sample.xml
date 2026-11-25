@@ -1,0 +1,86 @@
+<response>
+<script/>
+<header>
+<resultCode>00</resultCode>
+<resultMsg>NORMAL SERVICE.</resultMsg>
+</header>
+<body>
+<items>
+<item>
+<prkplceNo>236-2-000066</prkplceNo>
+<prkplceNm>하송우사거리 쌈지주차장</prkplceNm>
+<prkplceSe>공영</prkplceSe>
+<prkplceType>노외</prkplceType>
+<rdnmadr/>
+<lnmadr>경기도 포천시 소흘읍 송우리 76-24</lnmadr>
+<prkcmprt>18</prkcmprt>
+<feedingSe>1</feedingSe>
+<enforceSe>미시행</enforceSe>
+<operDay>평일+토요일+공휴일</operDay>
+<weekdayOperOpenHhmm>00:00</weekdayOperOpenHhmm>
+<weekdayOperColseHhmm>23:59</weekdayOperColseHhmm>
+<satOperOperOpenHhmm>00:00</satOperOperOpenHhmm>
+<satOperCloseHhmm>23:59</satOperCloseHhmm>
+<holidayOperOpenHhmm>00:00</holidayOperOpenHhmm>
+<holidayCloseOpenHhmm>23:59</holidayCloseOpenHhmm>
+<parkingchrgeInfo>무료</parkingchrgeInfo>
+<basicTime>30</basicTime>
+<basicCharge/>
+<addUnitTime/>
+<addUnitCharge/>
+<dayCmmtktAdjTime/>
+<dayCmmtkt/>
+<monthCmmtkt/>
+<metpay/>
+<spcmnt/>
+<institutionNm>경기도 포천시청</institutionNm>
+<phoneNumber>031-538-3464</phoneNumber>
+<latitude>37.836159253</latitude>
+<longitude>127.153839</longitude>
+<pwdbsPpkZoneYn/>
+<referenceDate>2026-04-20</referenceDate>
+<insttCode>5600000</insttCode>
+<insttNm>경기도 포천시</insttNm>
+</item>
+<item>
+<prkplceNo>236-2-000085</prkplceNo>
+<prkplceNm>탄동리 공영주차장</prkplceNm>
+<prkplceSe>공영</prkplceSe>
+<prkplceType>노외</prkplceType>
+<rdnmadr>경기도 포천시 관인면 관인로 14</rdnmadr>
+<lnmadr/>
+<prkcmprt>0</prkcmprt>
+<feedingSe>1</feedingSe>
+<enforceSe>미시행</enforceSe>
+<operDay>평일+토요일+공휴일</operDay>
+<weekdayOperOpenHhmm>00:00</weekdayOperOpenHhmm>
+<weekdayOperColseHhmm>23:59</weekdayOperColseHhmm>
+<satOperOperOpenHhmm>00:00</satOperOperOpenHhmm>
+<satOperCloseHhmm>23:59</satOperCloseHhmm>
+<holidayOperOpenHhmm>00:00</holidayOperOpenHhmm>
+<holidayCloseOpenHhmm>23:59</holidayCloseOpenHhmm>
+<parkingchrgeInfo>무료</parkingchrgeInfo>
+<basicTime>30</basicTime>
+<basicCharge/>
+<addUnitTime/>
+<addUnitCharge/>
+<dayCmmtktAdjTime/>
+<dayCmmtkt/>
+<monthCmmtkt/>
+<metpay/>
+<spcmnt/>
+<institutionNm>경기도 포천시청</institutionNm>
+<phoneNumber>031-538-3464</phoneNumber>
+<latitude>38.1577319656</latitude>
+<longitude>127.2507110908</longitude>
+<pwdbsPpkZoneYn/>
+<referenceDate>2026-04-20</referenceDate>
+<insttCode>5600000</insttCode>
+<insttNm>경기도 포천시</insttNm>
+</item>
+</items>
+<numOfRows>2</numOfRows>
+<pageNo>1</pageNo>
+<totalCount>19012</totalCount>
+</body>
+</response>
