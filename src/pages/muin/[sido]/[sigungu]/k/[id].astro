@@ -152,7 +152,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
       </details>
     )}
     {unavailable.length > 0 && <p class="mt-3 text-cap text-ink-3">발급 안 됨 또는 정보 없음: {unavailable.map((d) => DOC_LABELS[d]).join(', ')}</p>}
-    {k.docCount ? <p class="mt-1 text-cap text-ink-3">세부 종류로 나누면 이 기기에서 발급할 수 있는 서류는 {k.docCount}종입니다(원천 데이터 기준).</p> : null}
+    {k.docCount ? <p class="mt-1 text-cap text-ink-3">세부 종류로 나누면 이 기기에서 발급할 수 있는 서류는 {k.docCount}종이에요(원천 데이터 기준).</p> : null}
     <!-- 서류별 필터 링크: 같은 시·군·구 목록을 해당 서류 필터가 켜진 상태로 연다 -->
     <div class="mt-3 divide-y divide-line border-t border-line">
       {regCount > 0 && <a href={`${regionHref}?f=registry`} class="flex min-h-12 items-center justify-between gap-2 text-body font-semibold text-ink hover:text-brand">{k.sigunguName}에서 등기부등본 발급 기기 {regCount}곳 보기<Icon name="chevron-right" size={20} class="text-ink-3" /></a>}
@@ -186,7 +186,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
   <div class={BAND} aria-hidden="true"></div>
   <section class="pt-7">
     <h2 class="text-h2 font-bold text-ink">{altTitle}</h2>
-    <p class="mt-1 text-cap text-ink-3">이 기기가 운영시간 외이거나 필요한 서류가 없을 때 갈 수 있는 곳입니다.{byCoords && ' 가까운 순.'}</p>
+    <p class="mt-1 text-cap text-ink-3">이 기기가 운영시간 외이거나 필요한 서류가 없을 때 갈 수 있는 곳이에요.{byCoords && ' 가까운 순.'}</p>
     <div id="kiosk-list" class="mt-1">
       {alt.map(({ k: o }) => <KioskRow k={o} note={missing(o).length > 0 ? `이곳에서 추가로 발급: ${missing(o).map(docLabel).join(', ')}` : undefined} />)}
     </div>

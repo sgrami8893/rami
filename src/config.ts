@@ -9,7 +9,7 @@ export const PROD_URL = 'https://dongnekokkok.kr';
 export const SITE_URL = (globalThis.process?.env?.SITE_URL || PROD_URL).replace(/\/$/, '');
 /** 정식 도메인이 아닌 주소(*.pages.dev 등)로 빌드하면 검색엔진 수집을 막는다(임시 주소 색인·중복 방지). */
 export const NOINDEX_ALL = new URL(SITE_URL).hostname !== new URL(PROD_URL).hostname;
-export const SITE_DESC = '서울·경기·인천 무인민원발급기 2,100여 곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스입니다.';
+export const SITE_DESC = '서울·경기·인천 무인민원발급기 2,100여 곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스예요.';
 
 /**
  * 허브(/)에 노출할 도구. 도구마다 독립 하위 폴더 + 독립 사이트맵(sitemap-<slug>-0.xml).

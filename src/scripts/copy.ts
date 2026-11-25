@@ -22,10 +22,10 @@ export function initCopy(root: ParentNode = document) {
     try {
       await navigator.clipboard.writeText(btn.dataset.copy ?? '');
       msg = '복사됨';
-      announce('주소를 복사했습니다.');
+      announce('주소를 복사했어요.');
     } catch {
       msg = '복사 실패';
-      announce('주소를 복사하지 못했습니다.');
+      announce('주소를 복사하지 못했어요.');
     }
     if (label) { label.textContent = msg; setTimeout(() => { label.textContent = '주소 복사'; }, 1500); }
   });

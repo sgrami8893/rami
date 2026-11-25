@@ -1,0 +1,10 @@
+---
+import ConditionHub from '../../../../components/ConditionHub.astro';
+import { kiosks, SIDO_ORDER, type SidoSlug } from '../../../../lib/data.ts';
+import { hubStats } from '../../../../lib/hubs.ts';
+
+export function getStaticPaths() {
+  return SIDO_ORDER.filter((s) => hubStats(kiosks, s, 'weekend').count > 0).map((sido) => ({ params: { sido } }));
+}
+---
+<ConditionHub sido={Astro.params.sido as SidoSlug} cond="weekend" />

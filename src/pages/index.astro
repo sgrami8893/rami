@@ -30,7 +30,7 @@ const muinStats = [
 ];
 const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: `${SITE_URL}/` }];
 ---
-<BaseLayout title={`${SITE_NAME} | 우리 동네 무인민원발급기 운영시간·위치 찾기`} description={`서울·경기·인천 무인민원발급기 ${kiosks.length.toLocaleString('ko-KR')}곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스입니다.`} jsonld={jsonld} sidebar canvas="white">
+<BaseLayout title={`${SITE_NAME} | 우리 동네 무인민원발급기 운영시간·위치 찾기`} description={`서울·경기·인천 무인민원발급기 ${kiosks.length.toLocaleString('ko-KR')}곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스예요.`} jsonld={jsonld} sidebar canvas="white">
   <section id="search" class="scroll-mt-16 pt-2 pb-7">
     <h1 class="text-[28px] font-bold leading-[36px] tracking-tight text-ink">우리 동네 무인민원발급기,<br class="sm:hidden" /> 지금 운영시간 바로 확인</h1>
     <form id="region-search" action="/muin/" class="mt-5" role="search" onsubmit="return false">
@@ -54,7 +54,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
           </li>
         ))}
       </ul>
-      <p id="region-empty" class="mt-2 px-1 text-cap text-ink-3" hidden>일치하는 지역이 없습니다. 현재 서울·경기·인천만 지원합니다. 시·군·구 이름(예: 분당 → 성남시)이나 동네 이름(예: 일산, 송도)으로 찾아 주세요.</p>
+      <p id="region-empty" class="mt-2 px-1 text-cap text-ink-3" hidden>일치하는 지역이 없어요. 현재 서울·경기·인천만 지원해요. 시·군·구 이름(예: 분당 → 성남시)이나 동네 이름(예: 일산, 송도)으로 찾아 주세요.</p>
     </details>
   </section>
 
@@ -78,7 +78,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
         )}
       </a>
     ))}
-    <p class="px-1 text-[12px] text-ink-3">정부·지자체 공식 서비스가 아니며, 공공데이터를 정리해 보여 줍니다.</p>
+    <p class="px-1 text-[12px] text-ink-3">정부·지자체 공식 서비스가 아니며, 공공데이터를 정리해 보여 줘요.</p>
   </section>
 
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>

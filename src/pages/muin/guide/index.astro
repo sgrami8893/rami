@@ -6,10 +6,10 @@ import { breadcrumb, itemList } from '../../../lib/jsonld.ts';
 const crumbs = [...MUIN_CRUMBS, { name: '이용 가이드', href: GUIDE_BASE }];
 const abs = (p: string) => new URL(p, Astro.site).href;
 ---
-<BaseLayout tool="muin" title="무인민원발급기 이용 가이드 | 발급 시간·수수료·지문 오류" description="무인민원발급기에서 등기부등본·가족관계증명서 발급 시간, 수수료와 결제 수단, 지문 인식 오류 해결, 24시간·주말 기기 찾기, 장애인 편의 기능을 정리했습니다." crumbs={crumbs}
+<BaseLayout tool="muin" title="무인민원발급기 이용 가이드 | 발급 시간·수수료·지문 오류" description="무인민원발급기에서 등기부등본·가족관계증명서 발급 시간, 수수료와 결제 수단, 지문 인식 오류 해결, 24시간·주말 기기 찾기, 장애인 편의 기능을 정리했어요." crumbs={crumbs}
   jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) }))), itemList(GUIDES.map((g) => ({ name: g.title, url: abs(guidePath(g)) })))]}>
   <h1 class="text-title font-bold text-ink">무인민원발급기 이용 가이드</h1>
-  <p class="mt-1 text-body text-ink-2">방문 전에 알아 두면 헛걸음을 줄일 수 있는 내용을 공식 안내와 공공데이터를 바탕으로 정리했습니다.</p>
+  <p class="mt-1 text-body text-ink-2">방문 전에 알아 두면 헛걸음을 줄일 수 있는 내용을 공식 안내와 공공데이터를 바탕으로 정리했어요.</p>
   <ul class="mt-3 divide-y divide-line">
     {GUIDES.map((g) => (
       <li><a href={guidePath(g)} class="block py-5 hover:[&>h2]:text-brand">
