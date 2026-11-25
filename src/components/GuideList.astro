@@ -9,7 +9,7 @@ const list = limit ? GUIDES.slice(0, limit) : GUIDES;
     <h2 class="text-h2 font-bold text-ink">{title}</h2>
     <a href={GUIDE_BASE} class="text-cap font-semibold text-brand">가이드 전체 보기</a>
   </div>
-  <ul class="grid gap-2 sm:grid-cols-2">
+  <ul class="grid gap-2 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
     {list.map((g) => (
       <li><a href={guidePath(g)} class="card block h-full hover:ring-2 hover:ring-brand/20">
         <p class="text-body font-semibold text-ink">{g.title}</p>
