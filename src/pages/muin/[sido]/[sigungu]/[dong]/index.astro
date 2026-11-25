@@ -1,0 +1,88 @@
+---
+// 동(읍·면·동) 페이지: 기기 5곳 이상인 동만 만든다(src/lib/dongs.ts DONG_RULE). 미달 동은 시·군·구 페이지의 동 소제목으로 안내.
+import BaseLayout from '../../../../../layouts/BaseLayout.astro';
+import KioskRow from '../../../../../components/KioskRow.astro';
+import FilterBar from '../../../../../components/FilterBar.astro';
+import StatCards from '../../../../../components/StatCards.astro';
+import GuideList from '../../../../../components/GuideList.astro';
+import { sidoName, sidoShort, regionPath, kioskPath, statsFor, MUIN_CRUMBS, type SidoSlug } from '../../../../../lib/data.ts';
+import { DONG_PAGES, dongPagesIn, dongPath, type DongPage } from '../../../../../lib/dongs.ts';
+import { breadcrumb, itemList } from '../../../../../lib/jsonld.ts';
+
+export function getStaticPaths() {
+  return DONG_PAGES.map((d) => ({ params: { sido: d.sido, sigungu: d.sigungu, dong: d.dong }, props: { d } }));
+}
+const { d } = Astro.props as { d: DongPage };
+const sido = d.sido as SidoSlug;
+const st = d.st;
+const parent = statsFor(sido, d.sigungu);
+const ks = d.kiosks;
+const place = `${d.sigunguName} ${d.dong}`;
+const title = `${place} 무인민원발급기 ${ks.length}곳 위치·운영시간${st.is24h ? ` (24시간 ${st.is24h}곳)` : ''}`;
+const description = `${sidoName(sido)} ${place} 무인민원발급기 ${ks.length}곳의 운영시간과 발급 서류 안내. 24시간 ${st.is24h}곳, 주말·공휴일 ${st.openWeekend}곳, 등기부등본 ${st.docs.registry ?? 0}곳, 가족관계증명서 ${st.docs.family ?? 0}곳이에요.`;
+const crumbs = [
+  ...MUIN_CRUMBS,
+  { name: sidoShort(sido), href: regionPath(sido) },
+  { name: d.sigunguName, href: regionPath(sido, d.sigungu) },
+  { name: d.dong, href: dongPath(sido, d.sigungu, d.dong) },
+];
+const site = Astro.site!;
+const abs = (p: string) => new URL(p, site).href;
+const others = dongPagesIn(sido, d.sigungu).filter((x) => x.dong !== d.dong);
+const summary = [
+  `${place}에는 무인민원발급기가 ${ks.length}곳 있어요(${d.sigunguName} 전체 ${parent.total}곳 중).`,
+  st.is24h ? `24시간 운영하는 곳은 ${st.is24h}곳이에요.` : `24시간 운영하는 곳은 없어요. 늦은 시간에는 ${d.sigunguName} 전체 목록에서 24시간 기기를 찾아보세요.`,
+  `주말·공휴일에 운영하는 곳은 ${st.openWeekend}곳이에요.`,
+  `등기부등본은 ${st.docs.registry ?? 0}곳, 가족관계증명서는 ${st.docs.family ?? 0}곳에서 발급해요.`,
+];
+---
+<BaseLayout tool="muin" canvas="white" title={title} description={description} crumbs={crumbs}
+  jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) }))), itemList(ks.map((k) => ({ name: k.name, url: abs(kioskPath(k)) })))]}>
+  <h1 class="text-title font-bold text-ink">{place} 무인민원발급기 {ks.length}곳</h1>
+  <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} · 데이터 기준일 {st.latestBaseDate ?? '미상'} · 주소의 법정동 기준이라 행정동(예: ○○1동)과 범위가 다를 수 있어요</p>
+  <StatCards st={st} />
+  <FilterBar dongs={[]} subGu={[]} />
+  <div id="kiosk-list" class="mt-2">
+    <section data-group={d.dong}>
+      <h2 class="sr-only">{place} 무인민원발급기 목록</h2>
+      <div>{ks.map((k) => <KioskRow k={k} />)}</div>
+    </section>
+  </div>
+  <div id="empty-state" class="py-6" hidden>
+    <p class="text-body font-semibold text-ink">조건에 맞는 곳이 {d.dong}에 없어요.</p>
+    <p class="mt-1 text-body text-ink-2"><a href={regionPath(sido, d.sigungu)} class="font-semibold text-brand">{d.sigunguName} 전체 {parent.total}곳</a>에서 찾아보세요.</p>
+    <button type="button" id="reset-filters" class="mt-3 flex min-h-11 items-center gap-1 rounded-xl bg-brand px-3.5 text-[length:calc(16px*var(--fs,1))] font-semibold text-white hover:brightness-95">필터 초기화</button>
+  </div>
+
+  <div class="mt-8"><div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div></div>
+  <section class="py-8 text-body text-ink-2">
+    <h2 class="mb-3 text-h2 font-bold text-ink">{place} 무인민원발급기 요약</h2>
+    <ul class="list-disc space-y-1.5 pl-5 marker:text-ink-3">{summary.map((t) => <li>{t}</li>)}</ul>
+    <p class="mt-3 text-cap text-ink-3">행정안전부 무인민원발급기 정보(데이터 기준일 {st.latestBaseDate ?? '미상'})를 집계했어요.</p>
+  </section>
+
+  <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+  <nav aria-labelledby="more-h" class="py-8">
+    <h2 id="more-h" class="mb-3 text-h2 font-bold text-ink">더 찾아보기</h2>
+    <a href={regionPath(sido, d.sigungu)} class="flex min-h-11 items-center justify-between rounded-xl bg-bg px-4 py-2 text-body font-semibold text-ink hover:text-brand">
+      <span>{d.sigunguName} 전체 {parent.total}곳 보기</span><span aria-hidden="true">›</span>
+    </a>
+    {others.length > 0 && (
+      <>
+        <p class="mt-4 text-cap font-semibold text-ink-3">{d.sigunguName}의 다른 동</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+          {others.map((o) => <a href={dongPath(sido, d.sigungu, o.dong)} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{o.dong}<span class="text-ink-3">{o.kiosks.length}</span></a>)}
+        </div>
+      </>
+    )}
+  </nav>
+  <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+  <GuideList flat limit={4} />
+</BaseLayout>
+
+<script>
+  import { initFilters } from '../../../../../scripts/filters.ts';
+  import { initCopy } from '../../../../../scripts/copy.ts';
+  initFilters();
+  initCopy();
+</script>

@@ -16,6 +16,7 @@ import { km } from '../../../../lib/format.ts';
 import { REPORT_FORM } from '../../../../config.ts';
 import GuideList from '../../../../components/GuideList.astro';
 import Icon from '../../../../components/Icon.astro';
+import { dongPage, dongPagesIn, dongPath } from '../../../../lib/dongs.ts';
 
 export function getStaticPaths() {
   return stats.map((s) => ({ params: { sido: s.sido, sigungu: s.sigungu } }));
@@ -35,6 +36,11 @@ const groups: Group[] = order
   .map((key) => ({ key, title: key, items: ks.filter((k) => groupKey(k) === key) }))
   .filter((g) => g.items.length);
 const dongs = Object.keys(st.byDong).sort((a, b) => a.localeCompare(b, 'ko'));
+// 동 바로가기: 동 페이지가 있으면 그 페이지로, 없으면(동별로 묶인 경우) 이 페이지의 동 소제목으로
+const dongLinks = dongs.map((d) => ({ d, n: st.byDong[d], page: dongPage(sido, sigungu, d) }))
+  .filter((x) => x.page || !subGu.length)
+  .map((x) => ({ ...x, href: x.page ? dongPath(sido, sigungu, x.d) : `#${encodeURIComponent(x.d)}` }));
+const dongPageCount = dongPagesIn(sido, sigungu).length;
 const AD_INFEED_AFTER = 3; // 인피드 광고: 3번째 카드 아래, 5곳 이상일 때만 (애드센스 설정 전에는 렌더 안 함)
 let cardIndex = 0;
 
@@ -71,12 +77,28 @@ const crumbs = [
   <StatCards st={st} />
 
   <FilterBar dongs={dongs} subGu={subGu} />
+  {dongLinks.length > 1 && (
+    <details class="mt-2">
+      <summary class="inline-flex min-h-11 cursor-pointer items-center text-cap font-semibold text-brand">동별 바로가기 ({dongLinks.length}개 동{dongPageCount > 0 && ` · 동 페이지 ${dongPageCount}개`})</summary>
+      <nav aria-label="동별 바로가기" class="mt-1 flex flex-wrap gap-2 pb-2">
+        {dongLinks.map((x) => (
+          <a href={x.href} class={`flex min-h-11 items-center gap-1 rounded-xl px-3 text-[length:calc(16px*var(--fs,1))] font-medium hover:text-brand ${x.page ? 'bg-brand-weak text-brand' : 'bg-bg text-ink-2'}`}>
+            {x.d}<span class="text-ink-3">{x.n}</span>
+          </a>
+        ))}
+      </nav>
+      {dongPageCount > 0 && <p class="pb-2 text-cap text-ink-3">파란 칩은 기기가 많은 동의 별도 페이지예요.</p>}
+    </details>
+  )}
 
   <!-- 행 사이 구분선 없음: 상하 18px 여백만. 동(구) 묶음 사이는 32px. -->
   <div id="kiosk-list" class="mt-2 space-y-8">
     {groups.map((g) => (
-      <section data-group={g.key} id={g.key}>
-        <h2 class="text-[length:calc(17px*var(--fs,1))] font-bold text-ink-2">{g.title} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
+      <section data-group={g.key} id={g.key} class="scroll-mt-32">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="text-[length:calc(17px*var(--fs,1))] font-bold text-ink-2">{g.key === '기타' ? '기타 지역' : g.title} 무인민원발급기 <span class="g-count font-medium text-ink-3">{g.items.length}곳</span></h2>
+          {!subGu.length && dongPage(sido, sigungu, g.key) && <a href={dongPath(sido, sigungu, g.key)} class="-my-2 flex min-h-11 shrink-0 items-center text-cap font-semibold text-brand hover:underline">{g.title}만 보기 ›</a>}
+        </div>
         <div>
           {g.items.map((k) => {
             cardIndex++;

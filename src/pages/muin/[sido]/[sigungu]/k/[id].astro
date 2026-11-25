@@ -1,4 +1,5 @@
 ---
+import { dongPage, dongPath } from '../../../../../lib/dongs.ts';
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import KioskRow from '../../../../../components/KioskRow.astro';
 import AdSlot from '../../../../../components/AdSlot.astro';
@@ -53,6 +54,7 @@ const crumbs = [
   ...MUIN_CRUMBS,
   { name: sidoShort(k.sido), href: regionPath(k.sido) },
   { name: k.sigunguName, href: regionPath(k.sido, k.sigungu) },
+  ...(dongPage(k.sido, k.sigungu, k.dong) ? [{ name: k.dong!, href: dongPath(k.sido, k.sigungu, k.dong!) }] : []),
   { name: k.name, href: kioskPath(k) },
 ];
 const rows: [string, keyof Kiosk['hours']][] = [['평일', 'weekday'], ['토요일', 'sat'], ['일요일', 'sun'], ['공휴일', 'holiday']];

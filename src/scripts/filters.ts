@@ -54,8 +54,10 @@ function apply(kstLabel: string) {
   }
   // Group headings hide when their group is empty.
   document.querySelectorAll<HTMLElement>('#kiosk-list [data-group]').forEach((g) => {
-    const any = [...g.querySelectorAll<HTMLElement>('.kiosk')].some((c) => !c.hidden);
-    g.hidden = !any;
+    const visible = [...g.querySelectorAll<HTMLElement>('.kiosk')].filter((c) => !c.hidden).length;
+    g.hidden = visible === 0;
+    const gc = g.querySelector('.g-count');
+    if (gc) gc.textContent = `${visible}곳`;
   });
 
   const filtered = state.chips.size > 0 || !!state.subgu || !!state.dong || !!norm(state.q);
