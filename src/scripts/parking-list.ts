@@ -37,6 +37,11 @@ export function initParkingList() {
       const show = (!on.has('free') || r.dataset.free === '1') && (!on.has('open') || r.dataset.open === '1');
       r.hidden = !show; if (show) n++;
     }
+    list.querySelectorAll<HTMLElement>('.lot-group').forEach((g) => {
+      const v = [...g.querySelectorAll<HTMLElement>('.lot')].filter((r) => !r.hidden).length;
+      g.hidden = v === 0;
+      const gc = g.querySelector('.g-count'); if (gc) gc.textContent = `${v}곳`;
+    });
     if (count) count.textContent = `${n}곳`;
     if (empty) empty.hidden = n > 0;
     if (announce && status) status.textContent = `조건에 맞는 주차장 ${n}곳`;
@@ -48,12 +53,30 @@ export function initParkingList() {
   }));
 
   // 정렬: 무료(0) → 요금 낮은 순 → 요금 정보 없음은 맨 뒤. 같은 값은 이름순.
+  const boxes = [...list.querySelectorAll<HTMLElement>('[data-lots]')];
+  boxes.forEach((box, i) => box.querySelectorAll<HTMLElement>('.lot').forEach((r) => (r.dataset.home = String(i))));
+  const flat = document.createElement('div');
+  flat.hidden = true; list.appendChild(flat);
   sorts.forEach((b) => b.addEventListener('click', () => {
     const by = b.dataset.sort;
     const v = (e: HTMLElement) => (e.dataset.fee2 === '' || e.dataset.fee2 === undefined ? Infinity : Number(e.dataset.fee2));
-    rows().sort((a, c) => (by === 'fee2' ? v(a) - v(c) : 0) || (a.dataset.name ?? '').localeCompare(c.dataset.name ?? '', 'ko')).forEach((r) => list.appendChild(r));
+    const byName = (a: HTMLElement, c: HTMLElement) => (a.dataset.name ?? '').localeCompare(c.dataset.name ?? '', 'ko');
+    if (boxes.length) {
+      // 동별 묶음이 있는 목록: 요금순이면 묶음을 풀어 한 줄로(시·군·구 전체 비교), 이름순이면 각 동 묶음으로 되돌린다.
+      // DOM 순서 자체를 바꾸므로 화면 순서와 키보드 순서가 같다.
+      if (by === 'fee2') {
+        rows().sort((a, c) => v(a) - v(c) || byName(a, c)).forEach((r) => flat.appendChild(r));
+        flat.hidden = false;
+      } else {
+        rows().sort(byName).forEach((r) => boxes[Number(r.dataset.home)].appendChild(r));
+        flat.hidden = true;
+      }
+    } else {
+      rows().sort((a, c) => (by === 'fee2' ? v(a) - v(c) : 0) || byName(a, c)).forEach((r) => list.appendChild(r));
+    }
+    apply();
     sorts.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    if (status) status.textContent = by === 'fee2' ? '2시간 요금 낮은 순으로 정렬했어요' : '이름순으로 정렬했어요';
+    if (status) status.textContent = by === 'fee2' ? (boxes.length ? '동 구분 없이 2시간 요금 낮은 순으로 정렬했어요' : '2시간 요금 낮은 순으로 정렬했어요') : (boxes.length ? '동별 이름순으로 되돌렸어요' : '이름순으로 정렬했어요');
   }));
 
   // 주소의 ?filter=free,open 으로 처음부터 켜기(무료 허브 → 시·군·구 링크 등)

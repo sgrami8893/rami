@@ -8,6 +8,8 @@ import MapPanel from '../../../../components/MapPanel.astro';
 import { SIDOS, sidoShort, parkingPath, regionsOf, regionIndexable, toPoint, IS_MOCK } from '../../../../lib/parking.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
 import { calcFee } from '../../../../../scripts/lib/parking-fee.ts';
+import { parkingDongs } from '../../../../../scripts/lib/parking.ts';
+import { lots as allLots } from '../../../../lib/parking.ts';
 export function getStaticPaths() {
   return SIDOS.flatMap((sido) => regionsOf(sido).map((r) => ({ params: { sido, sigungu: r.sigungu }, props: { r } })));
 }
@@ -17,6 +19,11 @@ const ls = [...r.lots].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 const twoh = ls.map((l) => calcFee(l, 120)).filter((r) => r.status === 'ok').map((r) => (r as { amount: number }).amount);
 const freeN = ls.filter((l) => l.fee.type === 'free').length;
 const w = (n: number) => `${n.toLocaleString('ko-KR')}원`;
+const dongPages = new Set(parkingDongs(allLots).filter((d) => d.sido === sido && d.sigungu === r.sigungu).map((d) => d.dong));
+const groupMap = new Map<string, typeof ls>();
+for (const l of ls) groupMap.set(l.dong ?? '기타', [...(groupMap.get(l.dong ?? '기타') ?? []), l]);
+const groups = [...groupMap].sort((a, b) => (a[0] === '기타' ? 1 : b[0] === '기타' ? -1 : b[1].length - a[1].length || a[0].localeCompare(b[0], 'ko')));
+const dpath = (d: string) => `${parkingPath(sido, r.sigungu)}${encodeURIComponent(d)}/`;
 const withCoords = ls.filter((l) => l.lat !== null && l.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }, { name: r.name, href: parkingPath(sido, r.sigungu) }];
 ---
@@ -41,7 +48,25 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   )}
   {freeN > 0 && <FreeNote class="mt-2" />}
   <LotFilters total={ls.length} />
-  <div id="lot-list" class="mt-1">{ls.map((l) => <LotRow l={l} />)}</div>
+  {groups.length > 1 && (
+    <details class="mt-2">
+      <summary class="inline-flex min-h-11 cursor-pointer items-center text-cap font-semibold text-brand">동별 바로가기 ({groups.length}개)</summary>
+      <nav aria-label="동별 바로가기" class="mt-1 flex flex-wrap gap-2 pb-2">
+        {groups.map(([d, g]) => <a href={dongPages.has(d) ? dpath(d) : `#${encodeURIComponent(d)}`} class={`flex min-h-11 items-center gap-1 rounded-xl px-3 text-[length:calc(16px*var(--fs,1))] font-medium hover:text-brand ${dongPages.has(d) ? 'bg-brand-weak text-brand' : 'bg-bg text-ink-2'}`}>{d}<span class="text-ink-3">{g.length}</span></a>)}
+      </nav>
+    </details>
+  )}
+  <div id="lot-list" class="mt-1 space-y-8">
+    {groups.map(([d, g]) => (
+      <section class="lot-group scroll-mt-20" id={d}>
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="text-[length:calc(17px*var(--fs,1))] font-bold text-ink-2">{d === '기타' ? '기타 지역' : d} 공영주차장 <span class="g-count font-medium text-ink-3">{g.length}곳</span></h2>
+          {dongPages.has(d) && <a href={dpath(d)} class="-my-2 flex min-h-11 shrink-0 items-center text-cap font-semibold text-brand hover:underline">{d}만 보기 ›</a>}
+        </div>
+        <div data-lots>{g.map((l) => <LotRow l={l} />)}</div>
+      </section>
+    ))}
+  </div>
 </BaseLayout>
 
 <script>

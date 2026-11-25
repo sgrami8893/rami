@@ -37,7 +37,7 @@ async function mount(panel: HTMLElement) {
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     maxClusterRadius: 50, // 44px 터치 영역보다 크게: 화면에서 50px 안에 붙은 핀은 묶어 터치 영역이 겹치지 않게
-    iconCreateFunction: (c) => L.divIcon({ className: 'map-hit', html: `<span class="map-cluster">${c.getChildCount()}</span>`, iconSize: [44, 44] }),
+    iconCreateFunction: (c) => L.divIcon({ className: 'map-hit', html: `<span class="map-cluster" aria-hidden="true">${c.getChildCount()}</span><span class="sr-only">${c.getChildCount()}곳 묶음, 눌러서 확대</span>`, iconSize: [44, 44] }),
   });
 
   const card = panel.querySelector<HTMLElement>('.map-card')!;
@@ -52,6 +52,7 @@ async function mount(panel: HTMLElement) {
 
   for (const p of points) {
     const m = L.marker([p.lat, p.lng], { icon: pin, title: p.name, keyboard: true, alt: p.name });
+    m.on('add', () => m.getElement()?.setAttribute('aria-label', p.name)); // 화면 낭독기용 이름(title만으로는 읽지 않는 경우가 있음)
     m.on('click', (e) => { L.DomEvent.stopPropagation(e); open(p); });
     cluster.addLayer(m);
   }

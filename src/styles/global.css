@@ -87,3 +87,6 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 :root[data-fs="l"] { --fs: 1.125; }
 :root[data-fs="xl"] { --fs: 1.25; }
 body { font-size: calc(16px * var(--fs)); }
+
+/* 지도 핀·클러스터 키보드 포커스 링(44px 터치 영역 바깥선) */
+.map-panel .map-hit:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; border-radius: 9999px; }

@@ -23,7 +23,7 @@ export type DayHours = [string, string] | '24h' | null;
 export interface ParkingLot {
   id: string; name: string;
   kind: 'public' | 'private' | 'unknown'; lotType: 'onStreet' | 'offStreet' | 'attached' | 'unknown';
-  sido: SidoSlug; sigungu: string; sigunguName: string;
+  sido: SidoSlug; sigungu: string; sigunguName: string; dong: string | null;
   roadAddress: string; jibunAddress: string;
   lat: number | null; lng: number | null;
   spaces: number | null;
@@ -94,7 +94,7 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
     name: g('name'),
     kind: kind.includes('공영') ? 'public' : kind.includes('민영') ? 'private' : 'unknown',
     lotType: type.includes('노상') ? 'onStreet' : type.includes('노외') ? 'offStreet' : type.includes('부설') ? 'attached' : 'unknown',
-    sido: region.sido, sigungu: region.sigungu, sigunguName: region.sigunguName,
+    sido: region.sido, sigungu: region.sigungu, sigunguName: region.sigunguName, dong: region.dong,
     roadAddress: g('road'), jibunAddress: g('jibun'), lat, lng,
     spaces: num(g('spaces')) || null, // 0은 '구획 수 미상'으로 본다(실제 응답에 0이 많음)
     hours: { weekday: wd.h, sat: sat.h, holiday: hol.h },
@@ -133,4 +133,15 @@ export function freeSigunguIndexable(lots: ParkingLot[]) {
 export function lotHours(l: Pick<ParkingLot, 'hours'>) {
   const conv = (h: DayHours) => (h === null ? undefined : h === '24h' ? (['00:00', '24:00'] as [string, string]) : h);
   return { weekday: conv(l.hours.weekday), sat: conv(l.hours.sat), sun: conv(l.hours.holiday), holiday: conv(l.hours.holiday) };
+}
+
+/** 동 페이지(주차장): 같은 동 5곳 이상 + 시·군·구의 85% 이하(무인민원발급기 동 페이지와 같은 기준) */
+export const PARKING_DONG_RULE = { min: 5, maxShare: 0.85 };
+export function parkingDongs(lots: ParkingLot[]) {
+  const by = new Map<string, ParkingLot[]>();
+  for (const l of lots) if (l.dong) { const k = `${l.sido}/${l.sigungu}/${l.dong}`; by.set(k, [...(by.get(k) ?? []), l]); }
+  const total = new Map<string, number>();
+  for (const l of lots) total.set(`${l.sido}/${l.sigungu}`, (total.get(`${l.sido}/${l.sigungu}`) ?? 0) + 1);
+  return [...by.values()].filter((ls) => ls.length >= PARKING_DONG_RULE.min && ls.length / (total.get(`${ls[0].sido}/${ls[0].sigungu}`) ?? 1) <= PARKING_DONG_RULE.maxShare)
+    .map((ls) => ({ sido: ls[0].sido, sigungu: ls[0].sigungu, sigunguName: ls[0].sigunguName, dong: ls[0].dong!, lots: ls }));
 }

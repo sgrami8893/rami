@@ -7,6 +7,8 @@ const areas = [
   ['경기도 수원시 팔달구 효원로', 37.27, 127.03], ['경기도 성남시 분당구 황새울로', 37.38, 127.12], ['경기도 고양시 일산동구 중앙로', 37.66, 126.77],
   ['인천광역시 남동구 인하로', 37.45, 126.70], ['인천광역시 연수구 컨벤시아대로', 37.39, 126.64],
 ] as const;
+// 동 구조 테스트용 법정동(앞 지역은 한 동에 5곳 이상이 생기게)
+const DONGS = [['역삼동', '역삼동', '삼성동'], ['망원동', '합정동'], ['상계동', '상계동', '중계동'], ['매산로1가'], ['정자동', '정자동', '서현동'], ['장항동'], ['구월동', '간석동'], ['송도동']];
 let s = 11; const r = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
 const rows: Record<string, string>[] = [];
 areas.forEach(([addr, lat, lng], ai) => {
@@ -16,7 +18,7 @@ areas.forEach(([addr, lat, lng], ai) => {
     rows.push({
       [FIELD.id]: `MOCK-${ai}-${i}`, [FIELD.name]: `테스트 공영주차장 ${ai + 1}-${i + 1}`,
       [FIELD.kind]: '공영', [FIELD.lotType]: ['노상', '노외', '부설'][i % 3],
-      [FIELD.road]: `${addr} ${10 + i}`, [FIELD.jibun]: '', [FIELD.spaces]: String(20 + Math.floor(r() * 200)),
+      [FIELD.road]: `${addr} ${10 + i}`, [FIELD.jibun]: `${addr.split(' ').slice(0, -1).join(' ')} ${DONGS[ai][i % DONGS[ai].length]} ${100 + i}`, [FIELD.spaces]: String(20 + Math.floor(r() * 200)),
       [FIELD.wdOpen]: i % 4 === 0 ? '00:00' : '09:00', [FIELD.wdClose]: i % 4 === 0 ? '24:00' : '18:00',
       [FIELD.satOpen]: '09:00', [FIELD.satClose]: '13:00', [FIELD.holOpen]: '', [FIELD.holClose]: '',
       [FIELD.feeInfo]: free ? '무료' : mixed ? '혼합' : '유료',
