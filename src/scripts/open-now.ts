@@ -82,3 +82,6 @@ export function refreshOpenState(root: ParentNode = document): KstNow {
 export function todayKey(now: KstNow = kstNow()): keyof Hours {
   return holidays.has(now.ymd) ? 'holiday' : now.dow === 0 ? 'sun' : now.dow === 6 ? 'sat' : 'weekday';
 }
+
+/** 지금(KST) 운영시간 안인지: true/false, 정보가 없으면 null */
+export const isOpenNow = (h: Hours, now: KstNow = kstNow()) => isOpenAt(h, now, holidays);

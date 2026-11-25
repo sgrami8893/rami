@@ -16,6 +16,12 @@ export function getStaticPaths() {
 }
 
 const { k } = Astro.props as { k: Kiosk };
+// '운영시간 외'일 때 보여 줄 같은 동 기기(브라우저가 지금 운영시간인 곳만 센다)와 서류별 필터 링크용 개수
+const regionHref = regionPath(k.sido, k.sigungu);
+const sameDong = k.dong ? kiosks.filter((o) => o.id !== k.id && o.sido === k.sido && o.sigungu === k.sigungu && o.dong === k.dong && o.hoursConfidence !== 'unknown') : [];
+const inRegion = kiosks.filter((o) => o.sido === k.sido && o.sigungu === k.sigungu);
+const regCount = inRegion.filter((o) => o.docs.includes('registry')).length;
+const famCount = inRegion.filter((o) => o.docs.includes('family')).length;
 const nearby = (k.nearby ?? []).map((n) => ({ k: byId.get(n.id)!, m: n.m })).filter((x) => x.k);
 // 대체 기기: 좌표가 있으면 반경 2km, 없으면 같은 동 → 같은 일반구(빌드 스크립트가 계산).
 // 대체 기기가 하나도 없으면 noindex, 대신 같은 시·군·구의 다른 기기 3곳(좌표가 있으면 가까운 순)을 보여 준다.
@@ -84,16 +90,22 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
       </button>
     </div>
 
+    <!-- 운영시간 외일 때만: 지금 운영시간인 같은 동 기기로 바로가기(없으면 같은 지역 필터) -->
+    <a id="alt-now" hidden href={`${regionHref}?f=open`} data-region={regionHref} data-dong={k.dong ?? ''} data-hours-list={JSON.stringify(sameDong.map((o) => o.hours))}
+      class="mt-4 flex min-h-12 items-center justify-between gap-2 rounded-xl bg-brand-weak px-4 py-3 text-[15px] font-semibold text-brand">
+      <span id="alt-now-text">같은 지역에서 지금 운영시간인 곳 찾기</span><Icon name="chevron-right" size={20} />
+    </a>
+
     <!-- PC: 본문 상단 버튼(모바일은 하단 고정 바). 테두리 없이 면 대비만. -->
     <div class="mt-5 hidden gap-2 lg:flex">
-      <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-brand text-body font-bold text-white hover:brightness-95"><Icon name="navigation" size={18} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}</a>
-      <a href={naverSearch(k.roadAddress, k.name)} target="_blank" rel="noopener noreferrer" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-bg text-body font-bold text-ink-2 hover:brightness-[0.97]"><Icon name="map" size={18} />네이버 지도</a>
+      <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-brand text-body font-bold text-white hover:brightness-95"><Icon name="direction-sign" size={20} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}</a>
+      <a href={naverSearch(k.roadAddress, k.name)} target="_blank" rel="noopener noreferrer" class="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-bg text-body font-bold text-ink-2 hover:brightness-[0.97]"><Icon name="map" size={20} />네이버 지도</a>
     </div>
   </div>
 
   <div class={BAND} aria-hidden="true"></div>
   <section class="py-7">
-    <h2 class="mb-2 text-h2 font-bold text-ink">운영시간</h2>
+    <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="clock" size={20} class="text-brand" />운영시간</h2>
     <!-- 오늘(KST·공휴일 반영)에 해당하는 줄은 스크립트가 연한 배경과 '오늘' 배지로 강조한다 -->
     <table class="-mx-2 w-[calc(100%+16px)] text-body">
       <tbody>
@@ -111,7 +123,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
 
   <div class={BAND} aria-hidden="true"></div>
   <section class="py-7">
-    <h2 class="mb-3 text-h2 font-bold text-ink">발급 가능 서류</h2>
+    <h2 class="mb-3 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="file-text" size={20} class="text-brand" />발급 가능 서류</h2>
     <ul class="flex flex-wrap gap-1.5">
       {docsHead.map((d) => <li class={chip}>{DOC_LABELS[d]}</li>)}
     </ul>
@@ -127,13 +139,18 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     )}
     {unavailable.length > 0 && <p class="mt-3 text-cap text-ink-3">발급 안 됨 또는 정보 없음: {unavailable.map((d) => DOC_LABELS[d]).join(', ')}</p>}
     {k.docCount ? <p class="mt-1 text-cap text-ink-3">세부 종류로 나누면 이 기기에서 발급할 수 있는 서류는 {k.docCount}종입니다(원천 데이터 기준).</p> : null}
+    <!-- 서류별 필터 링크: 같은 시·군·구 목록을 해당 서류 필터가 켜진 상태로 연다 -->
+    <div class="mt-3 divide-y divide-line border-t border-line">
+      {regCount > 0 && <a href={`${regionHref}?f=registry`} class="flex min-h-12 items-center justify-between gap-2 text-body font-semibold text-ink hover:text-brand">{k.sigunguName}에서 등기부등본 발급 기기 {regCount}곳 보기<Icon name="chevron-right" size={20} class="text-ink-3" /></a>}
+      {famCount > 0 && <a href={`${regionHref}?f=family`} class="flex min-h-12 items-center justify-between gap-2 text-body font-semibold text-ink hover:text-brand">{k.sigunguName}에서 가족관계증명서 발급 기기 {famCount}곳 보기<Icon name="chevron-right" size={20} class="text-ink-3" /></a>}
+    </div>
   </section>
 
   {(k.a11y?.length ?? 0) > 0 && (
     <>
       <div class={BAND} aria-hidden="true"></div>
       <section class="py-7">
-        <h2 class="mb-3 text-h2 font-bold text-ink">장애인 편의 기능</h2>
+        <h2 class="mb-3 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="accessibility" size={20} class="text-brand" />장애인 편의 기능</h2>
         <ul class="flex flex-wrap gap-1.5">
           {k.a11y!.map((a) => <li class={chip}>{a}</li>)}
         </ul>
@@ -171,17 +188,18 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
   <div slot="bottom" class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur">
     <div class="mx-auto flex max-w-2xl gap-2 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-[1.4] items-center justify-center gap-1.5 rounded-2xl bg-brand text-[16px] font-bold text-white hover:brightness-95">
-        <Icon name="navigation" size={18} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}
+        <Icon name="direction-sign" size={20} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}
       </a>
       <a href={naverSearch(k.roadAddress, k.name)} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-1 items-center justify-center gap-1.5 rounded-2xl bg-bg text-[16px] font-bold text-ink-2 hover:brightness-[0.97]">
-        <Icon name="map" size={18} />네이버 지도
+        <Icon name="map" size={20} />네이버 지도
       </a>
     </div>
   </div>
 </BaseLayout>
 
 <script>
-  import { refreshOpenState, todayKey } from '../../../../../scripts/open-now.ts';
+  import { refreshOpenState, todayKey, isOpenNow } from '../../../../../scripts/open-now.ts';
+  import type { Hours } from '../../../../../../scripts/lib/hours.ts';
   import { initCopy } from '../../../../../scripts/copy.ts';
   const STATUS = { open: ['운영시간 내', 'text-ok'], closed: ['운영시간 외', 'text-ink-2'], unknown: ['운영시간 확인 필요', 'text-warn'] } as const;
   const tick = () => {
@@ -190,6 +208,21 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     const [label, color] = STATUS[(self.dataset.open ?? 'unknown') as keyof typeof STATUS];
     document.getElementById('status-label')!.textContent = label;
     document.getElementById('status')!.className = `truncate text-[22px] font-bold leading-[1.45] ${color}`;
+    // 운영시간 외: 같은 동에서 지금 운영시간인 기기 수를 세어 바로가기 문구를 정한다(값은 textContent·setAttribute로만 씀)
+    const alt = document.getElementById('alt-now') as HTMLAnchorElement | null;
+    if (alt) {
+      const closed = self.dataset.open === 'closed';
+      alt.hidden = !closed;
+      if (closed) {
+        let list: Hours[] = [];
+        try { list = JSON.parse(alt.dataset.hoursList || '[]'); } catch { /* 빈 목록으로 처리 */ }
+        const n = list.filter((h) => isOpenNow(h, now) === true).length;
+        const dong = alt.dataset.dong ?? '';
+        const region = alt.dataset.region ?? '';
+        alt.setAttribute('href', n > 0 && dong ? `${region}?f=open&dong=${encodeURIComponent(dong)}` : `${region}?f=open`);
+        document.getElementById('alt-now-text')!.textContent = n > 0 && dong ? `지금 운영시간인 ${dong} 기기 ${n}곳 보기` : '같은 지역에서 지금 운영시간인 곳 찾기';
+      }
+    }
     const key = todayKey(now);
     document.querySelectorAll<HTMLElement>('tr[data-hkey]').forEach((tr) => {
       const on = tr.dataset.hkey === key;

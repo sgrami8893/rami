@@ -33,11 +33,12 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
 <BaseLayout title={`${SITE_NAME} | 우리 동네 무인민원발급기 운영시간·위치 찾기`} description={`서울·경기·인천 무인민원발급기 ${kiosks.length.toLocaleString('ko-KR')}곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스입니다.`} jsonld={jsonld} sidebar canvas="white">
   <section class="pt-2 pb-7">
     <h1 class="text-[28px] font-bold leading-[36px] tracking-tight text-ink">우리 동네 무인민원발급기,<br class="sm:hidden" /> 지금 운영시간 바로 확인</h1>
-    <form id="region-search" action="/muin/" class="mt-5" role="search" onsubmit="return false">
+    <form id="search" action="/muin/" class="mt-5 scroll-mt-20" role="search" onsubmit="return false">
       <label for="q" class="sr-only">시·군·구 검색</label>
       <div class="flex h-[52px] items-center gap-2 rounded-[14px] bg-bg px-4 focus-within:ring-2 focus-within:ring-brand">
         <input id="q" type="search" autocomplete="off" placeholder="시·군·구 이름으로 검색 (예: 강남구, 안양시)"
-          class="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-3" />
+          class="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden" />
+        <button type="button" id="q-clear" class="flex h-8 w-8 items-center justify-center rounded-lg text-ink-3 hover:text-ink" aria-label="검색어 지우기" hidden><Icon name="x" size={20} /></button>
         <Icon name="search" size={20} class="text-ink-3" />
       </div>
     </form>
@@ -91,7 +92,14 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
   const items = [...document.querySelectorAll<HTMLLIElement>('#region-list li')];
   const empty = document.getElementById('region-empty');
   const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+  const clear = document.getElementById('q-clear');
+  // 헤더의 검색 버튼(/#search)으로 들어오면 검색창에 바로 포커스
+  const focusIfHash = () => { if (location.hash === '#search') q?.focus(); };
+  focusIfHash();
+  addEventListener('hashchange', focusIfHash);
+  clear?.addEventListener('click', () => { if (!q) return; q.value = ''; q.dispatchEvent(new Event('input')); q.focus(); });
   q?.addEventListener('input', () => {
+    if (clear) clear.hidden = !q.value;
     const v = norm(q.value);
     let n = 0;
     for (const li of items) { const ok = !v || norm(li.dataset.key ?? '').includes(v); li.hidden = !ok; if (ok) n++; }

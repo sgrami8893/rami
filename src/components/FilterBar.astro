@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 // Markup only; behaviour lives in src/scripts/filters.ts. Without JS the full list stays visible.
 interface Props { dongs: string[]; subGu: string[] }
 const { dongs, subGu } = Astro.props;
@@ -7,7 +8,14 @@ const chips = [
 ];
 const sel = 'h-9 min-w-0 rounded-xl bg-bg px-3 text-[14px] text-ink-2';
 ---
-<div id="filters" class="sticky top-14 z-20 -mx-5 bg-card/95 px-5 pb-2 pt-3 backdrop-blur lg:mx-0 lg:px-0">
+<!-- 결과 내 검색: 기기명·상세위치·주소·동·일반구, 띄어쓰기 무시, 칩·구·동 필터와 AND -->
+  <div class="mt-4 flex h-11 items-center gap-2 rounded-xl bg-bg px-3.5 focus-within:ring-2 focus-within:ring-brand">
+    <Icon name="search" size={18} class="text-ink-3" />
+    <label for="f-q" class="sr-only">이 지역 결과 안에서 검색</label>
+    <input id="f-q" type="search" maxlength="40" autocomplete="off" placeholder="기기명·동·건물 이름으로 찾기" class="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden" />
+    <button type="button" id="f-q-clear" class="-mr-1.5 flex h-8 w-8 items-center justify-center rounded-lg text-ink-3 hover:text-ink" aria-label="검색어 지우기" hidden><Icon name="x" size={18} /></button>
+  </div>
+<div id="filters" class="sticky top-14 z-20 -mx-5 bg-card/95 px-5 pb-2 pt-2.5 backdrop-blur lg:mx-0 lg:px-0">
   <div class="scrollbar-none -mx-5 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0" role="group" aria-label="조건 필터">
     {chips.map(([key, label]) => (
       <button type="button" data-chip={key} aria-pressed="false"

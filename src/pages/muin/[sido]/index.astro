@@ -1,4 +1,5 @@
 ---
+import Icon from '../../../components/Icon.astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AdSlot from '../../../components/AdSlot.astro';
 import { SIDO_ORDER, regionsIn, sidoName, sidoShort, regionPath, subGuOf, MUIN_CRUMBS, type SidoSlug } from '../../../lib/data.ts';
@@ -25,19 +26,16 @@ const abs = (p: string) => new URL(p, Astro.site).href;
     {sidoName(sido)}에는 무인민원발급기가 {total.toLocaleString('ko-KR')}곳 있습니다. 24시간 운영 {sum((r) => r.is24h)}곳, 주말·공휴일 운영 {sum((r) => r.openWeekend)}곳, 평일 밤 10시 이후 운영 {sum((r) => r.openAfter22)}곳입니다. 시·군·구를 고르면 지금 운영시간인 곳과 발급 서류별로 찾아볼 수 있습니다.
   </p>
   <AdSlot name="A" />
-  <ul class="grid gap-2 sm:grid-cols-2">
+  <!-- 시·군·구 리스트: 행 56px 이상, 1px 구분선, PC 2열 -->
+  <ul class="mt-4 grid sm:grid-cols-2 sm:gap-x-8">
     {regions.map((r) => (
-      <li>
-        <a href={regionPath(r.sido, r.sigungu)} class="block rounded-2xl bg-bg p-4 hover:brightness-[0.98]">
-          <span class="flex items-center justify-between">
-            <span class="text-h2 font-bold text-ink">{r.sigunguName}{subGuOf(r.sido, r.sigungu).length > 0 && <span class="text-cap font-normal text-ink-3"> ({subGuOf(r.sido, r.sigungu).join('·')})</span>}</span>
-            <span class="text-cap font-semibold text-ink-2">{r.total}곳</span>
+      <li class="border-b border-line">
+        <a href={regionPath(r.sido, r.sigungu)} class="group flex min-h-14 items-center gap-3 py-3">
+          <span class="min-w-0 flex-1">
+            <span class="block text-[17px] font-semibold leading-snug text-ink group-hover:text-brand">{r.sigunguName}{subGuOf(r.sido, r.sigungu).length > 0 && <span class="text-cap font-normal text-ink-3"> ({subGuOf(r.sido, r.sigungu).join('·')})</span>}</span>
+            <span class="mt-0.5 block text-cap text-ink-3">24시간 {r.is24h}곳 · 주말·공휴일 {r.openWeekend}곳</span>
           </span>
-          <span class="mt-2 flex flex-wrap gap-1">
-            <span class="badge bg-info-bg text-info">24시간 {r.is24h}</span>
-            <span class="badge bg-ok-bg text-ok">주말 {r.openWeekend}</span>
-            <span class="badge bg-off-bg text-off">등기부 {r.docs.registry ?? 0}</span>
-          </span>
+          <span class="flex shrink-0 items-center gap-0.5 text-[14px] font-semibold text-ink-2">{r.total}곳<Icon name="chevron-right" size={18} class="text-ink-3" /></span>
         </a>
       </li>
     ))}

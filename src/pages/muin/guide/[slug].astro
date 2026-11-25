@@ -59,7 +59,7 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
   <AdSlot name="C" />
 
   <div class="band -mx-5 mt-8 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
-  <section class="pt-7">
+  <section class="pt-6">
     <h2 class="mb-1 text-h2 font-bold text-ink">다른 가이드</h2>
     <ul class="divide-y divide-line">
       {others.map((o) => <li><a href={guidePath(o)} class="flex items-center justify-between gap-2 py-4 text-body font-medium text-ink hover:text-brand">{o.title}<span class="text-ink-3">›</span></a></li>)}
