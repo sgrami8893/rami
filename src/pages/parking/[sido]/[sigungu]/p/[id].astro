@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
+import BottomActionBar from '../../../../../components/BottomActionBar.astro';
 import { lots, sidoShort, parkingPath, sigunguName, lotIndexable, FEE_LABEL, LOT_TYPE, hoursText, won, IS_MOCK, type ParkingLot } from '../../../../../lib/parking.ts';
 export function getStaticPaths() { return lots.map((l) => ({ params: { sido: l.sido, sigungu: l.sigungu, id: l.id }, props: { l } })); }
 const { l } = Astro.props as { l: ParkingLot };
@@ -38,4 +39,10 @@ const rows: [string, string][] = [
     <p class="mt-2">{l.agency || '정보 없음'}{l.phone && ` · ${l.phone}`}</p>
     <p class="mt-2 text-cap text-ink-3">데이터 기준일 {l.baseDate ?? '미상'} · 색인 판정: {lotIndexable(l) ? '색인 대상' : 'noindex'}</p>
   </section>
+  <BottomActionBar slot="bottom" name={l.name} address={l.roadAddress} lat={l.lat} lng={l.lng} label="길찾기·주소 복사" />
 </BaseLayout>
+
+<script>
+  import { initCopy } from '../../../../../scripts/copy.ts';
+  initCopy();
+</script>

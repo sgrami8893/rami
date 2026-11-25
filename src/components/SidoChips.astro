@@ -1,0 +1,15 @@
+---
+// 시·도 전환 칩 바(높이 44px). 헤더에서 옮겨 옴(2026-11-25 UI 검수 합의). 현재 시·도는 aria-current로 강조.
+import { SIDO_ORDER, regionsIn, sidoShort, regionPath, type SidoSlug } from '../lib/data.ts';
+interface Props { current?: SidoSlug; class?: string }
+const { current, class: cls = '' } = Astro.props;
+const items = SIDO_ORDER.map((s) => ({ s, n: regionsIn(s).reduce((a, r) => a + r.total, 0) })).filter((x) => x.n > 0);
+---
+<nav aria-label="시·도 선택" class={`flex gap-2 ${cls}`}>
+  {items.map(({ s, n }) => (
+    <a href={regionPath(s)} aria-current={current === s ? 'page' : undefined}
+      class="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl bg-bg px-3 text-[15px] font-semibold text-ink-2 hover:text-brand aria-[current=page]:bg-ink aria-[current=page]:text-white sm:flex-none sm:px-5">
+      {sidoShort(s)}<span class="text-[13px] font-medium">{n.toLocaleString('ko-KR')}</span>
+    </a>
+  ))}
+</nav>

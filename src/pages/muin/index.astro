@@ -3,11 +3,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SIDO_ORDER, regionsIn, sidoName, regionPath, kiosks, MUIN_CRUMBS } from '../../lib/data.ts';
 import { homeTitle, homeDescription } from '../../lib/copy.ts';
 import GuideList from '../../components/GuideList.astro';
+import SidoChips from '../../components/SidoChips.astro';
 import { breadcrumb } from '../../lib/jsonld.ts';
 const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) => x.regions.length);
 ---
 <BaseLayout title={homeTitle(kiosks.length)} description={homeDescription(kiosks.length)} crumbs={MUIN_CRUMBS} tool="muin"
   jsonld={[breadcrumb(MUIN_CRUMBS.map((c) => ({ name: c.name, url: new URL(c.href, Astro.site).href })))]}>
+  <SidoChips class="mb-4" />
   <section class="card mt-1 bg-brand text-white">
     <p class="text-cap font-semibold text-white">서울·경기·인천 {kiosks.length.toLocaleString('ko-KR')}곳</p>
     <h1 class="mt-1 text-title font-bold">수도권 무인민원발급기,<br />지금 운영시간 바로 확인</h1>

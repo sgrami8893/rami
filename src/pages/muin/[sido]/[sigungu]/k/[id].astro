@@ -7,6 +7,7 @@ import {
 } from '../../../../../lib/data.ts';
 import { fmtRange, hoursLine, sortDocs, docLabel, kakaoTo, kakaoSearch, naverSearch, reportUrl } from '../../../../../lib/format.ts';
 import Icon from '../../../../../components/Icon.astro';
+import BottomActionBar from '../../../../../components/BottomActionBar.astro';
 import { breadcrumb, place } from '../../../../../lib/jsonld.ts';
 import { kioskTitle, kioskDescription, kioskCheckpoints } from '../../../../../lib/copy.ts';
 import { DOC_LABELS, type DocCode } from '../../../../../../scripts/lib/docs.ts';
@@ -88,7 +89,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     <!-- 주소는 왼쪽에서 자유롭게 줄바꿈, 복사 버튼은 오른쪽 첫 줄에 고정 -->
     <div class="mt-1.5 flex items-start gap-3">
       <p class="min-w-0 flex-1 text-[14px] leading-6 text-ink-3">{k.roadAddress}</p>
-      <button type="button" data-copy={k.roadAddress} class="flex h-7 shrink-0 items-center gap-1 rounded-lg bg-bg px-2.5 text-[13px] font-semibold text-ink-2 hover:text-brand">
+      <button type="button" data-copy={k.roadAddress} class="-my-2 flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-bg px-3 text-[13px] font-semibold text-ink-2 hover:text-brand">
         <Icon name="copy" size={13} /><span>주소 복사</span>
       </button>
     </div>
@@ -199,18 +200,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     {report && <a href={report} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-cap text-ink-3"><Icon name="triangle-alert" size={14} />정보 오류 제보</a>}
   </div>
 
-  <!-- 하단 고정 길찾기 버튼(모바일): 푸터 뒤에 버튼 높이만큼 여백을 둬 마지막 내용이 가려지지 않게 한다 -->
-  <div slot="bottom" aria-hidden="true" class="h-[calc(96px+env(safe-area-inset-bottom))] lg:hidden"></div>
-  <div slot="bottom" role="region" aria-label="길찾기·주소 복사" class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur">
-    <div class="mx-auto flex max-w-2xl gap-2 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-      <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-[1.4] items-center justify-center gap-1.5 rounded-2xl bg-brand text-[16px] font-bold text-white hover:brightness-95">
-        <Icon name="direction-sign" size={20} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}
-      </a>
-      <a href={naverSearch(k.roadAddress, k.name)} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-1 items-center justify-center gap-1.5 rounded-2xl bg-bg text-[16px] font-bold text-ink-2 hover:brightness-[0.97]">
-        <Icon name="map" size={20} />네이버 지도
-      </a>
-    </div>
-  </div>
+  <BottomActionBar slot="bottom" name={k.name} address={k.roadAddress} lat={k.lat} lng={k.lng} />
 </BaseLayout>
 
 <script>

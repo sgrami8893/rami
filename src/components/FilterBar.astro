@@ -15,7 +15,8 @@ const sel = 'h-9 min-w-0 rounded-xl bg-bg px-3 text-[14px] text-ink-2';
     <input id="f-q" type="search" maxlength="40" autocomplete="off" placeholder="기기명·동·건물 이름으로 찾기" class="min-w-0 flex-1 bg-transparent text-body text-ink outline-none focus-visible:outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden" />
     <button type="button" id="f-q-clear" class="-mr-1.5 flex h-8 w-8 items-center justify-center rounded-lg text-ink-3 hover:text-ink" aria-label="검색어 지우기" hidden><Icon name="x" size={18} /></button>
   </div>
-<div id="filters" class="sticky top-14 z-20 -mx-5 bg-card/95 px-5 pb-2 pt-2.5 backdrop-blur lg:mx-0 lg:px-0">
+<!-- 스크롤하면 칩 줄만 고정(sticky). 구·동 선택과 결과 수 줄은 고정하지 않아 고정 높이가 칩 한 줄(약 56px)로 줄어든다 -->
+<div id="filters" class="sticky top-14 z-20 -mx-5 bg-card/95 px-5 pb-2.5 pt-2.5 backdrop-blur lg:mx-0 lg:px-0">
   <div class="scrollbar-none -mx-5 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0" role="group" aria-label="조건 필터">
     {chips.map(([key, label]) => (
       <button type="button" data-chip={key} aria-pressed="false"
@@ -24,6 +25,8 @@ const sel = 'h-9 min-w-0 rounded-xl bg-bg px-3 text-[14px] text-ink-2';
       </button>
     ))}
   </div>
+</div>
+<div>
   <!-- 구·동 선택과 결과 수(현재 시각 기준)를 한 줄에: 좁으면 결과 수만 다음 줄로 내려간다 -->
   <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
   {(subGu.length > 0 || dongs.length > 1) && (

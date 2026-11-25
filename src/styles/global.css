@@ -44,6 +44,8 @@ body { word-break: keep-all; padding-left: env(safe-area-inset-left); padding-ri
 :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; border-radius: 8px; }
 /* 검색 입력창은 감싸는 상자가 focus-within 링을 그리므로 입력창 자체 외곽선은 끈다(이중 포커스 방지) */
 input[type="search"]:focus-visible { outline: none; }
+/* 어두운 푸터 위에서는 밝은 파랑 링(#93C5FD, 대비 확보) */
+footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 .scrollbar-none { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
@@ -66,7 +68,13 @@ input[type="search"]:focus-visible { outline: none; }
 }
 
 /* MapPanel 핀·클러스터 (우리 토큰으로 그린 도형, 이미지 없음) */
-.map-pin { border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
-.map-cluster { display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgb(37 99 235 / 0.9); border: 3px solid #fff; color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
+/* 터치 영역: 투명 44px 래퍼(.map-hit) 안에 보이는 도형(핀 22px, 클러스터 40px) */
+.map-hit { display: flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; }
+.map-pin { width: 22px; height: 22px; border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
+.map-cluster { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: rgb(37 99 235 / 0.9); border: 3px solid #fff; color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
+.map-hit:focus-visible { outline: none; }
+.map-hit:focus-visible > span { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+/* 확대·축소 버튼 40px */
+.map-panel .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font-size: 22px; }
 .map-panel .leaflet-container { font-family: inherit; background: var(--color-bg); }
 .map-panel .leaflet-control-attribution { font-size: 11px; }

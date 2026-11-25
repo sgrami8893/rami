@@ -32,11 +32,12 @@ async function mount(panel: HTMLElement) {
   });
 
   // 핀·클러스터 모양은 우리 CSS(global.css .map-pin/.map-cluster)로 그린다(타사 아이콘 이미지 없음).
-  const pin = L.divIcon({ className: 'map-pin', iconSize: [22, 22], iconAnchor: [11, 11] });
+  // 보이는 핀은 22px, 누를 수 있는 영역은 44px(투명 래퍼)
+  const pin = L.divIcon({ className: 'map-hit', html: '<span class="map-pin"></span>', iconSize: [44, 44], iconAnchor: [22, 22] });
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
-    maxClusterRadius: 50,
-    iconCreateFunction: (c) => L.divIcon({ className: 'map-cluster', html: `<span>${c.getChildCount()}</span>`, iconSize: [40, 40] }),
+    maxClusterRadius: 50, // 44px 터치 영역보다 크게: 화면에서 50px 안에 붙은 핀은 묶어 터치 영역이 겹치지 않게
+    iconCreateFunction: (c) => L.divIcon({ className: 'map-hit', html: `<span class="map-cluster">${c.getChildCount()}</span>`, iconSize: [44, 44] }),
   });
 
   const card = panel.querySelector<HTMLElement>('.map-card')!;

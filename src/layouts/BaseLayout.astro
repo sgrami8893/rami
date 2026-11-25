@@ -37,6 +37,7 @@ const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t
   .map((s) => ({ ...DATA_SOURCES[s], date: s === 'muin' ? muinDate : '미상' }))
   .filter((s) => s.name);
 const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
+const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', waste: '대형폐기물', cert: '자격시험' };
 ---
 <!doctype html>
 <html lang="ko">
@@ -64,20 +65,13 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
       <div class={`mx-auto flex h-14 items-center justify-between px-4 ${frame}`}>
         <a href="/" class="flex items-center gap-1.5 text-[18px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
-        {tool === 'muin' ? (
-          <nav aria-label="주요 메뉴" class="flex items-center gap-4 text-[14px] font-medium text-ink-2">
-            <a href="/muin/" class="text-ink hover:text-brand">무인발급기</a>
-            <a href="/muin/seoul/" class="hover:text-brand">서울</a>
-            <a href="/muin/gyeonggi/" class="hover:text-brand">경기</a>
-            <a href="/muin/incheon/" class="hover:text-brand">인천</a>
-            <a href="/#search" class="-mr-2 flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
-          </nav>
-        ) : (
-          <nav aria-label="주요 메뉴" class="flex items-center gap-4 text-[14px] font-medium text-ink-2">
-            {TOOLS.filter((t) => t.status === 'live').map((t) => <a href={t.path} class="hover:text-brand">{t.name}</a>)}
-            <a href="/#search" class="-mr-2 flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
-          </nav>
-        )}
+        <!-- 헤더는 도구 카테고리만(2026-11-25 UI 검수 합의). 시·도 전환은 각 도구 본문의 칩 바에서 -->
+        <nav aria-label="주요 메뉴" class="flex items-center gap-4 text-[14px] font-medium text-ink-2">
+          {TOOLS.filter((t) => t.status === 'live').map((t) => (
+            <a href={t.path} class={tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
+          ))}
+          <a href="/#search" class="-mr-2 flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
+        </nav>
       </div>
     </header>
     <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
