@@ -1,0 +1,15 @@
+# Cloudflare Pages 보안 헤더 (정적 사이트 전체)
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Strict-Transport-Security: max-age=31536000
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  # CSP 1차: 애드센스·구글 스크립트를 막지 않도록 script-src/connect-src 는 잠그지 않고, 안전한 지시어만 건다.
+  # 애드센스 승인 후 광고가 안정되면 nonce 기반 strict CSP 를 Report-Only 로 먼저 시험한다.
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'; upgrade-insecure-requests
+
+# 빌드 산출물(파일명에 해시)은 오래 캐시
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable

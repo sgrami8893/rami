@@ -7,11 +7,17 @@ const cards = () => [...document.querySelectorAll<HTMLElement>('#kiosk-list .kio
 
 const state = { chips: new Set<string>(), subgu: '', dong: '' };
 
+// 보안: URL 쿼리는 화이트리스트만 통과시킨다. 칩은 고정 목록, 구·동은 페이지 select에 실제로 있는 값만.
+// 이 파일은 DOM에 값을 쓸 때 textContent·setAttribute만 쓰고 innerHTML을 쓰지 않는다.
+const CHIPS = new Set(['open', '24h', 'weekend', 'registry', 'family']);
+const optionValues = (sel: string) => new Set([...document.querySelectorAll<HTMLOptionElement>(`${sel} option`)].map((o) => o.value));
+
 function readQuery() {
   const q = new URLSearchParams(location.search);
-  (q.get('f') ?? '').split(',').filter(Boolean).forEach((c) => state.chips.add(c));
-  state.subgu = q.get('gu') ?? '';
-  state.dong = q.get('dong') ?? '';
+  (q.get('f') ?? '').split(',').filter((c) => CHIPS.has(c)).forEach((c) => state.chips.add(c));
+  const gu = q.get('gu') ?? '', dong = q.get('dong') ?? '';
+  state.subgu = optionValues('#f-subgu').has(gu) ? gu : '';
+  state.dong = optionValues('#f-dong').has(dong) ? dong : '';
 }
 
 function writeQuery() {

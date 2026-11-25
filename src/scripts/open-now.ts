@@ -39,7 +39,8 @@ export type OpenState = keyof typeof BADGE;
 export function refreshOpenState(root: ParentNode = document): KstNow {
   const now = kstNow();
   root.querySelectorAll<HTMLElement>('.kiosk').forEach((el) => {
-    const hours = JSON.parse(el.dataset.hours || '{}') as Hours;
+    let hours: Hours;
+    try { hours = JSON.parse(el.dataset.hours || '{}') as Hours; } catch { hours = {} as Hours; } // 깨진 값이면 '확인 필요'로 처리
     const r = el.dataset.conf === 'unknown' ? null : isOpenAt(hours, now, holidays);
     const state: OpenState = r === null ? 'unknown' : r ? 'open' : 'closed';
     el.dataset.open = state;

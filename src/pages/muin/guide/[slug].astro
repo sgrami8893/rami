@@ -12,6 +12,7 @@ export function getStaticPaths() {
 const { g } = Astro.props as { g: Guide };
 const abs = (p: string) => new URL(p, Astro.site).href;
 const crumbs = [...MUIN_CRUMBS, { name: '이용 가이드', href: GUIDE_BASE }, { name: g.title, href: guidePath(g) }];
+// set:html 은 직접 작성한 가이드 문장에만 쓴다(공공데이터 원문 텍스트는 넣지 않음: 숫자·고정 지역명만 보간).
 const blocks = g.blocks();
 const related = g.related().filter((r) => r.links.length);
 const others = GUIDES.filter((o) => o.slug !== g.slug);
@@ -49,7 +50,7 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
     <section class="mt-8 text-sm text-slate-600">
       <h2 class="mb-1 font-bold text-slate-800">출처</h2>
       <ul class="list-disc space-y-1 pl-5">
-        {g.sources.map((s) => <li><a href={s.url} target="_blank" rel="noopener" class="underline">{s.name}</a>{s.note && ` (${s.note})`}</li>)}
+        {g.sources.map((s) => <li><a href={s.url} target="_blank" rel="noopener noreferrer" class="underline">{s.name}</a>{s.note && ` (${s.note})`}</li>)}
       </ul>
       <p class="mt-3 text-xs text-slate-500">이 글은 공개된 공식 안내와 공공데이터를 정리한 일반 정보입니다. 수수료·발급 시간 등은 지자체와 시기에 따라 바뀔 수 있으니 최종 확인은 관리기관에 해 주세요.</p>
     </section>

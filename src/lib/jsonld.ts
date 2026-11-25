@@ -1,3 +1,11 @@
+/**
+ * <script type="application/ld+json"> 안에 넣을 JSON 문자열.
+ * 공공데이터 텍스트에 "</script>"나 "<!--"가 섞여도 스크립트 블록을 벗어나지 못하도록 < > & 와 줄 구분자를 유니코드 이스케이프한다.
+ * (JSON 파서에는 같은 문자열로 읽힘)
+ */
+export const safeJsonLd = (obj: unknown) =>
+  JSON.stringify(obj).replace(/[<>&\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
+
 import type { Faq } from './faq.ts';
 import type { Kiosk } from './data.ts';
 
