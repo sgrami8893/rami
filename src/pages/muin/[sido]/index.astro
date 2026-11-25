@@ -21,14 +21,14 @@ const abs = (p: string) => new URL(p, Astro.site).href;
   description={sidoDescription(sido, totals)}
   jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) }))), itemList(regions.map((r) => ({ name: r.sigunguName, url: abs(regionPath(r.sido, r.sigungu)) })))]}>
   <h1 class="text-title font-bold text-ink">{sidoName(sido)} 무인민원발급기 {total.toLocaleString('ko-KR')}곳</h1>
-  <p class="card mt-3 text-body text-ink-2">
+  <p class="mt-3 rounded-2xl bg-bg p-5 text-body text-ink-2">
     {sidoName(sido)}에는 무인민원발급기가 {total.toLocaleString('ko-KR')}곳 있습니다. 24시간 운영 {sum((r) => r.is24h)}곳, 주말·공휴일 운영 {sum((r) => r.openWeekend)}곳, 평일 밤 10시 이후 운영 {sum((r) => r.openAfter22)}곳입니다. 시·군·구를 고르면 지금 운영시간인 곳과 발급 서류별로 찾아볼 수 있습니다.
   </p>
   <AdSlot name="A" />
   <ul class="grid gap-2 sm:grid-cols-2">
     {regions.map((r) => (
       <li>
-        <a href={regionPath(r.sido, r.sigungu)} class="card block p-4 hover:ring-2 hover:ring-brand/20">
+        <a href={regionPath(r.sido, r.sigungu)} class="block rounded-2xl bg-bg p-4 hover:brightness-[0.98]">
           <span class="flex items-center justify-between">
             <span class="text-h2 font-bold text-ink">{r.sigunguName}{subGuOf(r.sido, r.sigungu).length > 0 && <span class="text-cap font-normal text-ink-3"> ({subGuOf(r.sido, r.sigungu).join('·')})</span>}</span>
             <span class="text-cap font-semibold text-ink-2">{r.total}곳</span>

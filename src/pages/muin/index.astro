@@ -15,14 +15,15 @@ const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) =
     <section class="mt-8">
       <h2 class="mb-3 flex items-baseline justify-between px-1">
         <a href={regionPath(s)} class="text-h2 font-bold text-ink hover:text-brand">{sidoName(s)}</a>
-        <span class="text-cap text-ink-3">{regions.reduce((a, r) => a + r.total, 0)}곳</span>
+        <span class="text-cap text-ink-3">{regions.reduce((a, r) => a + r.total, 0).toLocaleString('ko-KR')}곳</span>
       </h2>
-      <div class="card flex flex-wrap gap-2 p-4">
+      <div class="flex flex-wrap gap-2">
         {regions.map((r) => (
-          <a href={regionPath(r.sido, r.sigungu)} class="flex h-9 items-center rounded-full bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{r.sigunguName}<span class="ml-1 text-ink-3">{r.total}</span></a>
+          <a href={regionPath(r.sido, r.sigungu)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{r.sigunguName}<span class="ml-1 text-ink-3">{r.total}</span></a>
         ))}
       </div>
     </section>
   ))}
+  <div class="band -mx-5 mt-10 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
   <GuideList />
 </BaseLayout>

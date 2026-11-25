@@ -76,12 +76,13 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     {(k.locationDetail || k.placeType) && (
       <p class="mt-0.5 text-body text-ink-2">{[k.locationDetail, k.placeType].filter(Boolean).join(' · ')}</p>
     )}
-    <p class="mt-1.5 text-[14px] leading-6 text-ink-3">
-      {k.roadAddress}
-      <button type="button" data-copy={k.roadAddress} class="ml-1 inline-flex items-center gap-0.5 rounded-md px-1 align-baseline text-[13px] font-semibold text-brand hover:bg-brand-weak">
-        <Icon name="copy" size={13} class="self-center" /><span>주소 복사</span>
+    <!-- 주소는 왼쪽에서 자유롭게 줄바꿈, 복사 버튼은 오른쪽 첫 줄에 고정 -->
+    <div class="mt-1.5 flex items-start gap-3">
+      <p class="min-w-0 flex-1 text-[14px] leading-6 text-ink-3">{k.roadAddress}</p>
+      <button type="button" data-copy={k.roadAddress} class="flex h-7 shrink-0 items-center gap-1 rounded-lg bg-bg px-2.5 text-[13px] font-semibold text-ink-2 hover:text-brand">
+        <Icon name="copy" size={13} /><span>주소 복사</span>
       </button>
-    </p>
+    </div>
 
     <!-- PC: 본문 상단 버튼(모바일은 하단 고정 바). 테두리 없이 면 대비만. -->
     <div class="mt-5 hidden gap-2 lg:flex">
@@ -166,7 +167,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
   </div>
 
   <!-- 하단 고정 길찾기 버튼(모바일): 푸터 뒤에 버튼 높이만큼 여백을 둬 마지막 내용이 가려지지 않게 한다 -->
-  <div slot="bottom" aria-hidden="true" class="h-[calc(76px+env(safe-area-inset-bottom))] lg:hidden"></div>
+  <div slot="bottom" aria-hidden="true" class="h-[calc(96px+env(safe-area-inset-bottom))] lg:hidden"></div>
   <div slot="bottom" class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur">
     <div class="mx-auto flex max-w-2xl gap-2 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-[1.4] items-center justify-center gap-1.5 rounded-2xl bg-brand text-[16px] font-bold text-white hover:brightness-95">

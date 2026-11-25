@@ -27,7 +27,7 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
     <p class="mt-1 text-cap text-ink-3">작성 {g.published} · 최종 수정 {g.modified} · {SITE_NAME}</p>
     {blocks.map((b, i) => (
       <>
-        <section class="card mt-4">
+        <section class="border-t border-line py-6 first-of-type:mt-4">
           <h2 class="mb-1 text-h2 font-bold text-ink">{b.h2}</h2>
           {b.p?.map((t) => <p class="mt-2" set:html={t} />)}
           {b.ul && <ul class="mt-2 list-disc space-y-1 pl-5 marker:text-ink-3">{b.ul.map((t) => <li set:html={t} />)}</ul>}
@@ -37,17 +37,17 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
     ))}
 
     {related.map((r) => (
-      <section class="card mt-4">
+      <section class="border-t border-line py-6">
         <h2 class="mb-3 text-h2 font-bold text-ink">{r.title}</h2>
         <ul class="flex flex-wrap gap-2">
           {r.links.map((l) => (
-            <li><a href={l.href} class="flex h-9 items-center rounded-full bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{l.label}{l.meta && <span class="ml-1 text-ink-3">· {l.meta}</span>}</a></li>
+            <li><a href={l.href} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{l.label}{l.meta && <span class="ml-1 text-ink-3">· {l.meta}</span>}</a></li>
           ))}
         </ul>
       </section>
     ))}
 
-    <section class="mt-8 px-1 text-cap text-ink-3">
+    <section class="rounded-2xl bg-bg p-5 text-cap text-ink-3">
       <h2 class="mb-1 text-body font-bold text-ink-2">출처</h2>
       <ul class="list-disc space-y-1 pl-5">
         {g.sources.map((s) => <li><a href={s.url} target="_blank" rel="noopener noreferrer" class="underline">{s.name}</a>{s.note && ` (${s.note})`}</li>)}
@@ -58,10 +58,11 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
 
   <AdSlot name="C" />
 
-  <section class="mt-8">
-    <h2 class="mb-3 px-1 text-h2 font-bold text-ink">다른 가이드</h2>
-    <ul class="card divide-y divide-line px-5 py-1">
-      {others.map((o) => <li><a href={guidePath(o)} class="flex items-center justify-between gap-2 py-3 text-body font-medium text-ink hover:text-brand">{o.title}<span class="text-ink-3">›</span></a></li>)}
+  <div class="band -mx-5 mt-8 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+  <section class="pt-7">
+    <h2 class="mb-1 text-h2 font-bold text-ink">다른 가이드</h2>
+    <ul class="divide-y divide-line">
+      {others.map((o) => <li><a href={guidePath(o)} class="flex items-center justify-between gap-2 py-4 text-body font-medium text-ink hover:text-brand">{o.title}<span class="text-ink-3">›</span></a></li>)}
     </ul>
   </section>
 </BaseLayout>

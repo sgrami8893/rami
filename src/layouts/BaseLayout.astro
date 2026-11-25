@@ -26,7 +26,7 @@ interface Props {
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
 const sidebar = Astro.props.sidebar ?? Boolean(tool);
-const white = Astro.props.canvas === 'white';
+const white = (Astro.props.canvas ?? 'white') === 'white'; // 3차 개편: 전 페이지 순백 캔버스
 const frame = sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트명을 붙이지 않음

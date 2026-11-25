@@ -1,7 +1,7 @@
 ---
 import { GUIDES, guidePath, GUIDE_BASE } from '../lib/guides.ts';
 interface Props { title?: string; limit?: number; flat?: boolean }
-const { title = '무인민원발급기 이용 가이드', limit, flat = false } = Astro.props;
+const { title = '무인민원발급기 이용 가이드', limit, flat = true } = Astro.props; // 순백 캔버스에서는 리스트형이 기본
 const list = limit ? GUIDES.slice(0, limit) : GUIDES;
 ---
 <section class={flat ? 'py-8' : 'mt-10'}>
