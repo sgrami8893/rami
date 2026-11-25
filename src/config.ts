@@ -75,3 +75,10 @@ export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';
 
 /** 상황별 서류 체크리스트: 상황→서류 묶음의 공식 출처를 확인하기 전까지 noindex·사이트맵 제외 */
 export const CHECKLIST_VERIFIED = false;
+
+/**
+ * 검색 엔진 소유 확인 메타 태그(구글 서치 콘솔·네이버 서치어드바이저). Cloudflare Pages 환경변수로만 넣는다.
+ * 값은 영문·숫자·-_ 만 허용(다른 문자가 섞이면 출력하지 않음). 비어 있으면 태그를 출력하지 않는다. 홈(/)에만 출력.
+ */
+const verification = (k: string) => { const v = env(k); return /^[A-Za-z0-9_-]{8,128}$/.test(v) ? v : ''; };
+export const SITE_VERIFICATION = { google: verification('GOOGLE_SITE_VERIFICATION'), naver: verification('NAVER_SITE_VERIFICATION') };

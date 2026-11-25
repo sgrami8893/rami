@@ -2,6 +2,7 @@
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
 import BottomActionBar from '../../../../../components/BottomActionBar.astro';
+import FeeCalculator from '../../../../../components/parking/FeeCalculator.astro';
 import { lots, sidoShort, parkingPath, sigunguName, lotIndexable, FEE_LABEL, LOT_TYPE, hoursText, won, IS_MOCK, type ParkingLot } from '../../../../../lib/parking.ts';
 export function getStaticPaths() { return lots.map((l) => ({ params: { sido: l.sido, sigungu: l.sigungu, id: l.id }, props: { l } })); }
 const { l } = Astro.props as { l: ParkingLot };
@@ -23,8 +24,9 @@ const info: [string, string][] = [
   <MockBanner />
   <p class="text-cap font-semibold text-brand">{FEE_LABEL[l.fee.type]} · {LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
   <h1 class="mt-1 text-title font-bold text-ink">{l.name}</h1>
-  <p class="mt-2 text-body text-ink-2">{l.roadAddress}</p>
+  <p class="mt-2 text-body text-ink-2">{l.roadAddress || l.jibunAddress}</p>
   {l.flags.includes('feeConflict') && <p class="mt-3 rounded-xl bg-bg px-4 py-3 text-cap text-warn">원천 데이터의 요금 정보가 서로 맞지 않아 요금 구분을 '확인 필요'로 표시했어요. 관리기관에 확인해 주세요.</p>}
+  <FeeCalculator l={l} />
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">운영시간</h2>
     <table class="mt-2 w-full text-[length:calc(17px*var(--fs,1))]"><tbody>
@@ -50,7 +52,7 @@ const info: [string, string][] = [
     <p class="mt-2">{l.agency || '정보 없음'}{l.phone && ` · ${l.phone}`}</p>
     <p class="mt-2 text-cap text-ink-3">데이터 기준일 {l.baseDate ?? '미상'} · 색인 판정: {lotIndexable(l) ? '색인 대상' : 'noindex'}</p>
   </section>
-  <BottomActionBar slot="bottom" name={l.name} address={l.roadAddress} lat={l.lat} lng={l.lng} label="길찾기·주소 복사" />
+  <BottomActionBar slot="bottom" name={l.name} address={l.roadAddress || l.jibunAddress} lat={l.lat} lng={l.lng} label="길찾기·주소 복사" />
 </BaseLayout>
 
 <script>

@@ -4,7 +4,7 @@ import '../styles/fonts/pretendard/pretendard.css'; // Pretendard Variable 동�
 import '../styles/global.css';
 // 가장 자주 쓰는 글자(라틴 + 상위 한글) 서브셋 1개만 미리 받는다. 나머지는 unicode-range로 필요할 때만.
 import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91.woff2?url';
-import { SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, type ToolSlug } from '../config.ts';
+import { SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
 import Breadcrumb from '../components/Breadcrumb.astro';
 import Logo from '../components/Logo.astro';
 import FontSizeMenu from '../components/FontSizeMenu.astro';
@@ -57,6 +57,9 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="ko_KR" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} 가이드`} href="/rss.xml" />
+    {Astro.url.pathname === '/' && SITE_VERIFICATION.google && <meta name="google-site-verification" content={SITE_VERIFICATION.google} />}
+    {Astro.url.pathname === '/' && SITE_VERIFICATION.naver && <meta name="naver-site-verification" content={SITE_VERIFICATION.naver} />}
     <link rel="preload" href={fontPreload} as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content={white ? '#FFFFFF' : '#F3F5F8'} />
     {jsonld.map((j) => <script type="application/ld+json" set:html={safeJsonLd(j)} />)}

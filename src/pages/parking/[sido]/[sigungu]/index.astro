@@ -5,12 +5,16 @@ import LotRow from '../../../../components/parking/LotRow.astro';
 import MapPanel from '../../../../components/MapPanel.astro';
 import { SIDOS, sidoShort, parkingPath, regionsOf, regionIndexable, toPoint, IS_MOCK } from '../../../../lib/parking.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
+import { calcFee } from '../../../../../scripts/lib/parking-fee.ts';
 export function getStaticPaths() {
   return SIDOS.flatMap((sido) => regionsOf(sido).map((r) => ({ params: { sido, sigungu: r.sigungu }, props: { r } })));
 }
 const sido = Astro.params.sido as SidoSlug;
 const { r } = Astro.props as { r: ReturnType<typeof regionsOf>[number] };
 const ls = [...r.lots].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+const twoh = ls.map((l) => calcFee(l, 120)).filter((r) => r.status === 'ok').map((r) => (r as { amount: number }).amount);
+const freeN = ls.filter((l) => l.fee.type === 'free').length;
+const w = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 const withCoords = ls.filter((l) => l.lat !== null && l.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }, { name: r.name, href: parkingPath(sido, r.sigungu) }];
 ---
@@ -20,5 +24,37 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <h1 class="text-title font-bold text-ink">{r.name} 공영주차장 {ls.length}곳</h1>
   <p class="mt-1 text-cap text-ink-3">무료 {r.free}곳 · 색인 판정: {regionIndexable(ls.length) ? '색인 대상' : '얇은 페이지(noindex)'}</p>
   <MapPanel points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} />
-  <div class="mt-4">{ls.map((l) => <LotRow l={l} />)}</div>
+  <section class="mt-5 rounded-2xl bg-bg px-4 py-4" aria-labelledby="cmp-h">
+    <h2 id="cmp-h" class="text-body font-bold text-ink">2시간 주차 요금 비교</h2>
+    <p class="mt-1 text-body text-ink-2">
+      {twoh.length ? <>유료 {twoh.length}곳 기준 <strong class="text-ink">{w(Math.min(...twoh))}</strong> ~ <strong class="text-ink">{w(Math.max(...twoh))}</strong></> : '계산할 수 있는 유료 요금 정보가 없어요'}
+      {freeN > 0 && <> · 무료 {freeN}곳</>}
+    </p>
+    <p class="mt-1 text-cap text-ink-3">참고용이에요. 현장 요금과 다를 수 있어요.</p>
+  </section>
+  <div class="mt-4 flex items-center justify-between gap-3">
+    <p class="text-cap text-ink-3">{ls.length}곳</p>
+    <div role="group" aria-label="정렬" class="flex gap-1.5">
+      <button type="button" data-sort="name" aria-pressed="true" class="min-h-11 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 aria-pressed:bg-ink aria-pressed:text-white">이름순</button>
+      <button type="button" data-sort="fee2" aria-pressed="false" class="min-h-11 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 aria-pressed:bg-ink aria-pressed:text-white">2시간 요금 낮은 순</button>
+    </div>
+  </div>
+  <p id="sort-status" class="sr-only" aria-live="polite"></p>
+  <div id="lot-list" class="mt-1">{ls.map((l) => <LotRow l={l} />)}</div>
 </BaseLayout>
+
+<script>
+  // 정렬: 무료(0) → 요금 낮은 순 → 요금 정보 없음은 맨 뒤. 같은 값은 이름순.
+  const list = document.getElementById('lot-list');
+  const btns = [...document.querySelectorAll<HTMLButtonElement>('[data-sort]')];
+  const status = document.getElementById('sort-status');
+  if (list) btns.forEach((b) => b.addEventListener('click', () => {
+    const by = b.dataset.sort;
+    const rows = [...list.querySelectorAll<HTMLElement>('.lot')];
+    const v = (e: HTMLElement) => (e.dataset.fee2 === '' ? Infinity : Number(e.dataset.fee2));
+    rows.sort((a, c) => (by === 'fee2' ? v(a) - v(c) : 0) || (a.dataset.name ?? '').localeCompare(c.dataset.name ?? '', 'ko'));
+    rows.forEach((r) => list.appendChild(r));
+    btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (status) status.textContent = by === 'fee2' ? '2시간 요금 낮은 순으로 정렬했어요' : '이름순으로 정렬했어요';
+  }));
+</script>

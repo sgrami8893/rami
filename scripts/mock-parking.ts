@@ -20,8 +20,8 @@ areas.forEach(([addr, lat, lng], ai) => {
       [FIELD.wdOpen]: i % 4 === 0 ? '00:00' : '09:00', [FIELD.wdClose]: i % 4 === 0 ? '24:00' : '18:00',
       [FIELD.satOpen]: '09:00', [FIELD.satClose]: '13:00', [FIELD.holOpen]: '', [FIELD.holClose]: '',
       [FIELD.feeInfo]: free ? '무료' : mixed ? '혼합' : '유료',
-      [FIELD.baseMin]: free ? '' : '30', [FIELD.baseFee]: free ? (i === 5 ? '500' : '0') : '600', // i===5 무료+요금 충돌 케이스
-      [FIELD.unitMin]: free ? '' : '10', [FIELD.unitFee]: free ? '' : '200', [FIELD.dayPass]: '', [FIELD.monthly]: '',
+      [FIELD.baseMin]: free ? '' : ['30', '5', '60'][i % 3], [FIELD.baseFee]: free ? (i === 5 ? '500' : '0') : ['600', '300', '1000', '500'][(i + ai) % 4], // i===5 무료+요금 충돌 케이스
+      [FIELD.unitMin]: free ? '' : ['10', '5', '30'][i % 3], [FIELD.unitFee]: free ? '' : ['200', '100', '500', '300'][(i * 3 + ai) % 4], [FIELD.dayPass]: free || i % 3 ? '' : '8000', [FIELD.monthly]: '',
       [FIELD.payment]: '카드, 현금', [FIELD.note]: '', [FIELD.agency]: '테스트 관리기관', [FIELD.phone]: '',
       [FIELD.lat]: i === 3 ? '' : String(lat + (r() - 0.5) * 0.03), [FIELD.lng]: i === 3 ? '' : String(lng + (r() - 0.5) * 0.03),
       [FIELD.baseDate]: '2026-11-01',

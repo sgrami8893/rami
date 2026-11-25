@@ -1,0 +1,64 @@
+---
+// 주차 요금 계산기(참고용). 모든 시간대 요금은 빌드 때 계산해 HTML에 넣고, 버튼은 보여 줄 패널만 바꾼다(스크립트 없이도 표로 확인 가능).
+import { DURATIONS, calcFee, dayMinutes, feeText, feeBreakdown } from '../../../scripts/lib/parking-fee.ts';
+import type { ParkingLot } from '../../lib/parking.ts';
+interface Props { l: ParkingLot }
+const { l } = Astro.props;
+const dm = dayMinutes(l);
+const dayNote = l.hours.weekday && l.hours.weekday !== '24h' ? `평일 운영시간 ${Math.floor(dm / 60)}시간${dm % 60 ? ` ${dm % 60}분` : ''} 기준` : '24시간 기준';
+const results = DURATIONS.map((d) => {
+  const r = calcFee(l, d.minutes ?? dm);
+  return { ...d, r, text: feeText(r), detail: d.key === 'day' ? [dayNote, feeBreakdown(l, r)].filter(Boolean).join(' · ') : feeBreakdown(l, r) };
+});
+const DEFAULT = '1h';
+const sel = results.find((x) => x.key === DEFAULT)!;
+const free = l.fee.type === 'free';
+---
+<section class="fee-calc mt-6" aria-labelledby="fee-calc-h">
+  <h2 id="fee-calc-h" class="text-h2 font-bold text-ink">요금 계산</h2>
+  {free ? (
+    <p class="mt-2 rounded-2xl bg-ok-bg px-4 py-4 text-body font-semibold text-ok">무료 주차장이에요</p>
+  ) : (
+    <>
+      <div role="group" aria-label="주차 시간 선택" class="mt-3 grid grid-cols-5 gap-1.5">
+        {results.map((x) => (
+          <button type="button" data-fee-key={x.key} aria-pressed={x.key === DEFAULT ? 'true' : 'false'}
+            class="min-h-11 rounded-xl bg-bg px-1 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand aria-pressed:bg-ink aria-pressed:text-white">{x.label}</button>
+        ))}
+      </div>
+      <div class="mt-3 rounded-2xl bg-bg px-4 py-4" aria-live="polite">
+        <p class="text-cap text-ink-3"><span id="fee-label">{sel.label}</span> 주차하면</p>
+        <p id="fee-amount" class={`mt-0.5 font-bold text-ink ${sel.r.status === 'ok' ? 'text-[length:calc(28px*var(--fs,1))]' : 'text-body'}`}>{sel.text}</p>
+        <p id="fee-detail" class="mt-1 min-h-[1.5em] text-cap text-ink-2">{sel.detail}</p>
+      </div>
+      <template id="fee-data" data-json={JSON.stringify(results.map((x) => ({ key: x.key, label: x.label, text: x.text, ok: x.r.status === 'ok', detail: x.detail })))}></template>
+      <details class="mt-2">
+        <summary class="inline-flex min-h-11 cursor-pointer items-center text-cap font-semibold text-brand">시간대별 요금 한눈에 보기</summary>
+        <table class="mt-1 w-full text-[length:calc(16px*var(--fs,1))]">
+          <caption class="sr-only">주차 시간별 예상 요금</caption>
+          <thead><tr class="border-b border-line text-cap text-ink-3"><th scope="col" class="py-2 text-left font-medium">시간</th><th scope="col" class="py-2 text-right font-medium">예상 요금</th></tr></thead>
+          <tbody>
+            {results.map((x) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{x.label}</th><td class="py-2.5 text-right text-ink">{x.text}{x.r.status === 'ok' && x.r.capped && <span class="ml-1 text-cap text-ink-3">(1일권)</span>}</td></tr>)}
+          </tbody>
+        </table>
+      </details>
+    </>
+  )}
+  <p class="mt-2 text-cap text-ink-3">참고용이에요. 현장 요금과 다를 수 있어요. 감면·야간·회차 요금은 반영하지 않았으니 관리기관에 확인하세요.</p>
+</section>
+
+<script>
+  const root = document.querySelector<HTMLElement>('.fee-calc');
+  const raw = root?.querySelector<HTMLTemplateElement>('#fee-data')?.dataset.json;
+  if (root && raw) {
+    const data = JSON.parse(raw) as { key: string; label: string; text: string; ok: boolean; detail: string }[];
+    const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-fee-key]')];
+    const amt = root.querySelector('#fee-amount')!, lab = root.querySelector('#fee-label')!, det = root.querySelector('#fee-detail')!;
+    btns.forEach((b) => b.addEventListener('click', () => {
+      const d = data.find((x) => x.key === b.dataset.feeKey); if (!d) return;
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      lab.textContent = d.label; amt.textContent = d.text; det.textContent = d.detail;
+      amt.className = `mt-0.5 font-bold text-ink ${d.ok ? 'text-[length:calc(28px*var(--fs,1))]' : 'text-body'}`;
+    }));
+  }
+</script>
