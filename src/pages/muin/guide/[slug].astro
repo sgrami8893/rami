@@ -22,7 +22,7 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
     breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) }))),
     article({ headline: g.title, description: g.description, url: abs(guidePath(g)), published: g.published, modified: g.modified, publisher: SITE_NAME, citations: g.sources.map((s) => s.url) }),
   ]}>
-  <article class="text-body text-ink-2">
+  <article class="text-body text-ink-2 [&_p_a]:font-semibold [&_p_a]:text-brand [&_li_a]:font-semibold [&_li_a]:text-brand">
     <h1 class="text-title font-bold text-ink">{g.title}</h1>
     <p class="mt-1 text-cap text-ink-3">작성 {g.published} · 최종 수정 {g.modified} · {SITE_NAME}</p>
     {blocks.map((b, i) => (
