@@ -32,7 +32,7 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -82,5 +82,6 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
         <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-ink-2"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
       </div>
     </footer>
+    <slot name="bottom" />
   </body>
 </html>

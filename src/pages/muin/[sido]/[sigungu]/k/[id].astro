@@ -5,7 +5,8 @@ import AdSlot from '../../../../../components/AdSlot.astro';
 import {
   kiosks, byId, hasDetail, hasCoords, sidoShort, regionPath, kioskPath, MUIN_CRUMBS, type Kiosk,
 } from '../../../../../lib/data.ts';
-import { fmtRange, sortDocs, docLabel, kakaoTo, kakaoMap, kakaoSearch, naverSearch, reportUrl } from '../../../../../lib/format.ts';
+import { fmtRange, sortDocs, docLabel, kakaoTo, kakaoSearch, naverSearch, reportUrl } from '../../../../../lib/format.ts';
+import Icon from '../../../../../components/Icon.astro';
 import { breadcrumb, place } from '../../../../../lib/jsonld.ts';
 import { kioskTitle, kioskDescription } from '../../../../../lib/copy.ts';
 import { DOC_LABELS, type DocCode } from '../../../../../../scripts/lib/docs.ts';
@@ -46,6 +47,9 @@ const crumbs = [
 ];
 const rows: [string, keyof Kiosk['hours']][] = [['평일', 'weekday'], ['토요일', 'sat'], ['일요일', 'sun'], ['공휴일', 'holiday']];
 const allDocs = Object.keys(DOC_LABELS).filter((d) => d !== 'other') as DocCode[];
+const available = sortDocs(k.docs).filter((d) => d !== 'other');
+const unavailable = allDocs.filter((d) => !k.docs.includes(d));
+const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roadAddress);
 ---
 <BaseLayout
   tool="muin"
@@ -56,75 +60,93 @@ const allDocs = Object.keys(DOC_LABELS).filter((d) => d !== 'other') as DocCode[
   jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: new URL(c.href, site).href }))), place(k, url)]}
 >
   <div id="self" class="kiosk" data-id={k.id} data-hours={JSON.stringify(k.hours)} data-conf={k.hoursConfidence}>
-    <div class="flex flex-wrap items-center gap-2">
-      <h1 class="text-xl font-bold leading-snug sm:text-2xl">{k.name}</h1>
-      <span class="open-badge hidden rounded-full px-2 py-0.5 text-xs font-medium"></span>
+    <div class="flex flex-wrap items-center gap-1.5">
+      <span class="open-badge badge hidden"></span>
+      {k.is24h && <span class="badge bg-info-bg text-info">24시간</span>}
+      {k.placeType && <span class="badge bg-off-bg text-off">{k.placeType}</span>}
     </div>
-    <p class="mt-1 text-sm text-slate-600">{k.locationDetail} · {k.roadAddress}</p>
-    <p class="next-open mt-1 hidden text-sm text-slate-500"></p>
+    <h1 class="mt-2 text-title font-bold text-ink">{k.name}</h1>
+    {k.locationDetail && <p class="mt-0.5 text-body text-ink-2">{k.locationDetail}</p>}
+    <p class="mt-1 flex items-start gap-1 text-cap text-ink-3"><Icon name="map-pin" size={14} class="mt-[3px]" />{k.roadAddress}</p>
+    <p class="next-open mt-1 hidden text-cap text-ink-3"></p>
   </div>
 
-  <div class="mt-4 grid gap-4 sm:grid-cols-2">
-    <section class="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 class="mb-2 font-bold">운영시간</h2>
-      <table class="w-full text-sm">
-        <tbody>
-          {rows.map(([label, key]) => (
-            <tr class="border-t border-slate-100 first:border-0">
-              <th class="py-1.5 text-left font-normal text-slate-500">{label}</th>
-              <td class="py-1.5 text-right">{fmtRange(k.hours[key])}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {k.hoursConfidence !== 'ok' && <p class="mt-2 text-xs text-amber-700">원문: {k.hoursRaw || '정보 없음'} (일부 추정)</p>}
-    </section>
-    <section class="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 class="mb-2 font-bold">발급 가능 서류</h2>
-      <ul class="space-y-1 text-sm">
-        {allDocs.map((d) => (
-          <li class="flex justify-between border-t border-slate-100 py-1 first:border-0">
-            <span>{DOC_LABELS[d]}</span>
-            {k.docs.includes(d) ? <span class="text-emerald-700">가능</span> : <span class="text-slate-400">불가 또는 정보 없음</span>}
-          </li>
+  <section class="card mt-4">
+    <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="clock" size={18} class="text-brand" />운영시간</h2>
+    <table class="w-full text-body">
+      <tbody>
+        {rows.map(([label, key]) => (
+          <tr class="border-t border-line first:border-0">
+            <th class="py-2 text-left font-normal text-ink-3">{label}</th>
+            <td class={`py-2 text-right font-semibold ${k.hours[key] === null ? 'text-ink-3' : 'text-ink'}`}>{fmtRange(k.hours[key])}</td>
+          </tr>
         ))}
-      </ul>
-      {k.docCount ? <p class="mt-2 text-xs text-slate-500">이 기기의 발급 가능 민원 사무 총 {k.docCount}종 (원천 데이터 기준)</p> : <p class="mt-2 text-xs text-slate-500">원문: {k.docsRaw}</p>}
-    </section>
-  </div>
+      </tbody>
+    </table>
+    {k.hoursConfidence !== 'ok' && <p class="mt-2 rounded-xl bg-bg px-3 py-2 text-cap text-warn">일부 추정 · 원문: {k.hoursRaw || '정보 없음'}</p>}
+    {(k.docs.includes('registry') || k.docs.includes('family')) && <p class="mt-2 text-cap text-ink-3">등기부등본·가족관계 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다. <a href="/muin/guide/court-documents-hours/" class="font-semibold text-brand">자세히</a></p>}
+  </section>
 
-  <div class="mt-4 flex gap-2 text-sm">
-    {byCoords ? <>
-      <a href={kakaoTo(k.name, k.lat!, k.lng!)} target="_blank" rel="noopener noreferrer" class="flex-1 rounded-lg bg-yellow-300 px-3 py-2.5 text-center font-medium hover:bg-yellow-400">카카오맵 길찾기</a>
-      <a href={kakaoMap(k.name, k.lat!, k.lng!)} target="_blank" rel="noopener noreferrer" class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-center font-medium">카카오맵 위치</a>
-    </> : <a href={kakaoSearch(k.roadAddress)} target="_blank" rel="noopener noreferrer" class="flex-1 rounded-lg bg-yellow-300 px-3 py-2.5 text-center font-medium hover:bg-yellow-400">카카오맵에서 보기</a>}
-    <a href={naverSearch(k.roadAddress, k.name)} target="_blank" rel="noopener noreferrer" class="flex-1 rounded-lg bg-green-600 px-3 py-2.5 text-center font-medium text-white hover:bg-green-700">네이버 지도</a>
-  </div>
-  {(k.a11y?.length ?? 0) > 0 && <p class="mt-3 text-sm"><span class="text-slate-500">장애인 편의</span> {k.a11y!.join(' · ')}</p>}
-  {k.infoUrl && <p class="mt-1 text-sm"><a href={k.infoUrl} target="_blank" rel="noopener noreferrer nofollow" class="text-brand underline">관리기관 안내 페이지</a></p>}
-  <p class="mt-3 text-sm text-slate-600">관리: {k.agency}{k.phone && <> · <a href={`tel:${k.phone}`} class="underline">{k.phone}</a></>} · 기준일 {k.baseDate ?? '미상'}</p>
+  <section class="card mt-3">
+    <h2 class="mb-3 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="file-text" size={18} class="text-brand" />발급 가능 서류</h2>
+    <ul class="flex flex-wrap gap-1.5">
+      {available.map((d) => <li class="rounded-lg bg-ok-bg px-2.5 py-1 text-cap font-semibold text-ok">{DOC_LABELS[d]}</li>)}
+    </ul>
+    {unavailable.length > 0 && <p class="mt-3 text-cap text-ink-3">발급 안 됨 또는 정보 없음: {unavailable.map((d) => DOC_LABELS[d]).join(', ')}</p>}
+    {k.docCount ? <p class="mt-1 text-cap text-ink-3">세부 민원 사무 기준 총 {k.docCount}종 (원천 데이터)</p> : null}
+  </section>
+
+  {(k.a11y?.length ?? 0) > 0 && (
+    <section class="card mt-3">
+      <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="accessibility" size={18} class="text-brand" />장애인 편의 기능</h2>
+      <ul class="flex flex-wrap gap-1.5">
+        {k.a11y!.map((a) => <li class="rounded-lg bg-info-bg px-2.5 py-1 text-cap font-semibold text-info">{a}</li>)}
+      </ul>
+    </section>
+  )}
+
+  <section class="card mt-3 text-body text-ink-2">
+    <dl class="space-y-1.5">
+      <div class="flex justify-between gap-4"><dt class="text-ink-3">관리기관</dt><dd class="text-right">{k.agency}{k.phone && <> · <a href={`tel:${k.phone}`} class="underline">{k.phone}</a></>}</dd></div>
+      <div class="flex justify-between gap-4"><dt class="text-ink-3">데이터 기준일</dt><dd>{k.baseDate ?? '미상'}</dd></div>
+    </dl>
+    {k.infoUrl && <a href={k.infoUrl} target="_blank" rel="noopener noreferrer nofollow" class="mt-3 flex items-center gap-1 text-cap font-semibold text-brand">관리기관 안내 페이지<Icon name="external-link" size={14} /></a>}
+  </section>
 
   <AdSlot name="A" />
 
-  <section class="mt-6">
-    <h2 class="mb-1 text-lg font-bold">{altTitle}</h2>
-    <p class="mb-3 text-sm text-slate-600">이 기기가 닫혀 있거나 필요한 서류가 없을 때 갈 수 있는 곳입니다.{byCoords && ' 가까운 순.'}</p>
+  <section class="mt-8">
+    <h2 class="mb-1 px-1 text-h2 font-bold text-ink">{altTitle}</h2>
+    <p class="mb-3 px-1 text-cap text-ink-3">이 기기가 닫혀 있거나 필요한 서류가 없을 때 갈 수 있는 곳입니다.{byCoords && ' 가까운 순.'}</p>
     <div id="kiosk-list" class="space-y-3">
       {alt.map(({ k: o, m }) => (
         <div>
           <KioskCard k={o} distance={m} compact />
-          {missing(o).length > 0 && <p class="mt-1 pl-1 text-xs text-emerald-700">이곳에서 추가로 발급: {missing(o).map(docLabel).join(', ')}</p>}
+          {missing(o).length > 0 && <p class="mt-1.5 px-2 text-cap font-medium text-ok">이곳에서 추가로 발급: {missing(o).map(docLabel).join(', ')}</p>}
         </div>
       ))}
     </div>
   </section>
 
-  <p class="mt-8 text-sm">
-    <a href={regionPath(k.sido, k.sigungu)} class="text-brand underline">{k.sigunguName} 무인민원발급기 전체 보기</a>
-  </p>
-  {report
-    ? <p class="mt-2 text-sm"><a href={report} target="_blank" rel="noopener noreferrer" class="text-slate-500 underline">정보 오류 제보</a></p>
-    : <p class="mt-2 text-xs text-slate-400">정보 오류 제보 (구글 폼 연결 전)</p>}
+  <div class="mt-8 flex flex-col gap-2 px-1 text-body">
+    <a href={regionPath(k.sido, k.sigungu)} class="flex items-center gap-1 font-semibold text-brand">{k.sigunguName} 무인민원발급기 전체 보기<Icon name="chevron-right" size={16} /></a>
+    {report
+      ? <a href={report} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-cap text-ink-3"><Icon name="triangle-alert" size={14} />정보 오류 제보</a>
+      : <p class="flex items-center gap-1 text-cap text-ink-3"><Icon name="triangle-alert" size={14} />정보 오류 제보 (구글 폼 연결 전)</p>}
+  </div>
+
+  <!-- 하단 고정 길찾기 버튼: 푸터 뒤에 버튼 높이만큼 여백을 둬 마지막 내용이 가려지지 않게 한다 -->
+  <div slot="bottom" aria-hidden="true" class="h-[calc(76px+env(safe-area-inset-bottom))]"></div>
+  <div slot="bottom" class="fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur">
+    <div class="mx-auto flex max-w-2xl gap-2 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+      <a href={kakaoHref} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-[1.4] items-center justify-center gap-1.5 rounded-2xl bg-brand text-[16px] font-bold text-white hover:brightness-95">
+        <Icon name="navigation" size={18} />{byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}
+      </a>
+      <a href={naverSearch(k.roadAddress, k.name)} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-1 items-center justify-center gap-1.5 rounded-2xl bg-bg text-[16px] font-bold text-ink hover:bg-line">
+        <Icon name="map" size={18} />네이버 지도
+      </a>
+    </div>
+  </div>
 </BaseLayout>
 
 <script>
