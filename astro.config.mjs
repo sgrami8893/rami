@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { readFileSync } from 'node:fs';
-import { SITE_URL, TOOLS } from './src/config.ts';
+import { SITE_URL, TOOLS, CHECKLIST_VERIFIED } from './src/config.ts';
 import { hubNoindexPaths } from './src/lib/hubs.ts';
 
 // 무인발급기: 대체 기기가 없는 상세 페이지는 noindex -> sitemap에서도 제외
@@ -10,6 +10,7 @@ const kiosks = JSON.parse(readFileSync(new URL('./src/data/kiosks.json', import.
 const noindex = new Set(kiosks.filter((k) => !k.nearby?.length).map((k) => `/muin/${k.sido}/${k.sigungu}/k/${k.id}/`));
 // 조건 허브(24h·weekend·registry·family) 중 색인 기준 미달 페이지도 제외 (src/lib/hubs.ts HUB_RULE)
 hubNoindexPaths(kiosks, ['seoul', 'gyeonggi', 'incheon']).forEach((p) => noindex.add(p));
+if (!CHECKLIST_VERIFIED) noindex.add('/muin/checklist/');
 // 준비 중(status 'soon') 도구 경로는 미리보기 빌드에서 페이지가 생겨도 사이트맵에 넣지 않는다
 const notLive = TOOLS.filter((t) => t.status !== 'live').map((t) => t.path);
 

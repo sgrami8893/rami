@@ -72,3 +72,6 @@ export const MAP = env('MAP_TILE_URL')
  * Cloudflare Pages 환경변수에는 넣지 않는다 → 배포 빌드에는 /parking/ 페이지가 하나도 생기지 않는다.
  */
 export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';
+
+/** 상황별 서류 체크리스트: 상황→서류 묶음의 공식 출처를 확인하기 전까지 noindex·사이트맵 제외 */
+export const CHECKLIST_VERIFIED = false;

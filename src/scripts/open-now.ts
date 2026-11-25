@@ -39,6 +39,21 @@ export function closesAt(h: Hours, now: KstNow): string | null {
   return r[1] === '24:00' ? '오늘 자정까지' : `오늘 ${r[1]}까지`;
 }
 
+/** 운영시간 안일 때 종료까지 남은 분(자정 넘김 포함). 운영시간 밖이거나 정보가 없으면 null */
+export function minutesLeft(h: Hours, now: KstNow): number | null {
+  const y = h[keyOf(shift(now, -1))];
+  if (y && toMin(y[1]) < toMin(y[0]) && now.minutes < toMin(y[1])) return toMin(y[1]) - now.minutes;
+  const r = h[keyOf(now)];
+  if (!r) return null;
+  const o = toMin(r[0]), c = toMin(r[1]);
+  if (c < o) return now.minutes >= o ? 1440 - now.minutes + c : null;
+  return now.minutes >= o && now.minutes < c ? c - now.minutes : null;
+}
+/** 95 → "1시간 35분", 40 → "40분", 120 → "2시간" */
+export const fmtLeft = (m: number) => (m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}`);
+/** 종료까지 3시간 이하일 때만 남은 시간을 보여 준다 */
+export const LEFT_LIMIT = 180;
+
 const BADGE = {
   open: ['운영시간 내', 'bg-ok-bg', 'text-ok'],
   closed: ['운영시간 외', 'bg-off-bg', 'text-off'],
@@ -66,7 +81,11 @@ export function refreshOpenState(root: ParentNode = document): KstNow {
     const rel = el.querySelector<HTMLElement>('.rel-time');
     if (rel) {
       const t = el.dataset.f24h || state === 'unknown' ? null : state === 'open' ? closesAt(hours, now) : nextOpen(hours, now);
-      rel.textContent = t ? (state === 'open' ? t : `${t} 열림`) : (rel.dataset.default ?? '');
+      // 곧 끝나면 "1시간 20분 뒤 종료"(같은 한 줄 길이라 줄바꿈·CLS 없음), 1시간 이하이면 주의 색
+      const left = state === 'open' && !el.dataset.f24h ? minutesLeft(hours, now) : null;
+      const soon = left !== null && left <= LEFT_LIMIT;
+      rel.textContent = soon ? `${fmtLeft(left!)} 뒤 종료` : t ? (state === 'open' ? t : `${t} 열림`) : (rel.dataset.default ?? '');
+      rel.classList.toggle('text-warn', soon && left! <= 60);
     }
     const next = el.querySelector<HTMLElement>('.next-open');
     if (next) {

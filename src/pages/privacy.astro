@@ -4,6 +4,7 @@ import { SITE_NAME, CONTACT_EMAIL, MAP, REPORT_FORM } from '../config.ts';
 // 항목 번호는 실제로 켜진 기능만 세어 매긴다(방침과 실제 동작 일치)
 const hasReport = Boolean(REPORT_FORM.formId);
 let no = 2;
+const nStore = ++no;
 const nReport = hasReport ? ++no : 0, nMap = MAP.enabled ? ++no : 0, nContact = ++no;
 const effective = '2026-12-01'; // TODO: 공개일로 교체
 ---
@@ -18,6 +19,10 @@ const effective = '2026-12-01'; // TODO: 공개일로 교체
     <section>
       <h2 class="font-bold text-ink">2. 쿠키 및 제3자 광고·분석 도구</h2>
       <p>사이트는 운영을 위해 Google AdSense 광고와 Google Analytics 등 방문 분석 도구를 사용할 수 있어요. Google을 포함한 제3자 공급업체는 쿠키를 사용해 이용자의 이전 방문 기록을 바탕으로 맞춤형 광고를 게재할 수 있어요. 이용자는 <a href="https://adssettings.google.com/" class="underline" rel="noopener noreferrer" target="_blank">Google 광고 설정</a>에서 맞춤형 광고를 해제하거나, 브라우저 설정에서 쿠키 저장을 거부할 수 있어요. 쿠키를 거부해도 사이트 이용에는 제한이 없어요.</p>
+    </section>
+    <section>
+      <h2 class="font-bold text-ink">{nStore}. 이용자 기기에 저장하는 정보</h2>
+      <p>즐겨찾는 발급기와 상황별 서류 체크리스트의 체크 상태는 이용자의 브라우저 저장소(localStorage)에만 저장돼요. 저장되는 내용은 기기 ID·이름·주소 일부·운영시간 같은 공개 정보와 체크 여부뿐이고, 사이트 운영자나 제3자에게 전송되지 않아요. 브라우저의 사이트 데이터를 지우면 함께 삭제돼요.</p>
     </section>
     {hasReport && <section>
       <h2 class="font-bold text-ink">{nReport}. 정보 오류 제보</h2>

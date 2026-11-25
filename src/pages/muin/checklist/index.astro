@@ -1,0 +1,82 @@
+---
+// 상황별 서류 체크리스트. 체크 상태는 이 브라우저의 localStorage에만 저장(서버 전송·로그인 없음).
+// 상황→서류 묶음은 공식 목록이 아니라서, 출처 확인 전까지 noindex로 둔다(CHECKLIST_VERIFIED).
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Icon from '../../../components/Icon.astro';
+import { MUIN_CRUMBS } from '../../../lib/data.ts';
+import { DOCS, SITUATIONS, kioskCount } from '../../../lib/checklists.ts';
+import { breadcrumb } from '../../../lib/jsonld.ts';
+import { CHECKLIST_VERIFIED } from '../../../config.ts';
+const crumbs = [...MUIN_CRUMBS, { name: '상황별 서류 체크리스트', href: '/muin/checklist/' }];
+const abs = (p: string) => new URL(p, Astro.site).href;
+---
+<BaseLayout tool="muin" title="상황별 서류 체크리스트 | 부동산 계약·전세대출·연말정산·자동차" noindex={!CHECKLIST_VERIFIED}
+  description="부동산 계약, 전세자금대출, 연말정산, 자동차 등록 때 자주 떼는 서류를 무인민원발급기 기준으로 모았어요. 체크한 내용은 이 기기에만 저장돼요."
+  crumbs={crumbs} jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) })))]}>
+  <h1 class="text-title font-bold text-ink">상황별 서류 체크리스트</h1>
+  <div class="mt-3 rounded-2xl bg-bg p-5 text-body text-ink-2">
+    <p><strong class="text-ink">제출처 안내가 기준이에요.</strong> 아래는 자주 요청되는 서류의 예예요. 은행·회사·관청마다 필요한 서류와 발급 옵션이 다르니, 받은 안내문과 꼭 대조하세요.</p>
+    <p class="mt-1.5 text-cap text-ink-3">체크한 내용은 이 브라우저에만 저장되고 어디로도 전송되지 않아요. 브라우저 데이터를 지우면 함께 지워져요.</p>
+  </div>
+
+  <nav aria-label="상황 선택" class="mt-4 flex flex-wrap gap-2">
+    {SITUATIONS.map((s) => <a href={`#${s.id}`} class="flex h-11 items-center rounded-xl bg-bg px-4 text-[15px] font-semibold text-ink-2 hover:text-brand">{s.title}</a>)}
+  </nav>
+
+  {SITUATIONS.map((s) => (
+    <section id={s.id} class="checklist mt-8 scroll-mt-16 border-t border-line pt-6" data-list={s.id}>
+      <div class="flex items-baseline justify-between gap-3">
+        <h2 class="text-h2 font-bold text-ink">{s.title}</h2>
+        <p class="cl-count shrink-0 text-cap font-semibold text-ink-3" aria-live="polite">0/{s.items.length} 준비</p>
+      </div>
+      <p class="mt-1 text-cap text-ink-3">{s.intro}</p>
+      <ul class="mt-3 divide-y divide-line">
+        {s.items.map((key) => {
+          const d = DOCS[key]; const id = `cl-${s.id}-${key}`; const n = kioskCount(d.code);
+          return (
+            <li class="py-3">
+              <label for={id} class="flex min-h-11 cursor-pointer items-start gap-3">
+                <input id={id} type="checkbox" data-item={key} class="mt-0.5 size-6 shrink-0 accent-[var(--color-brand)]" />
+                <span class="min-w-0">
+                  <span class="block text-body font-semibold text-ink">{d.label}</span>
+                  <span class="mt-0.5 block text-cap text-ink-2">무인기: {d.idCheck}{n > 0 && ` · 수도권 발급 기기 ${n.toLocaleString('ko-KR')}곳`}</span>
+                  {d.note && <span class="mt-0.5 block text-cap text-ink-3">{d.note}</span>}
+                </span>
+              </label>
+              {d.guide && <a href={d.guide.href} class="ml-9 mt-1 inline-flex min-h-8 items-center text-cap font-semibold text-brand">{d.guide.label}<Icon name="chevron-right" size={14} /></a>}
+            </li>
+          );
+        })}
+      </ul>
+      <button type="button" class="cl-reset mt-2 h-11 rounded-xl bg-bg px-4 text-[14px] font-semibold text-ink-2 hover:text-brand">이 목록 체크 지우기</button>
+    </section>
+  ))}
+
+  <p class="mt-8 text-cap text-ink-3">무인기 본인 확인·발급 시간은 서울 도봉구·대구 동구 발급 안내표와 인천광역시 안내를 바탕으로 적었어요. 지자체·기기마다 다를 수 있으니 중요한 방문 전에는 관리기관에 확인하세요.</p>
+</BaseLayout>
+
+<script>
+  // localStorage만 사용. 접근이 막힌 환경(사생활 보호 모드 등)에서는 저장 없이 체크만 동작한다.
+  const KEY = 'dnkk:checklist:v1';
+  const load = (): Record<string, boolean> => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') ?? {}; } catch { return {}; } };
+  const save = (v: Record<string, boolean>) => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* 저장 불가: 무시 */ } };
+  const state = load();
+  const sections = [...document.querySelectorAll<HTMLElement>('.checklist')];
+  const count = (sec: HTMLElement) => {
+    const boxes = [...sec.querySelectorAll<HTMLInputElement>('input[type=checkbox]')];
+    sec.querySelector('.cl-count')!.textContent = `${boxes.filter((b) => b.checked).length}/${boxes.length} 준비`;
+  };
+  for (const sec of sections) {
+    const list = sec.dataset.list!;
+    sec.querySelectorAll<HTMLInputElement>('input[type=checkbox]').forEach((b) => {
+      const k = `${list}:${b.dataset.item}`;
+      b.checked = state[k] === true;
+      b.addEventListener('change', () => { if (b.checked) state[k] = true; else delete state[k]; save(state); count(sec); });
+    });
+    sec.querySelector('.cl-reset')!.addEventListener('click', () => {
+      sec.querySelectorAll<HTMLInputElement>('input[type=checkbox]').forEach((b) => { b.checked = false; delete state[`${list}:${b.dataset.item}`]; });
+      save(state); count(sec);
+    });
+    count(sec);
+  }
+</script>
