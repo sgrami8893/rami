@@ -17,8 +17,9 @@ async function mount(panel: HTMLElement) {
 
   // 남용 완화: 수도권 밖으로 끌고 가거나 아주 멀리 축소하지 못하게 해서 사용자 한 명이 만드는 타일 요청 수를 줄인다.
   const area = L.latLngBounds([36.8, 124.5], [38.4, 128.0]);
-  const map = L.map(canvas, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, maxBounds: area, maxBoundsViscosity: 1, minZoom: 9 });
+  const map = L.map(canvas, { zoomControl: false, attributionControl: true, scrollWheelZoom: false, maxBounds: area, maxBoundsViscosity: 1, minZoom: 9 });
   map.attributionControl.setPrefix('Leaflet');
+  L.control.zoom({ zoomInTitle: '지도 확대', zoomOutTitle: '지도 축소' }).addTo(map); // 기본 영어 라벨(Zoom in/out) 대신 한국어
   const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 9, bounds: area, keepBuffer: 1 }).addTo(map);
   // 타일이 계속 실패하면(키 한도 초과·차단 등) 빈 지도 대신 안내 문구를 띄운다.
   let failed = 0;
