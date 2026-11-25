@@ -43,3 +43,26 @@ export const CONTACT_EMAIL = '[운영자 이메일 주소]';
 export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
   muin: { name: '행정안전부 무인민원발급기 정보', url: 'https://www.localdata.go.kr' },
 };
+
+/**
+ * 지도(MapPanel) 배경 타일. 2026-11-25 결정: 카카오·네이버 SDK는 쓰지 않고 Leaflet(BSD-2) + 공공 타일.
+ * 바로e맵(국토지리정보원)·VWorld 중 어느 쪽을 쓸지는 약관 원문 확인 후 확정 → 그때 url·attribution을 검증해 채운다.
+ * 빌드 환경변수: MAP_PROVIDER(ngii|vworld), PUBLIC_MAP_KEY(도메인 제한을 건 브라우저용 키).
+ * provider나 key가 비어 있으면 지도는 렌더되지 않고 목록만 보인다(타일 없는 빈 지도를 띄우지 않음).
+ */
+const env = (k: string) => (globalThis.process?.env?.[k] ?? '').trim();
+export const MAP_PROVIDERS = {
+  // url 형식은 2차 자료 기준(확인 필요). https 지원 여부를 반드시 확인한 뒤 켠다.
+  vworld: { name: 'VWorld(국토교통부 공간정보 오픈플랫폼)', url: 'https://api.vworld.kr/req/wmts/1.0.0/{key}/Base/{z}/{y}/{x}.png', attribution: '배경지도: VWorld', maxZoom: 19, policyUrl: 'https://www.vworld.kr' },
+  ngii: { name: '바로e맵(국토지리정보원)', url: '', attribution: '배경지도: 국토지리정보원', maxZoom: 19, policyUrl: 'https://map.ngii.go.kr' }, // url 확인 필요
+} as const;
+type MapProviderKey = keyof typeof MAP_PROVIDERS;
+const mapProvider = env('MAP_PROVIDER') as MapProviderKey | '';
+const mapKey = env('PUBLIC_MAP_KEY');
+const preset = mapProvider && mapProvider in MAP_PROVIDERS ? MAP_PROVIDERS[mapProvider] : null;
+/** 실제로 쓸 지도 설정. 테스트용으로 MAP_TILE_URL(키 포함 전체 주소)을 직접 줄 수도 있다. */
+export const MAP = env('MAP_TILE_URL')
+  ? { enabled: true, url: env('MAP_TILE_URL'), attribution: env('MAP_ATTRIBUTION') || '배경지도 테스트', maxZoom: 19, name: '테스트 타일', policyUrl: '' }
+  : preset && preset.url && mapKey
+    ? { enabled: true, url: preset.url.replace('{key}', encodeURIComponent(mapKey)), attribution: preset.attribution, maxZoom: preset.maxZoom, name: preset.name, policyUrl: preset.policyUrl }
+    : { enabled: false, url: '', attribution: '', maxZoom: 19, name: '', policyUrl: '' };

@@ -1,0 +1,42 @@
+---
+// 지도 패널 (목록과 함께 보이는 방식, 2026-11-25 결정). 목록은 페이지 HTML에 그대로 있고, 지도는 보조 화면이다.
+// - Leaflet(BSD-2) + Leaflet.markercluster(MIT)를 우리 번들에서 늦게 불러온다(외부 스크립트·쿠키 없음, 바깥 요청은 타일 이미지뿐).
+// - 높이를 미리 고정해 화면 밀림(CLS)이 없다. 패널이 화면 근처에 오면 그때 라이브러리를 불러온다.
+// - 내 위치(GPS)는 쓰지 않는다. 지도 범위는 핀들의 경계에 맞춘다.
+// - 타일 설정(config.ts MAP)이 없거나 좌표 있는 핀이 없으면 아무것도 그리지 않는다.
+import { MAP } from '../config.ts';
+import Icon from './Icon.astro';
+
+export interface MapPoint { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string }
+interface Props { points: MapPoint[]; label: string; missing?: number }
+const { points, label, missing = 0 } = Astro.props;
+const valid = points.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.lat > 33 && p.lat < 39 && p.lng > 124 && p.lng < 132);
+const show = MAP.enabled && valid.length > 0;
+const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom };
+---
+{show && (
+  <section class="map-panel mt-4" aria-label={`${label} 지도`}>
+    <div class="relative -mx-5 overflow-hidden bg-bg lg:mx-0 lg:rounded-2xl">
+      <div class="map-canvas h-[45vh] min-h-[260px] max-h-[460px] w-full transition-[height] data-[big]:h-[75vh] data-[big]:max-h-[760px]"
+        data-points={JSON.stringify(valid)} data-cfg={JSON.stringify(cfg)}>
+        <p class="map-loading flex h-full items-center justify-center text-cap text-ink-3">지도 불러오는 중</p>
+      </div>
+      <div class="map-card absolute inset-x-3 bottom-7 z-[1000] rounded-2xl bg-card p-4 shadow-lg" hidden>
+        <button type="button" class="map-card-close absolute right-2 top-2 flex size-9 items-center justify-center rounded-full text-ink-3 hover:bg-bg" aria-label="닫기"><Icon name="x" size={20} /></button>
+        <p class="map-card-badge text-cap font-semibold text-brand"></p>
+        <p class="map-card-name pr-8 text-body font-bold text-ink"></p>
+        <p class="map-card-meta mt-0.5 text-cap text-ink-2"></p>
+        <a class="map-card-link mt-3 flex h-11 items-center justify-center rounded-xl bg-brand text-[15px] font-semibold text-white hover:brightness-95">상세 보기</a>
+      </div>
+    </div>
+    <div class="mt-2 flex items-center justify-between gap-3 text-cap text-ink-3">
+      <span>{valid.length}곳 표시{missing > 0 && ` · ${missing}곳은 좌표가 없어 목록에만 있어요`}</span>
+      <button type="button" class="map-toggle h-9 shrink-0 rounded-xl bg-bg px-3 font-semibold text-ink-2 hover:text-brand" aria-pressed="false">지도 크게 보기</button>
+    </div>
+  </section>
+)}
+
+<script>
+  import { initMapPanels } from '../scripts/map-panel.ts';
+  initMapPanels();
+</script>
