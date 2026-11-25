@@ -1,0 +1,16 @@
+---
+import type { RegionStats } from '../lib/data.ts';
+interface Props { st: RegionStats }
+const { st } = Astro.props;
+const cards = [
+  ['전체', st.total, ''], ['24시간', st.is24h, '24h'], ['주말 운영', st.openWeekend, 'weekend'], ['등기부등본', st.docs.registry ?? 0, 'registry'],
+] as const;
+---
+<div class="mt-4 grid grid-cols-4 gap-2">
+  {cards.map(([label, n, chip]) => (
+    <button type="button" data-stat-chip={chip} class="rounded-xl border border-slate-200 bg-white px-1 py-3 text-center hover:border-brand">
+      <span class="block text-xl font-bold text-slate-900">{n}</span>
+      <span class="block text-xs text-slate-500">{label}</span>
+    </button>
+  ))}
+</div>

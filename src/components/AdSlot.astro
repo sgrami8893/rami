@@ -1,0 +1,18 @@
+---
+// 광고 자리. 높이를 고정해 레이아웃 이동(CLS)을 막는다. 필터·길찾기 버튼 바로 옆에는 두지 않는다.
+import { ADSENSE } from '../config.ts';
+interface Props { name: 'A' | 'B' | 'C' | 'side'; class?: string }
+const { name: slot, class: cls = '' } = Astro.props;
+const id = ADSENSE.slots[slot];
+const h = slot === 'side' ? 'min-h-[600px]' : 'min-h-[280px] sm:min-h-[250px]';
+---
+<aside class={`my-6 ${h} ${cls}`} aria-label="광고" data-ad-slot-name={slot}>
+  {ADSENSE.client && id ? (
+    <>
+      <ins class="adsbygoogle block" data-ad-client={ADSENSE.client} data-ad-slot={id} data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script is:inline>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </>
+  ) : (
+    <div class={`flex ${h} items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-sm text-slate-400`}>광고 영역 {slot}</div>
+  )}
+</aside>
