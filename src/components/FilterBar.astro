@@ -1,0 +1,34 @@
+---
+// Markup only; behaviour lives in src/scripts/region.ts. Without JS the full list stays visible.
+interface Props { dongs: string[]; subGu: string[] }
+const { dongs, subGu } = Astro.props;
+const chips = [
+  ['open', '지금 운영 중'], ['24h', '24시간'], ['weekend', '주말·공휴일'], ['registry', '등기부등본'], ['family', '가족관계증명서'],
+];
+const sel = 'min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm';
+---
+<div id="filters" class="sticky top-14 z-20 -mx-4 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur">
+  <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]" role="group" aria-label="조건 필터">
+    {chips.map(([key, label]) => (
+      <button type="button" data-chip={key} aria-pressed="false"
+        class="chip shrink-0 whitespace-nowrap rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 aria-pressed:border-brand aria-pressed:bg-brand aria-pressed:text-white">
+        {key === 'open' && <span class="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle"></span>}{label}
+      </button>
+    ))}
+  </div>
+  <div class="mt-1.5 flex items-center gap-2" data-has-selects>
+    {subGu.length > 0 && (
+      <select id="f-subgu" class={sel} aria-label="구 선택">
+        <option value="">구 전체</option>
+        {subGu.map((g) => <option value={g}>{g}</option>)}
+      </select>
+    )}
+    {dongs.length > 1 && (
+      <select id="f-dong" class={sel} aria-label="동 선택">
+        <option value="">동 전체</option>
+        {dongs.map((d) => <option value={d}>{d}</option>)}
+      </select>
+    )}
+  </div>
+  <p id="f-count" class="mt-1 text-xs text-slate-600" aria-live="polite"></p>
+</div>

@@ -1,0 +1,18 @@
+---
+import type { Faq } from '../lib/faq.ts';
+interface Props { title: string; items: Faq[] }
+const { title, items } = Astro.props;
+---
+<section class="mt-8">
+  <h2 class="mb-3 text-lg font-bold">{title}</h2>
+  <div class="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+    {items.map((f) => (
+      <details class="group p-4">
+        <summary class="cursor-pointer list-none font-medium marker:hidden">
+          <span class="mr-1 text-brand">Q.</span>{f.q}
+        </summary>
+        <p class="mt-2 text-sm leading-relaxed text-slate-700">{f.a}</p>
+      </details>
+    ))}
+  </div>
+</section>

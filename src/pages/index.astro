@@ -1,0 +1,41 @@
+---
+// 허브: 도구 목록만 둔다. 도구별 콘텐츠·내부 링크·사이트맵은 각 하위 폴더(/muin/ …)에서 독립적으로 관리.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_NAME, SITE_DESC, SITE_URL, TOOLS } from '../config.ts';
+import { kiosks } from '../lib/data.ts';
+
+const counts: Record<string, string> = { muin: `수도권 ${kiosks.length.toLocaleString('ko-KR')}곳` };
+const live = TOOLS.filter((t) => t.status === 'live');
+const soon = TOOLS.filter((t) => t.status === 'soon');
+const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: `${SITE_URL}/` }];
+---
+<BaseLayout title={`${SITE_NAME} | 동네 생활 공공정보 한눈에`} description={SITE_DESC} jsonld={jsonld}>
+  <h1 class="text-2xl font-bold">{SITE_NAME}</h1>
+  <p class="mt-2 text-slate-700">동네에서 바로 필요한 생활 공공정보를 공공데이터로 정리해 빠르게 찾을 수 있게 만든 민간 정보 서비스입니다.</p>
+
+  <section class="mt-6 grid gap-3 sm:grid-cols-2">
+    {live.map((t) => (
+      <a href={t.path} class="block rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-brand">
+        <div class="flex items-baseline justify-between gap-2">
+          <h2 class="text-lg font-bold">{t.name}</h2>
+          {counts[t.slug] && <span class="text-sm text-slate-500">{counts[t.slug]}</span>}
+        </div>
+        <p class="mt-1 text-sm text-slate-600">{t.desc}</p>
+      </a>
+    ))}
+  </section>
+
+  {soon.length > 0 && (
+    <section class="mt-8">
+      <h2 class="mb-2 text-base font-bold text-slate-700">준비 중인 도구</h2>
+      <ul class="grid gap-2 sm:grid-cols-3">
+        {soon.map((t) => (
+          <li class="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+            <p class="font-medium text-slate-700">{t.name}</p>
+            <p class="mt-1">{t.desc}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</BaseLayout>

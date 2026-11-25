@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+scripts/fixtures/out/
+# 원천 CSV는 커밋하지 않음(용량·재배포 범위)
+*.csv
+!scripts/fixtures/*.csv
+.env*
+.dev.vars

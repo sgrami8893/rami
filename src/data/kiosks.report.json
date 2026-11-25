@@ -1,0 +1,77 @@
+{
+  "format": "localdata",
+  "encoding": "euc-kr",
+  "sourceRows": 5814,
+  "kept": 2139,
+  "idCollisions": 1,
+  "subGuInferred": 9,
+  "subGuMissing": 11,
+  "headers": [
+    "개방자치단체코드",
+    "관리번호",
+    "데이터갱신구분",
+    "관리기관명",
+    "발급기명",
+    "설치장소주소",
+    "설치장소상세위치",
+    "평일운영시작시각",
+    "평일운영종료시각",
+    "공휴일운영시작시각",
+    "공휴일운영종료시각",
+    "운영시간참고내용",
+    "설치운영URL",
+    "사용여부명",
+    "장애인편의기능정보",
+    "시각장애인용키패드",
+    "시각장애인용음성안내",
+    "청각장애인용화면안내",
+    "점자라벨부착",
+    "이어폰소켓",
+    "촉각(전자)모니터",
+    "화면확대기능",
+    "휠체어사용자조작",
+    "최종수정시점",
+    "시도코드",
+    "설치장소위치",
+    "도로시군구코드",
+    "도로코드",
+    "도로명읍면동번호",
+    "도로건물층구분",
+    "도로건물본번호",
+    "도로건물부번호",
+    "등기사항증명서발급구분",
+    "가족관계삭제발급구분",
+    "데이터갱신시점"
+  ],
+  "mapping": {
+    "docsFile": true,
+    "geocodeCacheEntries": 0
+  },
+  "unknownHeaders": [],
+  "bySido": {
+    "gyeonggi": 1145,
+    "incheon": 227,
+    "seoul": 767
+  },
+  "hoursConfidence": {
+    "ok": 1625,
+    "partial": 513,
+    "unknown": 1
+  },
+  "hoursParsedRate": 1,
+  "withCoords": 0,
+  "diff": {
+    "added": 0,
+    "removed": 0,
+    "removedRatio": 0
+  },
+  "skipsByReason": {
+    "overseas mission": 5,
+    "outside 수도권 or unknown 시군구": 3665,
+    "not in use": 5
+  },
+  "hoursFailuresSample": [
+    "평일 00:00~00:00, 공휴일 00:00~00:00"
+  ],
+  "unknownDocItems": []
+}
