@@ -60,3 +60,75 @@ export const kioskDescription = (k: Kiosk) => {
 
 export const SIDO_URL_NAME: Record<SidoSlug, string> = { seoul: '서울', gyeonggi: '경기', incheon: '인천' };
 const SIDO_SHORT = SIDO_URL_NAME;
+
+// ⑤ 시·군·구 '이용 요약' (콘텐츠 보강, 2026-11-25): 이 지역 데이터에 실제로 있는 값만 문장으로 만든다.
+// 조건이 없으면 문장을 뺀다(모든 페이지에 같은 문장이 반복되지 않게). 동의어 바꿔 끼우기 같은 가짜 다양화는 하지 않는다.
+const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+export function regionUsageSummary(st: RegionStats, ks: Kiosk[], all: RegionStats[]): string[] {
+  const out: string[] = [];
+  const short = SIDO_SHORT[st.sido];
+  const peers = all.filter((r) => r.sido === st.sido);
+  const rank = peers.filter((r) => r.total > st.total).length + 1;
+  const gu = subGuOf(st.sido, st.sigungu);
+  out.push(`${sidoFull(st.sido)} ${st.sigunguName}에는 무인민원발급기가 ${st.total}곳 있습니다. ${short} ${peers.length}개 시·군·구 가운데 ${rank}번째로 많습니다.` +
+    (gu.length ? ` 구별로는 ${gu.map((g) => `${g} ${st.bySubGu[g] ?? 0}곳`).join(', ')}입니다.` : ''));
+
+  const sidoTotal = peers.reduce((a, r) => a + r.total, 0);
+  const avg = pct(peers.reduce((a, r) => a + r.is24h, 0), sidoTotal);
+  const p = pct(st.is24h, st.total);
+  const cmp = Math.abs(p - avg) <= 5 ? `${short} 평균(${avg}%)과 비슷합니다` : p > avg ? `${short} 평균(${avg}%)보다 높습니다` : `${short} 평균(${avg}%)보다 낮습니다`;
+  out.push(st.is24h > 0 ? `24시간 운영 기기는 ${st.is24h}곳으로 전체의 ${p}%이며, ${cmp}.` : `24시간 운영 기기는 없습니다(${short} 평균 ${avg}%).`);
+
+  out.push(`일요일에 운영하는 곳은 ${st.openSun}곳, 공휴일에 운영하는 곳은 ${st.openHoliday}곳이고, 밤 10시 이후에도 이용할 수 있는 곳은 ${st.openAfter22}곳입니다.`);
+
+  const reg = st.docs.registry ?? 0, fam = st.docs.family ?? 0;
+  out.push(reg || fam
+    ? `등기부등본은 ${reg}곳, 가족관계증명서는 ${fam}곳에서 발급할 수 있습니다.`
+    : '등기부등본·가족관계증명서를 발급하는 기기는 없습니다.');
+
+  const groups = Object.entries(gu.length ? st.bySubGu : st.byDong).sort((a, b) => b[1] - a[1]);
+  if (groups.length > 1 && groups[0][1] > groups[1][1] && groups[0][1] >= 3) {
+    out.push(`기기가 가장 많은 ${gu.length ? '구는' : '동은'} ${groups[0][0]}(${groups[0][1]}곳)입니다.`);
+  }
+
+  const place: Record<string, number> = {};
+  for (const k of ks) if (k.placeType) place[k.placeType] = (place[k.placeType] ?? 0) + 1;
+  const top = Object.entries(place).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (top.length > 1) out.push(`설치 장소 유형은 ${top.map(([t, c]) => `${t} ${c}곳`).join(', ')} 순입니다.`);
+
+  const wheel = ks.filter((k) => k.a11y?.includes('휠체어 사용자 조작')).length;
+  const tactile = ks.filter((k) => k.a11y?.includes('촉각 모니터')).length;
+  out.push(`휠체어 사용자 조작 기능이 있는 기기는 ${wheel}곳, 촉각 모니터가 있는 기기는 ${tactile}곳입니다.`);
+
+  const partial = ks.filter((k) => k.hoursConfidence === 'partial').length;
+  if (partial) out.push(`주말·공휴일 운영 정보가 원천 데이터에 없는 기기가 ${partial}곳 있어, 이 기기들은 주말·공휴일을 휴무로 표시했습니다.`);
+  if (st.hoursUnknown) out.push(`운영시간 정보가 아예 없는 기기가 ${st.hoursUnknown}곳 있습니다.`);
+  return out;
+}
+
+// ⑥ 상세 '방문 전 체크포인트' (최대 3줄, 우선순위 순). 원천 데이터 조건에서만 나오고, 추측 문장은 넣지 않는다.
+export interface Checkpoint { text: string; href?: string; link?: string }
+export function kioskCheckpoints(k: Kiosk, c: { regionHref: string; regCount: number; today: string }): Checkpoint[] {
+  const out: Checkpoint[] = [];
+  const h = k.hours;
+  if (k.hoursConfidence === 'unknown') out.push({ text: '운영시간이 원천 데이터에 없습니다. 방문 전에 관리기관 안내 페이지에서 확인하세요.' });
+  if (k.hoursConfidence === 'partial') out.push({ text: '주말·공휴일 운영 정보가 없어 휴무로 표시했습니다. 주말에 갈 계획이면 먼저 확인하세요.' });
+  const court = k.docs.includes('registry') || k.docs.includes('family');
+  if (court) out.push({
+    text: k.is24h
+      ? '기기는 24시간 운영하지만, 등기부등본·가족관계증명서 같은 법원 발급 서류는 평일 낮에만 발급되는 곳이 있습니다.'
+      : '등기부등본·가족관계증명서 같은 법원 발급 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다.',
+    href: '/muin/guide/court-documents-hours/', link: '발급 시간 안내',
+  });
+  if (k.hoursConfidence === 'ok' && h.weekday && !h.sat && !h.sun && !h.holiday) {
+    out.push({ text: `평일 ${h.weekday[0]}~${h.weekday[1]}에만 운영하고 주말·공휴일은 휴무입니다.` });
+  }
+  if (!k.docs.includes('registry') && c.regCount > 0) {
+    out.push({ text: `이 기기는 등기부등본을 발급하지 않습니다.`, href: `${c.regionHref}?f=registry`, link: `${k.sigunguName}의 발급 기기 ${c.regCount}곳 보기` });
+  }
+  if (k.baseDate) {
+    const d = new Date(`${c.today}T00:00:00Z`); d.setUTCFullYear(d.getUTCFullYear() - 1);
+    if (k.baseDate < d.toISOString().slice(0, 10)) out.push({ text: `이 기기 정보의 기준일은 ${k.baseDate}입니다. 그 뒤 바뀌었을 수 있습니다.` });
+  }
+  return out.slice(0, 3);
+}

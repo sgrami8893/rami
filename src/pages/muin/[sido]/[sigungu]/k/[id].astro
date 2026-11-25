@@ -8,7 +8,7 @@ import {
 import { fmtRange, hoursLine, sortDocs, docLabel, kakaoTo, kakaoSearch, naverSearch, reportUrl } from '../../../../../lib/format.ts';
 import Icon from '../../../../../components/Icon.astro';
 import { breadcrumb, place } from '../../../../../lib/jsonld.ts';
-import { kioskTitle, kioskDescription } from '../../../../../lib/copy.ts';
+import { kioskTitle, kioskDescription, kioskCheckpoints } from '../../../../../lib/copy.ts';
 import { DOC_LABELS, type DocCode } from '../../../../../../scripts/lib/docs.ts';
 
 export function getStaticPaths() {
@@ -22,6 +22,7 @@ const sameDong = k.dong ? kiosks.filter((o) => o.id !== k.id && o.sido === k.sid
 const inRegion = kiosks.filter((o) => o.sido === k.sido && o.sigungu === k.sigungu);
 const regCount = inRegion.filter((o) => o.docs.includes('registry')).length;
 const famCount = inRegion.filter((o) => o.docs.includes('family')).length;
+const checkpoints = kioskCheckpoints(k, { regionHref, regCount, today: new Date().toISOString().slice(0, 10) });
 const nearby = (k.nearby ?? []).map((n) => ({ k: byId.get(n.id)!, m: n.m })).filter((x) => x.k);
 // 대체 기기: 좌표가 있으면 반경 2km, 없으면 같은 동 → 같은 일반구(빌드 스크립트가 계산).
 // 대체 기기가 하나도 없으면 noindex, 대신 같은 시·군·구의 다른 기기 3곳(좌표가 있으면 가까운 순)을 보여 준다.
@@ -103,6 +104,20 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     </div>
   </div>
 
+  {checkpoints.length > 0 && (
+    <>
+      <div class={BAND} aria-hidden="true"></div>
+      <section class="py-7">
+        <h2 class="mb-3 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="triangle-alert" size={20} class="text-warn" />방문 전 체크포인트</h2>
+        <ul class="space-y-2.5">
+          {checkpoints.map((c) => (
+            <li class="flex gap-2 text-body text-ink-2"><Icon name="check" size={18} class="mt-[3px] text-brand" /><span>{c.text}{c.href && <> <a href={c.href} class="font-semibold text-brand">{c.link}</a></>}</span></li>
+          ))}
+        </ul>
+      </section>
+    </>
+  )}
+
   <div class={BAND} aria-hidden="true"></div>
   <section class="py-7">
     <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="clock" size={20} class="text-brand" />운영시간</h2>
@@ -117,8 +132,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
         ))}
       </tbody>
     </table>
-    {k.hoursConfidence !== 'ok' && <p class="mt-2 rounded-xl bg-bg px-3 py-2 text-cap text-warn">{k.hoursConfidence === 'partial' ? '주말·공휴일 정보 없음(휴무로 표시)' : '운영시간 정보 없음'} · 원문: {k.hoursRaw || '정보 없음'}</p>}
-    {(k.docs.includes('registry') || k.docs.includes('family')) && <p class="mt-3 text-cap text-ink-3">등기부등본·가족관계증명서 같은 법원 발급 서류는 기기 운영시간과 달리 평일 낮에만 발급되는 곳이 있습니다. <a href="/muin/guide/court-documents-hours/" class="font-semibold text-brand">법원 서류 발급 시간 안내</a></p>}
+    {k.hoursConfidence !== 'ok' && <p class="mt-2 rounded-xl bg-bg px-3 py-2 text-cap text-ink-3">원천 데이터 원문: {k.hoursRaw || '정보 없음'}</p>}
   </section>
 
   <div class={BAND} aria-hidden="true"></div>

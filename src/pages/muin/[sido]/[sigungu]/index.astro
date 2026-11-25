@@ -10,7 +10,7 @@ import {
   type SidoSlug, type Kiosk,
 } from '../../../../lib/data.ts';
 import { regionFaq } from '../../../../lib/faq.ts';
-import { regionPageTitle, regionDescription, regionSummary } from '../../../../lib/copy.ts';
+import { regionPageTitle, regionDescription, regionUsageSummary } from '../../../../lib/copy.ts';
 import { faqPage, breadcrumb, itemList } from '../../../../lib/jsonld.ts';
 import { km } from '../../../../lib/format.ts';
 import { REPORT_FORM } from '../../../../config.ts';
@@ -110,8 +110,11 @@ const crumbs = [
 
   <div class="mt-8"><div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div></div>
   <section class="py-8 text-body text-ink-2">
-    <h2 class="mb-2 text-h2 font-bold text-ink">{st.sigunguName} 무인민원발급기 현황</h2>
-    <p>{regionSummary(st)}</p>
+    <h2 class="mb-3 text-h2 font-bold text-ink">{st.sigunguName} 무인민원발급기 이용 요약</h2>
+    <ul class="list-disc space-y-1.5 pl-5 marker:text-ink-3">
+      {regionUsageSummary(st, ks, stats).map((t) => <li>{t}</li>)}
+    </ul>
+    <p class="mt-3 text-cap text-ink-3">행정안전부 무인민원발급기 정보(데이터 기준일 {st.latestBaseDate ?? '미상'})를 집계했습니다.</p>
   </section>
 
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
