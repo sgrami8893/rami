@@ -5,13 +5,13 @@ const { title = '무인민원발급기 이용 가이드', limit, flat = false } 
 const list = limit ? GUIDES.slice(0, limit) : GUIDES;
 ---
 <section class={flat ? 'py-8' : 'mt-10'}>
-  <div class="mb-3 flex items-baseline justify-between px-1">
+  <div class={`flex items-baseline justify-between ${flat ? 'mb-1' : 'mb-3 px-1'}`}>
     <h2 class="text-h2 font-bold text-ink">{title}</h2>
     <a href={GUIDE_BASE} class="text-cap font-semibold text-brand">가이드 전체 보기</a>
   </div>
   <ul class={flat ? 'divide-y divide-line' : 'grid gap-2 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2'}>
     {list.map((g) => (
-      <li><a href={guidePath(g)} class={flat ? 'block py-3.5 hover:text-brand' : 'card block h-full hover:ring-2 hover:ring-brand/20'}>
+      <li><a href={guidePath(g)} class={flat ? 'block py-5 hover:[&>p:first-child]:text-brand' : 'card block h-full hover:ring-2 hover:ring-brand/20'}>
         <p class="text-body font-semibold text-ink">{g.title}</p>
         <p class="mt-1 text-cap text-ink-3">{g.summary}</p>
       </a></li>
