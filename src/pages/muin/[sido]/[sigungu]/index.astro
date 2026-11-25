@@ -34,7 +34,7 @@ const groups: Group[] = order
   .map((key) => ({ key, title: key, items: ks.filter((k) => groupKey(k) === key) }))
   .filter((g) => g.items.length);
 const dongs = Object.keys(st.byDong).sort((a, b) => a.localeCompare(b, 'ko'));
-const AD_B_AFTER = 5; // 광고 B: 6번째 카드 위치, 8곳 이상일 때만
+const AD_INFEED_AFTER = 3; // 인피드 광고: 3번째 카드 아래, 5곳 이상일 때만 (애드센스 설정 전에는 렌더 안 함)
 let cardIndex = 0;
 
 const faq = regionFaq(sido, sigungu);
@@ -62,12 +62,9 @@ const crumbs = [
 >
   <h1 class="text-title font-bold text-ink">{title}</h1>
   <p class="mt-1 text-cap text-ink-3">
-    {sidoName(sido)} · 데이터 기준일 {st.latestBaseDate ?? '미상'} · 월 1~2회 갱신
+    {sidoName(sido)} {st.total}곳 · 24시간 {st.is24h}곳 · 데이터 기준일 {st.latestBaseDate ?? '미상'}
   </p>
   <StatCards st={st} />
-  <p class="card mt-3 text-body text-ink-2">{regionSummary(st)}</p>
-
-  <AdSlot name="A" />
 
   <FilterBar dongs={dongs} subGu={subGu} />
 
@@ -81,7 +78,7 @@ const crumbs = [
             return (
               <>
                 <KioskCard k={k} />
-                {cardIndex === AD_B_AFTER && ks.length >= 8 && <AdSlot name="B" />}
+                {cardIndex === AD_INFEED_AFTER && ks.length >= 5 && <AdSlot name="B" variant="infeed" />}
               </>
             );
           })}
@@ -105,6 +102,11 @@ const crumbs = [
   </div>
 
   <section class="card mt-10 text-body text-ink-2">
+    <h2 class="mb-2 text-h2 font-bold text-ink">{st.sigunguName} 무인민원발급기 현황</h2>
+    <p>{regionSummary(st)}</p>
+  </section>
+
+  <section class="card mt-3 text-body text-ink-2">
     <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="info" size={18} class="text-brand" />이용 전 알아두세요</h2>
     <ul class="list-disc space-y-1 pl-5 marker:text-ink-3">
       <li>주민등록 등·초본, 가족관계증명서처럼 본인 확인이 필요한 서류는 지문 인식으로 확인합니다.</li>
@@ -137,5 +139,7 @@ const crumbs = [
 
 <script>
   import { initFilters } from '../../../../scripts/filters.ts';
+  import { initCopy } from '../../../../scripts/copy.ts';
   initFilters();
+  initCopy();
 </script>

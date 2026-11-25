@@ -1,0 +1,22 @@
+---
+// PC(1024px+) 우측 사이드바: 지역별 빠른 탐색 + 세로형 스티키 광고 1개(설정 시에만).
+import AdSlot from './AdSlot.astro';
+import { SIDO_ORDER, regionsIn, sidoName, regionPath } from '../lib/data.ts';
+const groups = SIDO_ORDER.map((s) => ({ s, top: [...regionsIn(s)].sort((a, b) => b.total - a.total).slice(0, 8) })).filter((g) => g.top.length);
+---
+<aside class="hidden lg:block" aria-label="지역별 빠른 탐색">
+  <div class="sticky top-[72px] space-y-4">
+    <nav class="card p-4">
+      <h2 class="mb-3 text-body font-bold text-ink">지역별 빠른 탐색</h2>
+      {groups.map(({ s, top }) => (
+        <div class="mb-3 last:mb-0">
+          <a href={regionPath(s)} class="text-cap font-semibold text-ink-2 hover:text-brand">{sidoName(s)} 전체</a>
+          <div class="mt-1.5 flex flex-wrap gap-1.5">
+            {top.map((r) => <a href={regionPath(r.sido, r.sigungu)} class="rounded-xl bg-bg px-2.5 py-1 text-cap text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
+          </div>
+        </div>
+      ))}
+    </nav>
+    <AdSlot name="side" variant="side" />
+  </div>
+</aside>

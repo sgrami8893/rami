@@ -5,6 +5,8 @@ import '../styles/global.css';
 import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91.woff2?url';
 import { SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, type ToolSlug } from '../config.ts';
 import Breadcrumb from '../components/Breadcrumb.astro';
+import Logo from '../components/Logo.astro';
+import Sidebar from '../components/Sidebar.astro';
 import { kiosks } from '../lib/data.ts';
 import { safeJsonLd } from '../lib/jsonld.ts';
 
@@ -17,8 +19,12 @@ interface Props {
   wide?: boolean;
   /** 도구 페이지면 그 도구의 하위 메뉴·출처를 보여 준다. 허브 공통 페이지는 생략. */
   tool?: ToolSlug;
+  /** PC(1024px+)에서 본문 740px + 사이드바 300px 2단. 기본: 도구 페이지에서 켬. */
+  sidebar?: boolean;
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
+const sidebar = Astro.props.sidebar ?? Boolean(tool);
+const frame = sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트명을 붙이지 않음
 const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? '미상';
@@ -52,8 +58,8 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
   </head>
   <body class="min-h-screen bg-bg text-ink antialiased">
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
-      <div class="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
-        <a href="/" class="text-[18px] font-extrabold tracking-tight text-brand">{SITE_NAME}</a>
+      <div class={`mx-auto flex h-14 items-center justify-between px-4 ${frame}`}>
+        <a href="/" class="flex items-center gap-1.5 text-[18px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
         {tool === 'muin' ? (
           <nav class="flex items-center gap-4 text-[14px] font-medium text-ink-2">
             <a href="/muin/" class="text-ink hover:text-brand">무인발급기</a>
@@ -68,18 +74,21 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
         )}
       </div>
     </header>
-    <main class={`mx-auto px-4 pb-16 pt-4 ${wide ? 'max-w-5xl' : 'max-w-2xl'}`}>
-      {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
-      <slot />
-    </main>
-    <footer class="bg-card">
-      <div class="mx-auto max-w-2xl space-y-2 px-4 py-8 text-cap text-ink-3">
-        <p class="font-semibold text-ink-2">본 사이트는 정부·지자체 공식 사이트가 아닌 민간 정보 제공 서비스입니다.</p>
+    <div class={`mx-auto px-4 pb-16 pt-4 ${frame} ${sidebar ? 'lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between lg:gap-8' : ''}`}>
+      <main class="min-w-0">
+        {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
+        <slot />
+      </main>
+      {sidebar && <Sidebar />}
+    </div>
+    <footer class="bg-ink">
+      <div class={`mx-auto space-y-2 px-4 py-8 text-cap text-white/70 ${frame}`}>
+        <p class="font-semibold text-white">본 사이트는 정부·지자체 공식 사이트가 아닌 민간 정보 제공 서비스입니다.</p>
         {sources.map((s) => (
           <p>출처: <a href={s.url} class="underline" rel="noopener noreferrer" target="_blank">{s.name}</a>(기준일 {s.date}). 공공데이터를 가공해 제공합니다.</p>
         ))}
         {toolInfo?.slug === 'muin' && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있습니다. 중요한 방문 전에는 관리기관에 확인하세요.</p>}
-        <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-ink-2"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
+        <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-white/85"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
       </div>
     </footer>
     <slot name="bottom" />

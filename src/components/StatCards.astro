@@ -3,14 +3,14 @@ import type { RegionStats } from '../lib/data.ts';
 interface Props { st: RegionStats }
 const { st } = Astro.props;
 const cards = [
-  ['전체', st.total, ''], ['24시간', st.is24h, '24h'], ['주말 운영', st.openWeekend, 'weekend'], ['등기부등본', st.docs.registry ?? 0, 'registry'],
+  ['전체', st.total, ''], ['24시간', st.is24h, '24h'], ['주말', st.openWeekend, 'weekend'], ['등기부', st.docs.registry ?? 0, 'registry'],
 ] as const;
 ---
-<div class="card mt-3 grid grid-cols-4 p-2">
+<div class="card mt-3 grid grid-cols-4 divide-x divide-line p-0 py-2">
   {cards.map(([label, n, chip]) => (
-    <button type="button" data-stat-chip={chip} class="rounded-2xl px-1 py-3 text-center hover:bg-bg">
-      <span class="block text-[20px] font-bold leading-tight text-ink">{n}</span>
-      <span class="mt-0.5 block text-cap text-ink-3">{label}</span>
+    <button type="button" data-stat-chip={chip} class="px-1 py-1 text-center hover:text-brand">
+      <span class="block text-[19px] font-bold leading-tight text-ink">{n}</span>
+      <span class="block text-cap text-ink-3">{label}</span>
     </button>
   ))}
 </div>

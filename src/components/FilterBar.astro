@@ -7,11 +7,11 @@ const chips = [
 ];
 const sel = 'h-9 min-w-0 rounded-xl bg-card px-3 text-[14px] text-ink-2';
 ---
-<div id="filters" class="sticky top-14 z-20 -mx-4 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
+<div id="filters" class="sticky top-14 z-20 -mx-4 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur lg:mx-0 lg:px-0">
   <div class="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4" role="group" aria-label="조건 필터">
     {chips.map(([key, label]) => (
       <button type="button" data-chip={key} aria-pressed="false"
-        class="chip flex h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-card px-3.5 text-[14px] font-medium text-ink-2 aria-pressed:bg-brand aria-pressed:text-white">
+        class="chip flex h-9 shrink-0 items-center whitespace-nowrap rounded-xl border border-line bg-card px-3 text-[14px] font-medium text-ink-2 aria-pressed:border-brand aria-pressed:bg-brand aria-pressed:text-white">
         {key === 'open' && <span class="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-ok"></span>}{label}
       </button>
     ))}
