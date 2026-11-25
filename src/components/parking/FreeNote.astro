@@ -1,0 +1,5 @@
+---
+// 무료 표기 면책(무료 필터·무료 허브 공통)
+const { class: cls = '' } = Astro.props as { class?: string };
+---
+<p class={`rounded-xl bg-bg px-4 py-3 text-cap text-ink-2 ${cls}`}>'무료'는 공공데이터 기준이에요. 시간대·차종·행사에 따라 유료일 수 있으니 현장 안내와 관리기관에 확인하세요. 운영 여부도 공개된 운영시간으로 계산한 값이에요.</p>

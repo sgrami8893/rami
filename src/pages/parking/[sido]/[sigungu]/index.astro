@@ -2,6 +2,8 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/parking/MockBanner.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
+import LotFilters from '../../../../components/parking/LotFilters.astro';
+import FreeNote from '../../../../components/parking/FreeNote.astro';
 import MapPanel from '../../../../components/MapPanel.astro';
 import { SIDOS, sidoShort, parkingPath, regionsOf, regionIndexable, toPoint, IS_MOCK } from '../../../../lib/parking.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
@@ -32,29 +34,17 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     </p>
     <p class="mt-1 text-cap text-ink-3">참고용이에요. 현장 요금과 다를 수 있어요.</p>
   </section>
-  <div class="mt-4 flex items-center justify-between gap-3">
-    <p class="text-cap text-ink-3">{ls.length}곳</p>
-    <div role="group" aria-label="정렬" class="flex gap-1.5">
-      <button type="button" data-sort="name" aria-pressed="true" class="min-h-11 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 aria-pressed:bg-ink aria-pressed:text-white">이름순</button>
-      <button type="button" data-sort="fee2" aria-pressed="false" class="min-h-11 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 aria-pressed:bg-ink aria-pressed:text-white">2시간 요금 낮은 순</button>
-    </div>
-  </div>
-  <p id="sort-status" class="sr-only" aria-live="polite"></p>
+  {freeN > 0 && (
+    <a href={`${parkingPath(sido, r.sigungu)}free/`} class="mt-3 flex min-h-11 items-center justify-between rounded-2xl bg-ok-bg px-4 py-3 text-body font-semibold text-ok">
+      <span>{r.name} 무료주차장 {freeN}곳 바로 보기</span><span aria-hidden="true">›</span>
+    </a>
+  )}
+  {freeN > 0 && <FreeNote class="mt-2" />}
+  <LotFilters total={ls.length} />
   <div id="lot-list" class="mt-1">{ls.map((l) => <LotRow l={l} />)}</div>
 </BaseLayout>
 
 <script>
-  // 정렬: 무료(0) → 요금 낮은 순 → 요금 정보 없음은 맨 뒤. 같은 값은 이름순.
-  const list = document.getElementById('lot-list');
-  const btns = [...document.querySelectorAll<HTMLButtonElement>('[data-sort]')];
-  const status = document.getElementById('sort-status');
-  if (list) btns.forEach((b) => b.addEventListener('click', () => {
-    const by = b.dataset.sort;
-    const rows = [...list.querySelectorAll<HTMLElement>('.lot')];
-    const v = (e: HTMLElement) => (e.dataset.fee2 === '' ? Infinity : Number(e.dataset.fee2));
-    rows.sort((a, c) => (by === 'fee2' ? v(a) - v(c) : 0) || (a.dataset.name ?? '').localeCompare(c.dataset.name ?? '', 'ko'));
-    rows.forEach((r) => list.appendChild(r));
-    btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    if (status) status.textContent = by === 'fee2' ? '2시간 요금 낮은 순으로 정렬했어요' : '이름순으로 정렬했어요';
-  }));
+  import { initParkingList } from '../../../../scripts/parking-list.ts';
+  initParkingList();
 </script>

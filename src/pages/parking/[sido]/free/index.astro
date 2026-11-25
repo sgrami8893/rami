@@ -2,6 +2,8 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/parking/MockBanner.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
+import LotFilters from '../../../../components/parking/LotFilters.astro';
+import FreeNote from '../../../../components/parking/FreeNote.astro';
 import MapPanel from '../../../../components/MapPanel.astro';
 import { SIDOS, lots, sidoName, sidoShort, parkingPath, freePath, regionsOf, freeHubIndexable, toPoint, IS_MOCK, type ParkingLot } from '../../../../lib/parking.ts';
 import { SIGUNGU, type SidoSlug } from '../../../../../scripts/lib/regions.ts';
@@ -18,11 +20,18 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <MockBanner />
   <h1 class="text-title font-bold text-ink">{sidoShort(sido)} 무료 공영주차장 {st.count}곳</h1>
   <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} 전체 {st.total}곳 중 {st.count}곳 · {st.regions}개 시·군·구 · 색인 판정: {st.indexable ? '색인 대상' : 'noindex(기준 미달)'}</p>
+  <FreeNote class="mt-3" />
+  <nav aria-label="시·군·구별 무료주차장" class="mt-4 flex flex-wrap gap-2">
+    {groups.map((g) => <a href={`${parkingPath(sido, g.sigungu)}free/`} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">{g.name}<span class="font-medium text-ink-3">{g.items.length}</span></a>)}
+  </nav>
   <MapPanel points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} />
-  <div class="mt-6 space-y-8">
-    {groups.map((g) => (
-      <section id={g.sigungu}><h2 class="text-[length:calc(17px*var(--fs,1))] font-bold text-ink-2">{g.name} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
-        <div>{g.items.map((l) => <LotRow l={l} />)}</div></section>
-    ))}
+  <LotFilters total={free.length} free={false} sort={false} />
+  <div id="lot-list" class="mt-1">
+    {groups.map((g) => g.items.map((l) => <LotRow l={l} level={2} />))}
   </div>
 </BaseLayout>
+
+<script>
+  import { initParkingList } from '../../../../scripts/parking-list.ts';
+  initParkingList();
+</script>

@@ -121,3 +121,16 @@ export const regionIndexable = (count: number) => count >= PARKING_RULE.minRegio
 /** 상세: 주소·요금 구분·운영시간 중 2가지 이상 있어야 색인 */
 export const lotIndexable = (l: ParkingLot) =>
   [!!l.roadAddress, l.fee.type !== 'unknown', !!(l.hours.weekday || l.hours.sat || l.hours.holiday)].filter(Boolean).length >= 2;
+
+/** 시·군·구 무료 허브: 무료 5곳 이상이고, 무료 비율이 85% 이하(시·군·구 목록과 거의 같은 중복 페이지 방지)일 때만 색인 */
+export const FREE_SIGUNGU_MIN = 5;
+export function freeSigunguIndexable(lots: ParkingLot[]) {
+  const free = lots.filter((l) => l.fee.type === 'free').length;
+  return { count: free, total: lots.length, indexable: free >= FREE_SIGUNGU_MIN && free / (lots.length || 1) <= PARKING_RULE.maxShare };
+}
+
+/** 운영시간 판정용 형식(scripts/lib/hours.ts Hours)으로 변환. 일요일은 공휴일 시간을 쓴다. 정보 없음은 undefined(판정 불가). */
+export function lotHours(l: Pick<ParkingLot, 'hours'>) {
+  const conv = (h: DayHours) => (h === null ? undefined : h === '24h' ? (['00:00', '24:00'] as [string, string]) : h);
+  return { weekday: conv(l.hours.weekday), sat: conv(l.hours.sat), sun: conv(l.hours.holiday), holiday: conv(l.hours.holiday) };
+}

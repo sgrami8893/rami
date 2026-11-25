@@ -60,3 +60,17 @@ test('실제 응답 형식: 빈 태그 요금·23:59 종료·무료인데 basicT
   assert.equal(paidEmpty.fee.baseMin, 30);
   assert.equal(feeText(calcFee(paidEmpty, 120)), '요금 정보 없음');
 });
+
+test('무료 허브 색인 기준·운영시간 변환', async () => {
+  const { freeSigunguIndexable, lotHours } = await import('../lib/parking.ts');
+  const { isOpenAt } = await import('../lib/hours.ts');
+  const mk = (type: string) => ({ fee: { type } }) as never;
+  assert.equal(freeSigunguIndexable([...Array(5)].map(() => mk('free')).concat([mk('paid')])).indexable, true); // 5/6 = 83%
+  assert.equal(freeSigunguIndexable([...Array(5)].map(() => mk('free'))).indexable, false); // 100% → 중복 페이지
+  assert.equal(freeSigunguIndexable([...Array(4)].map(() => mk('free')).concat([mk('paid'), mk('paid')])).indexable, false); // 4곳
+  const h = lotHours({ hours: { weekday: '24h', sat: ['09:00', '13:00'], holiday: null } });
+  const at = (ymd: string, dow: number, minutes: number) => isOpenAt(h, { ymd, dow, minutes }, new Set(['2026-12-25']));
+  assert.equal(at('2026-11-25', 3, 23 * 60 + 59), true); // 평일 24시간
+  assert.equal(at('2026-11-28', 6, 14 * 60), false); // 토 13시 마감
+  assert.equal(at('2026-11-29', 0, 10 * 60), null); // 일요일 = 공휴일 시간 정보 없음 → 판정 불가
+});

@@ -3,13 +3,23 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import MockBanner from '../../components/parking/MockBanner.astro';
 import { PARKING_PREVIEW } from '../../config.ts';
-import { lots, SIDOS, sidoName, parkingPath, freePath, regionsOf } from '../../lib/parking.ts';
+import { lots, SIDOS, sidoName, sidoShort, parkingPath, freePath, regionsOf } from '../../lib/parking.ts';
 export function getStaticPaths() { return PARKING_PREVIEW ? [{ params: { index: undefined } }] : []; }
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }];
 ---
 <BaseLayout tool="parking" title={`수도권 공영주차장 ${lots.length}곳 | 무료 주차장 찾기`} description="골격 미리보기" crumbs={crumbs} noindex sidebar={false}>
   <MockBanner />
   <h1 class="text-title font-bold text-ink">수도권 공영주차장 {lots.length}곳</h1>
+  <section aria-labelledby="free-h" class="mt-4 rounded-2xl bg-ok-bg px-4 py-4">
+    <h2 id="free-h" class="text-h2 font-bold text-ok">무료주차장 빠르게 찾기</h2>
+    <div class="mt-3 grid grid-cols-3 gap-2">
+      {SIDOS.map((s) => { const f = regionsOf(s).reduce((a, r) => a + r.free, 0); return (
+        <a href={freePath(s)} class="flex min-h-14 flex-col items-center justify-center rounded-xl bg-card px-2 py-2 text-center font-semibold text-ink hover:text-brand">
+          <span class="text-[length:calc(17px*var(--fs,1))]">{sidoShort(s)}</span><span class="text-cap font-medium text-ok">무료 {f}곳</span>
+        </a>); })}
+    </div>
+    <p class="mt-2 text-cap text-ink-2">시·도를 고른 뒤 '지금 운영시간 내'를 켜면 지금 쓸 수 있는 곳만 남아요. 무료 여부는 공공데이터 기준이라 현장 확인이 필요해요.</p>
+  </section>
   <ul class="mt-4 divide-y divide-line">
     {SIDOS.map((s) => {
       const rs = regionsOf(s); const n = rs.reduce((a, r) => a + r.lots.length, 0); const f = rs.reduce((a, r) => a + r.free, 0);
