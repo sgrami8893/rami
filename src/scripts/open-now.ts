@@ -10,7 +10,7 @@ const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 function shift(now: KstNow, days: number): KstNow {
   const d = new Date(`${now.ymd}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
-  return { ymd: d.toISOString().slice(0, 10), dow: (now.dow + days) % 7, minutes: 0 };
+  return { ymd: d.toISOString().slice(0, 10), dow: (((now.dow + days) % 7) + 7) % 7, minutes: 0 };
 }
 
 /** Next opening time within 7 days, e.g. "내일 07:00". */
@@ -25,6 +25,18 @@ export function nextOpen(h: Hours, now: KstNow): string | null {
     return `${when} ${r[0]}`;
   }
   return null;
+}
+
+const keyOf = (d: KstNow): keyof Hours => (holidays.has(d.ymd) ? 'holiday' : d.dow === 0 ? 'sun' : d.dow === 6 ? 'sat' : 'weekday');
+
+/** 운영시간 안일 때 끝나는 시각: "오늘 22:00까지" / 자정을 넘기면 "내일 01:00까지" */
+export function closesAt(h: Hours, now: KstNow): string | null {
+  const y = h[keyOf(shift(now, -1))];
+  if (y && toMin(y[1]) < toMin(y[0]) && now.minutes < toMin(y[1])) return `오늘 ${y[1]}까지`;
+  const r = h[keyOf(now)];
+  if (!r) return null;
+  if (toMin(r[1]) < toMin(r[0])) return `내일 ${r[1]}까지`;
+  return r[1] === '24:00' ? '오늘 자정까지' : `오늘 ${r[1]}까지`;
 }
 
 const BADGE = {
@@ -49,6 +61,12 @@ export function refreshOpenState(root: ParentNode = document): KstNow {
       const [label, bg, fg] = BADGE[state];
       badge.textContent = label;
       badge.className = `open-badge badge ${bg} ${fg}`;
+    }
+    // 목록 행: 기본 HTML의 운영시간 문구를 지금 기준 문구로 바꾼다(24시간·미확인은 그대로). 한 줄 고정이라 CLS 없음.
+    const rel = el.querySelector<HTMLElement>('.rel-time');
+    if (rel) {
+      const t = el.dataset.f24h || state === 'unknown' ? null : state === 'open' ? closesAt(hours, now) : nextOpen(hours, now);
+      rel.textContent = t ? (state === 'open' ? t : `${t} 열림`) : (rel.dataset.default ?? '');
     }
     const next = el.querySelector<HTMLElement>('.next-open');
     if (next) {

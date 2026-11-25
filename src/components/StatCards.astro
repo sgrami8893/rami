@@ -7,7 +7,7 @@ const cards = [
 ] as const;
 ---
 <!-- 누르면 아래 필터 칩과 같이 켜지고 꺼진다(filters.ts). '전체'는 필터 초기화. -->
-<div class="card mt-3 grid grid-cols-4 divide-x divide-line p-0 py-2" role="group" aria-label="조건별 개수 (누르면 필터)">
+<div class="mt-4 grid grid-cols-4 divide-x divide-line rounded-2xl bg-bg py-3" role="group" aria-label="조건별 개수 (누르면 필터)">
   {cards.map(([label, n, chip]) => (
     <button type="button" data-stat-chip={chip} aria-pressed={chip ? 'false' : 'true'} class="group px-1 py-1 text-center">
       <span class="block text-[19px] font-bold leading-tight text-ink group-hover:text-brand group-aria-pressed:text-brand">{n}</span>

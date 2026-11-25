@@ -22,6 +22,7 @@
   --color-ink-2: #485463;     /* 보조 텍스트 */
   --color-ink-3: #5F6B78;     /* 캡션·비활성 (#8B95A1에서 명도 대비 4.5:1 이상으로 조정) */
   --color-line: #E4E8EE;      /* 구분선(필요할 때만) */
+  --color-subtle: #F8F9FB;    /* 행 터치 피드백·PC 사이드바 바탕 */
 
   /* 파스텔 배지 3종 (글자색은 WCAG AA 4.5:1 이상) */
   --color-ok-bg: #E8F7EE;   --color-ok: #1A7F45;    /* 운영 중 */
@@ -43,6 +44,11 @@ body { word-break: keep-all; padding-left: env(safe-area-inset-left); padding-ri
 :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; border-radius: 8px; }
 .scrollbar-none { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* 섹션 구분 띠 (순백 캔버스 페이지): 좌우 끝까지 12px 회색 */
+@utility band {
+  height: 12px; background-color: var(--color-bg);
+}
 
 /* 보더리스 카드 */
 @utility card {

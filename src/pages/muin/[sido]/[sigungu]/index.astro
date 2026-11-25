@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
-import KioskCard from '../../../../components/KioskCard.astro';
+import KioskRow from '../../../../components/KioskRow.astro';
 import FilterBar from '../../../../components/FilterBar.astro';
 import AdSlot from '../../../../components/AdSlot.astro';
 import FaqSection from '../../../../components/FaqSection.astro';
@@ -54,6 +54,7 @@ const crumbs = [
 ---
 <BaseLayout
   tool="muin"
+  canvas="white"
   title={title}
   description={regionDescription(st)}
   crumbs={crumbs}
@@ -71,16 +72,17 @@ const crumbs = [
 
   <FilterBar dongs={dongs} subGu={subGu} />
 
-  <div id="kiosk-list" class="mt-3 space-y-8">
+  <!-- 행 사이 구분선 없음: 상하 18px 여백만. 동(구) 묶음 사이는 32px. -->
+  <div id="kiosk-list" class="mt-2 space-y-8">
     {groups.map((g) => (
       <section data-group={g.key} id={g.key}>
-        <h2 class="mb-3 px-1 text-h2 font-bold text-ink">{g.title} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
-        <div class="space-y-3">
+        <h2 class="text-[15px] font-bold text-ink-2">{g.title} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
+        <div>
           {g.items.map((k) => {
             cardIndex++;
             return (
               <>
-                <KioskCard k={k} />
+                <KioskRow k={k} />
                 {cardIndex === AD_INFEED_AFTER && ks.length >= 5 && <AdSlot name="B" variant="infeed" />}
               </>
             );
@@ -90,7 +92,7 @@ const crumbs = [
     ))}
   </div>
 
-  <div id="empty-state" class="card mt-3" hidden>
+  <div id="empty-state" class="py-6" hidden>
     <p class="text-body font-semibold text-ink">조건에 맞는 곳이 {st.sigunguName}에 없습니다.</p>
     <p class="mt-1 text-body text-ink-2">조건을 줄이거나, 다른 지역에서 찾아보세요.</p>
     <button type="button" id="reset-filters" class="mt-3 flex h-9 items-center gap-1 rounded-xl bg-brand px-3.5 text-[14px] font-semibold text-white hover:brightness-95">필터 초기화</button>
@@ -106,12 +108,14 @@ const crumbs = [
     )}
   </div>
 
-  <section class="card mt-10 text-body text-ink-2">
+  <div class="mt-8"><div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div></div>
+  <section class="py-8 text-body text-ink-2">
     <h2 class="mb-2 text-h2 font-bold text-ink">{st.sigunguName} 무인민원발급기 현황</h2>
     <p>{regionSummary(st)}</p>
   </section>
 
-  <section class="card mt-3 text-body text-ink-2">
+  <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+  <section class="py-8 text-body text-ink-2">
     <h2 class="mb-2 flex items-center gap-1.5 text-h2 font-bold text-ink"><Icon name="info" size={18} class="text-brand" />이용 전 알아두세요</h2>
     <ul class="list-disc space-y-1 pl-5 marker:text-ink-3">
       <li>주민등록 등·초본, 가족관계증명서처럼 본인 확인이 필요한 서류는 주민등록증을 만들 때 등록한 지문으로 확인합니다.</li>
@@ -123,14 +127,16 @@ const crumbs = [
 
   <AdSlot name="C" />
 
-  <FaqSection title={`${st.sigunguName} 무인민원발급기 자주 묻는 질문`} items={faq} />
+  <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+  <FaqSection flat title={`${st.sigunguName} 무인민원발급기 자주 묻는 질문`} items={faq} />
 
   {neighbours.length > 0 && (
-    <section class="mt-10">
+    <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+    <section class="py-8">
       <h2 class="mb-3 text-h2 font-bold text-ink">{byDistance ? '가까운 지역' : `${sidoShort(sido)}의 다른 지역`}</h2>
       <div class="flex flex-wrap gap-2">
         {neighbours.map((n) => (
-          <a href={regionPath(n.sido, n.sigungu)} class="flex h-9 items-center rounded-full bg-card px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">
+          <a href={regionPath(n.sido, n.sigungu)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">
             {n.sigunguName} <span class="ml-1 text-ink-3">{n.total}</span>
           </a>
         ))}
@@ -138,8 +144,9 @@ const crumbs = [
     </section>
   )}
 
-  {REPORT_FORM.formId && <p class="mt-8 px-1 text-cap text-ink-3">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>}
-  <GuideList limit={4} />
+  {REPORT_FORM.formId && <p class="pb-6 px-1 text-cap text-ink-3">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>}
+  <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
+  <GuideList flat limit={4} />
 </BaseLayout>
 
 <script>

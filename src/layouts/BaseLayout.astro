@@ -21,9 +21,12 @@ interface Props {
   tool?: ToolSlug;
   /** PC(1024px+)에서 본문 740px + 사이드바 300px 2단. 기본: 도구 페이지에서 켬. */
   sidebar?: boolean;
+  /** 'white': 순백 캔버스(3차 개편 페이지). 섹션은 .band 띠로 나누고, PC 사이드바는 옅은 회색 + 세로 구분선. */
+  canvas?: 'gray' | 'white';
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
 const sidebar = Astro.props.sidebar ?? Boolean(tool);
+const white = Astro.props.canvas === 'white';
 const frame = sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트명을 붙이지 않음
@@ -50,13 +53,13 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
     <meta property="og:locale" content="ko_KR" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href={fontPreload} as="font" type="font/woff2" crossorigin />
-    <meta name="theme-color" content="#F3F5F8" />
+    <meta name="theme-color" content={white ? '#FFFFFF' : '#F3F5F8'} />
     {jsonld.map((j) => <script type="application/ld+json" set:html={safeJsonLd(j)} />)}
     {ADSENSE.client && (
       <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE.client}`} crossorigin="anonymous" />
     )}
   </head>
-  <body class="min-h-screen bg-bg text-ink antialiased">
+  <body class={`min-h-screen text-ink antialiased ${white ? 'bg-card' : 'bg-bg'}`}>
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
       <div class={`mx-auto flex h-14 items-center justify-between px-4 ${frame}`}>
         <a href="/" class="flex items-center gap-1.5 text-[18px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
@@ -74,12 +77,12 @@ const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
         )}
       </div>
     </header>
-    <div class={`mx-auto px-4 pb-16 pt-4 ${frame} ${sidebar ? 'lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between lg:gap-8' : ''}`}>
-      <main class="min-w-0">
+    <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
+      <main class={`min-w-0 ${white && sidebar ? 'lg:pr-8' : ''}`}>
         {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
         <slot />
       </main>
-      {sidebar && <Sidebar />}
+      {sidebar && <Sidebar flat={white} />}
     </div>
     <footer class="bg-ink">
       <div class={`mx-auto space-y-2 px-4 py-8 text-cap text-white/70 ${frame}`}>
