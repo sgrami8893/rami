@@ -22,7 +22,7 @@ const effective = '2026-12-01'; // TODO: 공개일로 교체
     </section>
     <section>
       <h2 class="font-bold text-ink">{nStore}. 이용자 기기에 저장하는 정보</h2>
-      <p>즐겨찾는 발급기와 상황별 서류 체크리스트의 체크 상태는 이용자의 브라우저 저장소(localStorage)에만 저장돼요. 저장되는 내용은 기기 ID·이름·주소 일부·운영시간 같은 공개 정보와 체크 여부뿐이고, 사이트 운영자나 제3자에게 전송되지 않아요. 브라우저의 사이트 데이터를 지우면 함께 삭제돼요.</p>
+      <p>즐겨찾는 발급기, 상황별 서류 체크리스트의 체크 상태, 글자 크기 설정은 이용자의 브라우저 저장소(localStorage)에만 저장돼요. 저장되는 내용은 기기 ID·이름·주소 일부·운영시간 같은 공개 정보와 체크 여부, 글자 크기 선택값뿐이고, 사이트 운영자나 제3자에게 전송되지 않아요. 브라우저의 사이트 데이터를 지우면 함께 삭제돼요.</p>
     </section>
     {hasReport && <section>
       <h2 class="font-bold text-ink">{nReport}. 정보 오류 제보</h2>
@@ -38,6 +38,6 @@ const effective = '2026-12-01'; // TODO: 공개일로 교체
       <h2 class="font-bold text-ink">{nContact}. 문의처</h2>
       <p>서비스 이용 및 개인정보 관련 문의: {CONTACT_EMAIL}</p>
     </section>
-    <p class="text-sm text-ink-3">시행일: {effective}</p>
+    <p class="text-cap text-ink-3">시행일: {effective}</p>
   </article>
 </BaseLayout>

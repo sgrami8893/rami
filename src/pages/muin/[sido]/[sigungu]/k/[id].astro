@@ -77,20 +77,20 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
   jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: new URL(c.href, site).href }))), place(k, url)]}
 >
   <!-- 최상단 상태 블록: 들어오자마자 이용 가능 여부. JS가 한국 시간으로 "운영시간 내 · 오늘 18:00까지"로 채운다.
-       기본 HTML은 원래 운영시간, 한 줄 말줄임이라 치환해도 높이가 바뀌지 않는다(CLS 없음). -->
+       기본 HTML은 원래 운영시간. 글자를 크게 하면 두 줄로 넘어갈 수 있어 말줄임 대신 줄바꿈(정보가 잘리지 않게). -->
   <div id="self" class="kiosk pb-7" data-id={k.id} data-hours={JSON.stringify(k.hours)} data-conf={k.hoursConfidence} data-f24h={k.is24h ? '1' : ''}>
-    <p id="status" class="truncate text-[22px] font-bold leading-[1.45] text-ink-2">
-      <span id="status-label">운영시간</span><span> · </span><span class="rel-time" data-default={hoursText}>{hoursText}</span>
+    <p id="status" class="text-[length:calc(24px*var(--fs,1))] font-bold leading-[1.45] text-ink-2">
+      <span id="status-label">운영시간</span><span> · </span><span class="rel-time" data-default={hoursText}>아래 표를 확인하세요</span>
     </p>
     <!-- 남은 시간·다음 운영 안내 줄: 높이를 미리 잡아 둬서 문구가 생겨도 화면이 밀리지 않음 -->
-    <p id="status-sub" class="h-5 truncate text-cap text-ink-2" aria-live="polite"></p>
+    <p id="status-sub" class="min-h-[1.5em] text-cap text-ink-2" aria-live="polite"></p>
     <div class="mt-3 flex items-start justify-between gap-3">
-      <h1 class="pt-2 text-[20px] font-bold leading-snug text-ink">{k.name} <span class="sr-only">무인민원발급기</span></h1>
+      <h1 class="pt-2 text-[length:calc(22px*var(--fs,1))] font-bold leading-snug text-ink">{k.name} <span class="sr-only">무인민원발급기</span></h1>
       <!-- 즐겨찾기: 이 브라우저에만 저장(localStorage). JS가 없으면 눌러도 아무 일 없음 -->
       <button type="button" id="fav-toggle" aria-pressed="false" aria-label="즐겨찾기에 추가"
         data-fav-id={k.id} data-fav-name={k.name} data-fav-path={kioskPath(k)} data-fav-sub={`${k.sigunguName}${k.dong ? ` ${k.dong}` : ''}${k.locationDetail ? ` · ${k.locationDetail}` : ''}`}
         data-fav-hours={JSON.stringify(k.hours)} data-fav-conf={k.hoursConfidence} data-fav-f24h={k.is24h ? '1' : ''}
-        class="group flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-bg px-3 text-[13px] font-semibold text-ink-2 hover:text-brand aria-pressed:text-brand">
+        class="group flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(15px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand aria-pressed:text-brand">
         <Icon name="star" size={18} class="group-aria-pressed:fill-current" /><span>저장</span>
       </button>
     </div>
@@ -99,15 +99,15 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     )}
     <!-- 주소는 왼쪽에서 자유롭게 줄바꿈, 복사 버튼은 오른쪽 첫 줄에 고정 -->
     <div class="mt-1.5 flex items-start gap-3">
-      <p class="min-w-0 flex-1 text-[14px] leading-6 text-ink-3">{k.roadAddress}</p>
-      <button type="button" data-copy={k.roadAddress} class="-my-2 flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-bg px-3 text-[13px] font-semibold text-ink-2 hover:text-brand">
+      <p class="min-w-0 flex-1 text-[length:calc(16px*var(--fs,1))] leading-6 text-ink-3">{k.roadAddress}</p>
+      <button type="button" data-copy={k.roadAddress} class="-my-2 flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(15px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">
         <Icon name="copy" size={13} /><span>주소 복사</span>
       </button>
     </div>
 
     <!-- 운영시간 외일 때만: 지금 운영시간인 같은 동 기기로 바로가기(없으면 같은 지역 필터) -->
     <a id="alt-now" hidden href={`${regionHref}?f=open`} data-region={regionHref} data-dong={k.dong ?? ''} data-hours-list={JSON.stringify(sameDong.map((o) => o.hours))}
-      class="mt-4 flex min-h-12 items-center justify-between gap-2 rounded-xl bg-brand-weak px-4 py-3 text-[15px] font-semibold text-brand">
+      class="mt-4 flex min-h-12 items-center justify-between gap-2 rounded-xl bg-brand-weak px-4 py-3 text-[length:calc(17px*var(--fs,1))] font-semibold text-brand">
       <span id="alt-now-text">같은 지역에서 지금 운영시간인 곳 찾기</span><Icon name="chevron-right" size={20} />
     </a>
 
@@ -225,7 +225,7 @@ const kakaoHref = byCoords ? kakaoTo(k.name, k.lat!, k.lng!) : kakaoSearch(k.roa
     const self = document.getElementById('self')!;
     const [label, color] = STATUS[(self.dataset.open ?? 'unknown') as keyof typeof STATUS];
     document.getElementById('status-label')!.textContent = label;
-    document.getElementById('status')!.className = `truncate text-[22px] font-bold leading-[1.45] ${color}`;
+    document.getElementById('status')!.className = `text-[length:calc(24px*var(--fs,1))] font-bold leading-[1.45] ${color}`;
     // 상태 줄은 짧게(종료 시각), 아래 줄에 남은 시간·다음 운영
     let selfHours = {} as Hours;
     try { selfHours = JSON.parse(self.dataset.hours || '{}'); } catch { /* 빈 값 */ }

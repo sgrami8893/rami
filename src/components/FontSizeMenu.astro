@@ -1,0 +1,48 @@
+---
+// 글자 크기 선택(보통·크게·아주 크게). 선택값은 이 브라우저 localStorage('dnkk:fs:v1')에만 저장.
+// 첫 그리기 전 적용은 BaseLayout <head>의 인라인 스크립트가 맡고, 여기서는 메뉴만 다룬다.
+const OPTIONS = [
+  { v: 'm', label: '보통' },
+  { v: 'l', label: '크게' },
+  { v: 'xl', label: '아주 크게' },
+];
+---
+<div class="fs-menu relative">
+  <button type="button" id="fs-toggle" aria-expanded="false" aria-controls="fs-panel" aria-label="글자 크기"
+    class="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg">
+    <span aria-hidden="true" class="flex items-baseline font-bold leading-none"><span class="text-[20px]">가</span><span class="text-[13px]">가</span></span>
+  </button>
+  <div id="fs-panel" hidden class="absolute right-0 top-12 z-40 w-44 rounded-2xl bg-card p-2 shadow-[0_6px_24px_rgb(0_0_0/0.14)]">
+    <p class="px-2 pb-1 pt-1 text-[13px] font-semibold text-ink-3" id="fs-h">글자 크기</p>
+    <div role="group" aria-labelledby="fs-h" class="flex flex-col gap-1">
+      {OPTIONS.map((o) => (
+        <button type="button" data-fs-v={o.v} aria-pressed="false"
+          class="flex min-h-11 items-center justify-between rounded-xl px-3 text-left font-semibold text-ink-2 hover:bg-bg aria-pressed:bg-brand-weak aria-pressed:text-brand"
+          style={`font-size:${{ m: 16, l: 18, xl: 20 }[o.v]}px`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+<script>
+  const KEY = 'dnkk:fs:v1';
+  const root = document.documentElement;
+  const toggle = document.getElementById('fs-toggle') as HTMLButtonElement | null;
+  const panel = document.getElementById('fs-panel');
+  if (toggle && panel) {
+    const btns = [...panel.querySelectorAll<HTMLButtonElement>('[data-fs-v]')];
+    const paint = () => { const cur = root.dataset.fs || 'm'; btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fsV === cur))); };
+    const open = (on: boolean) => { panel.hidden = !on; toggle.setAttribute('aria-expanded', String(on)); };
+    paint();
+    toggle.addEventListener('click', () => { open(panel.hidden); if (!panel.hidden) (btns.find((b) => b.getAttribute('aria-pressed') === 'true') ?? btns[0]).focus(); });
+    btns.forEach((b) => b.addEventListener('click', () => {
+      const v = b.dataset.fsV || 'm';
+      if (v === 'm') delete root.dataset.fs; else root.dataset.fs = v;
+      try { if (v === 'm') localStorage.removeItem(KEY); else localStorage.setItem(KEY, v); } catch { /* 저장소가 막혀도 이번 화면에는 적용 */ }
+      paint();
+    }));
+    document.addEventListener('click', (e) => { if (!panel.hidden && !(e.target as Element).closest('.fs-menu')) open(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { open(false); toggle.focus(); } });
+  }
+</script>

@@ -15,14 +15,14 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <h1 class="text-title font-bold text-ink">{sidoName(sido)} 공영주차장 {total}곳</h1>
   <p class="mt-3 rounded-2xl bg-bg p-5 text-body text-ink-2">{sidoName(sido)}의 공영주차장 {total}곳 중 무료로 표시된 곳은 {fh.count}곳이에요.</p>
   <nav aria-label="조건별 모아보기" class="mt-4 flex flex-wrap gap-2">
-    <a href={freePath(sido)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">무료 주차장 <span class="ml-1 text-ink-3">{fh.count}</span></a>
+    <a href={freePath(sido)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">무료 주차장 <span class="ml-1 text-ink-3">{fh.count}</span></a>
   </nav>
   <ul class="mt-4 grid sm:grid-cols-2 sm:gap-x-8">
     {rs.map((r) => (
       <li class="border-b border-line">
         <a href={parkingPath(sido, r.sigungu)} class="flex min-h-14 items-center justify-between gap-3 py-3 hover:text-brand">
-          <span><span class="block text-[17px] font-semibold text-ink">{r.name}</span><span class="block text-cap text-ink-3">무료 {r.free}곳</span></span>
-          <span class="text-[14px] font-semibold text-ink-2">{r.lots.length}곳</span>
+          <span><span class="block text-[length:calc(19px*var(--fs,1))] font-semibold text-ink">{r.name}</span><span class="block text-cap text-ink-3">무료 {r.free}곳</span></span>
+          <span class="text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2">{r.lots.length}곳</span>
         </a>
       </li>
     ))}

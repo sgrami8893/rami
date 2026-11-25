@@ -10,7 +10,7 @@ const keyDocs = reg && fam ? '등기부등본·가족관계증명서 발급' : r
 const weekendOrHoliday = k.openSat || k.openSun || k.openHoliday;
 const kakao = k.lat !== null && k.lng !== null ? kakaoTo(k.name, k.lat, k.lng) : kakaoSearch(k.roadAddress);
 // 지도 버튼은 기기명·운영시간보다 덜 튀게: 36px, 연한 테두리, 회색 글자. 카드 전체 클릭(stretched link) 위로 z-10.
-const btn = 'relative z-10 flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line/70 bg-card text-[14px] font-medium text-ink-2 hover:bg-bg';
+const btn = 'relative z-10 flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line/70 bg-card text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:bg-bg';
 ---
 <article
   class="kiosk card relative"
@@ -51,7 +51,7 @@ const btn = 'relative z-10 flex h-9 flex-1 items-center justify-center gap-1.5 r
       <li class="flex items-center gap-2">
         <Icon name="map-pin" size={16} class="text-ink-3" label="주소" />
         <span class="min-w-0 flex-1 truncate text-cap text-ink-3">{k.roadAddress}</span>
-        <button type="button" data-copy={k.roadAddress} class="relative z-10 flex h-7 shrink-0 items-center gap-1 rounded-lg border border-line px-2 text-[12px] font-semibold text-ink-2 hover:bg-bg">
+        <button type="button" data-copy={k.roadAddress} class="relative z-10 flex h-7 shrink-0 items-center gap-1 rounded-lg border border-line px-2 text-[length:calc(14px*var(--fs,1))] font-semibold text-ink-2 hover:bg-bg">
           <Icon name="copy" size={13} /><span>주소 복사</span>
         </button>
       </li>

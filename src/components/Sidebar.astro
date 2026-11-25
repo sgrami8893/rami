@@ -1,7 +1,9 @@
 ---
 // PC(1024px+) 우측 사이드바: 지역별 빠른 탐색 + 세로형 스티키 광고 1개(설정 시에만).
+// 시·군·구는 수도권 전체를 다 싣는다: 기기 많은 순 상위 8곳은 바로 보이고, 나머지는 '전체 N곳 보기'로 펼친다(HTML에는 전체 링크 포함).
 // 지금 보고 있는 시·군·구(목록·상세)는 활성 표시하고, 상위 8곳에 없으면 맨 앞에 넣는다.
 import AdSlot from './AdSlot.astro';
+import Icon from './Icon.astro';
 import { SIDO_ORDER, regionsIn, sidoName, regionPath } from '../lib/data.ts';
 const { flat = false } = Astro.props as { flat?: boolean };
 const path = Astro.url.pathname;
@@ -10,22 +12,33 @@ const groups = SIDO_ORDER.map((s) => {
   const all = [...regionsIn(s)].sort((a, b) => b.total - a.total);
   const top = all.slice(0, 8);
   const cur = all.find(isCurrent);
-  return { s, top: cur && !top.includes(cur) ? [cur, ...top.slice(0, 7)] : top };
+  const shown = cur && !top.includes(cur) ? [cur, ...top.slice(0, 7)] : top;
+  return { s, top: shown, rest: all.filter((r) => !shown.includes(r)), total: all.length };
 }).filter((g) => g.top.length);
 const base = 'rounded-xl px-2.5 py-1 text-cap';
+const cls = (r: { sido: string; sigungu: string }) => isCurrent(r) ? `${base} ${flat ? 'bg-ink text-white' : 'bg-brand-weak text-brand'} font-semibold` : `${base} ${flat ? 'bg-card' : 'bg-bg'} text-ink-2 hover:text-brand`;
 ---
 <aside class={flat ? '-mt-4 -mb-16 hidden border-l border-line bg-subtle pt-4 pl-6 lg:block' : 'hidden lg:block'} aria-label="지역별 빠른 탐색">
-  <div class="sticky top-[72px] space-y-4">
+  <div class="sticky top-[72px] max-h-[calc(100vh-88px)] space-y-4 overflow-y-auto overscroll-contain">
     <nav aria-label="지역 목록" class={flat ? 'py-2 pr-1' : 'card p-4'}>
       <h2 class="mb-3 text-body font-bold text-ink">지역별 빠른 탐색</h2>
-      {groups.map(({ s, top }) => (
+      {groups.map(({ s, top, rest, total }) => (
         <div class="mb-3 last:mb-0">
-          <a href={regionPath(s)} class="text-cap font-semibold text-ink-2 hover:text-brand">{sidoName(s)} 전체</a>
+          <a href={regionPath(s)} class="text-cap font-semibold text-ink-2 hover:text-brand">{sidoName(s)} 전체 <span class="font-medium text-ink-3">{total}개 시·군·구</span></a>
           <div class="mt-1.5 flex flex-wrap gap-1.5">
-            {top.map((r) => isCurrent(r)
-              ? <a href={regionPath(r.sido, r.sigungu)} aria-current="page" class={`${base} ${flat ? 'bg-ink text-white' : 'bg-brand-weak text-brand'} font-semibold`}>{r.sigunguName}</a>
-              : <a href={regionPath(r.sido, r.sigungu)} class={`${base} ${flat ? 'bg-card' : 'bg-bg'} text-ink-2 hover:text-brand`}>{r.sigunguName}</a>)}
+            {top.map((r) => <a href={regionPath(r.sido, r.sigungu)} aria-current={isCurrent(r) ? 'page' : undefined} class={cls(r)}>{r.sigunguName}</a>)}
           </div>
+          {rest.length > 0 && (
+            <details class="group mt-1.5">
+              <summary class="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-cap font-semibold text-brand hover:underline [&::-webkit-details-marker]:hidden">
+                <span class="group-open:hidden">나머지 {rest.length}곳 더 보기</span><span class="hidden group-open:inline">접기</span>
+                <Icon name="chevron-down" size={14} class="transition-transform group-open:rotate-180" />
+              </summary>
+              <div class="mt-1.5 flex flex-wrap gap-1.5">
+                {rest.map((r) => <a href={regionPath(r.sido, r.sigungu)} aria-current={isCurrent(r) ? 'page' : undefined} class={cls(r)}>{r.sigunguName}</a>)}
+              </div>
+            </details>
+          )}
         </div>
       ))}
     </nav>

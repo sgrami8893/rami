@@ -21,7 +21,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <MapPanel points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} />
   <div class="mt-6 space-y-8">
     {groups.map((g) => (
-      <section id={g.sigungu}><h2 class="text-[15px] font-bold text-ink-2">{g.name} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
+      <section id={g.sigungu}><h2 class="text-[length:calc(17px*var(--fs,1))] font-bold text-ink-2">{g.name} <span class="ml-0.5 font-medium text-ink-3">{g.items.length}</span></h2>
         <div>{g.items.map((l) => <LotRow l={l} />)}</div></section>
     ))}
   </div>

@@ -20,7 +20,7 @@ const abs = (p: string) => new URL(p, Astro.site).href;
   </div>
 
   <nav aria-label="상황 선택" class="mt-4 flex flex-wrap gap-2">
-    {SITUATIONS.map((s) => <a href={`#${s.id}`} class="flex h-11 items-center rounded-xl bg-bg px-4 text-[15px] font-semibold text-ink-2 hover:text-brand">{s.title}</a>)}
+    {SITUATIONS.map((s) => <a href={`#${s.id}`} class="flex h-11 items-center rounded-xl bg-bg px-4 text-[length:calc(17px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">{s.title}</a>)}
   </nav>
 
   {SITUATIONS.map((s) => (
@@ -48,7 +48,7 @@ const abs = (p: string) => new URL(p, Astro.site).href;
           );
         })}
       </ul>
-      <button type="button" class="cl-reset mt-2 h-11 rounded-xl bg-bg px-4 text-[14px] font-semibold text-ink-2 hover:text-brand">이 목록 체크 지우기</button>
+      <button type="button" class="cl-reset mt-2 h-11 rounded-xl bg-bg px-4 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">이 목록 체크 지우기</button>
     </section>
   ))}
 

@@ -27,7 +27,7 @@ const info: [string, string][] = [
   {l.flags.includes('feeConflict') && <p class="mt-3 rounded-xl bg-bg px-4 py-3 text-cap text-warn">원천 데이터의 요금 정보가 서로 맞지 않아 요금 구분을 '확인 필요'로 표시했어요. 관리기관에 확인해 주세요.</p>}
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">운영시간</h2>
-    <table class="mt-2 w-full text-[15px]"><tbody>
+    <table class="mt-2 w-full text-[length:calc(17px*var(--fs,1))]"><tbody>
       {([['평일', l.hours.weekday], ['토요일', l.hours.sat], ['공휴일', l.hours.holiday]] as const).map(([d, h]) => (
         <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{d}</th><td class="py-2.5 text-right text-ink">{hoursText(h)}</td></tr>
       ))}
@@ -35,13 +35,13 @@ const info: [string, string][] = [
   </section>
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">요금</h2>
-    <table class="mt-2 w-full text-[15px]"><tbody>
+    <table class="mt-2 w-full text-[length:calc(17px*var(--fs,1))]"><tbody>
       {rows.map(([k, v]) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{k}</th><td class="py-2.5 text-right text-ink">{v}</td></tr>)}
     </tbody></table>
   </section>
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">이용 정보</h2>
-    <table class="mt-2 w-full text-[15px]"><tbody>
+    <table class="mt-2 w-full text-[length:calc(17px*var(--fs,1))]"><tbody>
       {info.map(([k, v]) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{k}</th><td class="py-2.5 text-right text-ink">{v}</td></tr>)}
     </tbody></table>
   </section>

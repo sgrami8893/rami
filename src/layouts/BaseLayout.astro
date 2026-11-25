@@ -7,6 +7,7 @@ import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91
 import { SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, type ToolSlug } from '../config.ts';
 import Breadcrumb from '../components/Breadcrumb.astro';
 import Logo from '../components/Logo.astro';
+import FontSizeMenu from '../components/FontSizeMenu.astro';
 import Sidebar from '../components/Sidebar.astro';
 import { kiosks } from '../lib/data.ts';
 import { safeJsonLd } from '../lib/jsonld.ts';
@@ -43,6 +44,8 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
+    <!-- 글자 크기 선택값을 첫 그리기 전에 적용(깜빡임 방지). 이 브라우저 localStorage에만 있음 -->
+    <script is:inline>try{var f=localStorage.getItem('dnkk:fs:v1');if(f==='l'||f==='xl')document.documentElement.dataset.fs=f}catch(e){}</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
@@ -62,20 +65,22 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
     )}
   </head>
   <body class={`min-h-screen text-ink antialiased ${white ? 'bg-card' : 'bg-bg'}`}>
+    <a href="#main" class="sr-only z-50 rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
-      <div class={`mx-auto flex h-14 items-center justify-between px-4 ${frame}`}>
-        <a href="/" class="flex items-center gap-1.5 text-[18px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
+      <div class={`mx-auto flex h-14 items-center gap-2 px-4 ${frame}`}>
+        <a href="/" class="flex items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
         <!-- 헤더는 도구 카테고리만(2026-11-25 UI 검수 합의). 시·도 전환은 각 도구 본문의 칩 바에서 -->
-        <nav aria-label="주요 메뉴" class="flex items-center gap-4 text-[14px] font-medium text-ink-2">
+        <nav aria-label="주요 메뉴" class="ml-auto flex items-center gap-3 text-[16px] font-medium text-ink-2">
           {TOOLS.filter((t) => t.status === 'live').map((t) => (
             <a href={t.path} class={tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
           ))}
-          <a href="/#search" class="-mr-2 flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
+          <a href="/#search" class="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
         </nav>
+        <FontSizeMenu />
       </div>
     </header>
     <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
-      <main class={`min-w-0 ${white && sidebar ? 'lg:pr-8' : ''}`}>
+      <main id="main" tabindex="-1" class={`min-w-0 focus:outline-none ${white && sidebar ? 'lg:pr-8' : ''}`}>
         {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
         <slot />
       </main>

@@ -32,7 +32,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
 ---
 <BaseLayout title={`${SITE_NAME} | 우리 동네 무인민원발급기 운영시간·위치 찾기`} description={`서울·경기·인천 무인민원발급기 ${kiosks.length.toLocaleString('ko-KR')}곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스예요.`} jsonld={jsonld} sidebar canvas="white">
   <section id="search" class="scroll-mt-16 pt-2 pb-7">
-    <h1 class="text-[28px] font-bold leading-[36px] tracking-tight text-ink">우리 동네 무인민원발급기,<br class="sm:hidden" /> 지금 운영시간 바로 확인</h1>
+    <h1 class="text-[length:calc(30px*var(--fs,1))] font-bold leading-[36px] tracking-tight text-ink">우리 동네 무인민원발급기,<br class="sm:hidden" /> 지금 운영시간 바로 확인</h1>
     <form id="region-search" action="/muin/" class="mt-5" role="search" onsubmit="return false">
       <label for="q" class="sr-only">시·군·구 검색</label>
       <div class="flex h-[52px] items-center gap-2 rounded-[14px] bg-bg px-4 focus-within:ring-2 focus-within:ring-brand">
@@ -43,7 +43,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
       </div>
     </form>
     <div class="scrollbar-none -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0">
-      {quick.map((r) => <a href={regionPath(r.sido, r.sigungu)} class="shrink-0 rounded-xl bg-bg px-3 py-1.5 text-[14px] font-medium text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
+      {quick.map((r) => <a href={regionPath(r.sido, r.sigungu)} class="shrink-0 rounded-xl bg-bg px-3 py-1.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
     </div>
     <details id="all-regions" class="mt-3">
       <summary class="cursor-pointer px-1 text-cap font-semibold text-ink-3">전체 지역 보기 ({allRegions.length})</summary>
@@ -78,7 +78,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
         )}
       </a>
     ))}
-    <p class="px-1 text-[12px] text-ink-3">정부·지자체 공식 서비스가 아니며, 공공데이터를 정리해 보여 줘요.</p>
+    <p class="px-1 text-[length:calc(14px*var(--fs,1))] text-ink-3">정부·지자체 공식 서비스가 아니며, 공공데이터를 정리해 보여 줘요.</p>
   </section>
 
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>

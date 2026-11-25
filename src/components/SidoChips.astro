@@ -5,11 +5,11 @@ interface Props { current?: SidoSlug; class?: string }
 const { current, class: cls = '' } = Astro.props;
 const items = SIDO_ORDER.map((s) => ({ s, n: regionsIn(s).reduce((a, r) => a + r.total, 0) })).filter((x) => x.n > 0);
 ---
-<nav aria-label="시·도 선택" class={`flex gap-2 ${cls}`}>
+<nav aria-label="시·도 선택" class={`flex flex-wrap gap-2 ${cls}`}>
   {items.map(({ s, n }) => (
     <a href={regionPath(s)} aria-current={current === s ? 'page' : undefined}
-      class="flex h-11 flex-1 items-center justify-center gap-1 rounded-xl bg-bg px-3 text-[15px] font-semibold text-ink-2 hover:text-brand aria-[current=page]:bg-ink aria-[current=page]:text-white sm:flex-none sm:px-5">
-      {sidoShort(s)}<span class="text-[13px] font-medium">{n.toLocaleString('ko-KR')}</span>
+      class="flex min-h-11 flex-1 flex-wrap items-center justify-center gap-x-1 rounded-xl bg-bg px-3 text-[length:calc(17px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand aria-[current=page]:bg-ink aria-[current=page]:text-white sm:flex-none sm:px-5">
+      {sidoShort(s)}<span class="text-[length:calc(15px*var(--fs,1))] font-medium">{n.toLocaleString('ko-KR')}</span>
     </a>
   ))}
 </nav>

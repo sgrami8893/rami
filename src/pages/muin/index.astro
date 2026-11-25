@@ -35,12 +35,12 @@ const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) =
         a.className = 'kiosk relative -mx-5 px-5 py-4 active:bg-subtle lg:-mx-3 lg:rounded-xl lg:px-3 lg:hover:bg-subtle';
         a.dataset.hours = JSON.stringify(f.hours || {}); a.dataset.conf = String(f.conf || ''); a.dataset.f24h = f.f24h ? '1' : '';
         var top = document.createElement('div'); top.className = 'flex items-start justify-between gap-3';
-        var h = document.createElement('h3'); h.className = 'text-[17px] font-semibold leading-snug text-ink';
+        var h = document.createElement('h3'); h.className = 'text-[length:calc(19px*var(--fs,1))] font-semibold leading-snug text-ink';
         var link = document.createElement('a'); link.href = f.path; link.className = 'after:absolute after:inset-0'; link.textContent = String(f.name || '');
         h.appendChild(link);
         var badge = document.createElement('span'); badge.className = 'open-badge badge bg-off-bg text-off'; badge.textContent = '확인 중';
         top.appendChild(h); top.appendChild(badge);
-        var p1 = document.createElement('p'); p1.className = 'mt-1 text-[15px] text-ink';
+        var p1 = document.createElement('p'); p1.className = 'mt-1 text-[length:calc(17px*var(--fs,1))] text-ink';
         var rel = document.createElement('span'); rel.className = 'rel-time font-medium'; rel.dataset.default = f.f24h ? '연중 24시간' : ''; rel.textContent = f.f24h ? '연중 24시간' : '\u00a0';
         p1.appendChild(rel);
         var p2 = document.createElement('p'); p2.className = 'mt-0.5 truncate text-cap text-ink-3'; p2.textContent = String(f.sub || '');
@@ -63,7 +63,7 @@ const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) =
       </h2>
       <div class="flex flex-wrap gap-2">
         {regions.map((r) => (
-          <a href={regionPath(r.sido, r.sigungu)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{r.sigunguName}<span class="ml-1 text-ink-3">{r.total}</span></a>
+          <a href={regionPath(r.sido, r.sigungu)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{r.sigunguName}<span class="ml-1 text-ink-3">{r.total}</span></a>
         ))}
       </div>
     </section>

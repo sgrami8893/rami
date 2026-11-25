@@ -22,7 +22,10 @@ const chunks = Object.fromEntries(
 export default defineConfig({
   site: SITE_URL, // robots.txt 도 이 값으로 생성(src/pages/robots.txt.ts)
   trailingSlash: 'always',
-  build: { format: 'directory' },
+  // 첫 화면까지 왕복 1회를 줄이려고 CSS를 HTML에 넣는다(대부분 검색으로 한 페이지만 보고 나가는 방문이라 이득이 큼)
+  build: { format: 'directory', inlineStylesheets: 'always' },
+  // 링크에 손가락·마우스를 올리면 다음 페이지를 미리 받아 둔다(화면에 보이는 링크 전체를 받지는 않음: 데이터 절약)
+  prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   integrations: [sitemap({ filter: (page) => { const p = new URL(page).pathname; return !noindex.has(p) && !notLive.some((t) => p.startsWith(t)); }, chunks })],
   vite: { plugins: [tailwindcss()] },
 });

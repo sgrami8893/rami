@@ -30,11 +30,11 @@
   --color-off-bg: #F3F5F8;  --color-off: #5B6573;   /* 운영 종료·확인 필요 */
   --color-warn: #A35300;    /* 일부 추정 표시 텍스트 */
 
-  /* 타이포 22 / 17 / 15 / 13 */
-  --text-title: 22px;  --text-title--line-height: 1.4;
-  --text-h2: 17px;     --text-h2--line-height: 1.45;
-  --text-body: 15px;   --text-body--line-height: 1.6;
-  --text-cap: 13px;    --text-cap--line-height: 1.5;
+  /* 타이포 26 / 20 / 17 / 15 (2026-11-25 사용자 요청으로 상향: 본문 17, 가장 작은 글자도 13 이상) */
+  --text-title: calc(26px * var(--fs, 1));  --text-title--line-height: 1.4;
+  --text-h2: calc(20px * var(--fs, 1));     --text-h2--line-height: 1.45;
+  --text-body: calc(17px * var(--fs, 1));   --text-body--line-height: 1.6;
+  --text-cap: calc(15px * var(--fs, 1));    --text-cap--line-height: 1.5;
 
   --radius-card: 20px;
 }
@@ -71,10 +71,19 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 /* 터치 영역: 투명 44px 래퍼(.map-hit) 안에 보이는 도형(핀 22px, 클러스터 40px) */
 .map-hit { display: flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; }
 .map-pin { width: 22px; height: 22px; border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
-.map-cluster { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: rgb(37 99 235 / 0.9); border: 3px solid #fff; color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
+.map-cluster { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: rgb(37 99 235 / 0.9); border: 3px solid #fff; color: #fff; font-weight: 700; font-size: calc(15px * var(--fs, 1)); box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
 .map-hit:focus-visible { outline: none; }
 .map-hit:focus-visible > span { outline: 2px solid var(--color-brand); outline-offset: 2px; }
 /* 확대·축소 버튼 40px */
 .map-panel .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font-size: 22px; }
 .map-panel .leaflet-container { font-family: inherit; background: var(--color-bg); }
-.map-panel .leaflet-control-attribution { font-size: 11px; }
+.map-panel .leaflet-control-attribution { font-size: 12px; }
+
+/* ===== 글자 크기 선택(2026-11-25) =====
+   모든 글자 크기는 calc(Npx * var(--fs)) 로 정의돼 있어서 --fs 하나로 함께 커진다.
+   여백·높이는 그대로 두어 375px 화면에서도 레이아웃이 좁아지지 않게 한다.
+   선택값은 <head> 인라인 스크립트가 첫 그리기 전에 html[data-fs]로 넣는다(깜빡임 없음). */
+:root { --fs: 1; }
+:root[data-fs="l"] { --fs: 1.125; }
+:root[data-fs="xl"] { --fs: 1.25; }
+body { font-size: calc(16px * var(--fs)); }

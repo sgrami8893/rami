@@ -53,7 +53,7 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
       <section class="border-t border-line py-6">
         <h2 class="mb-3 text-h2 font-bold text-ink">시·도별로 모아보기</h2>
         <ul class="flex flex-wrap gap-2">
-          {hubLinks.map((l) => <li><a href={l.href} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{l.label}<span class="ml-1 text-ink-3">· {l.n.toLocaleString('ko-KR')}곳</span></a></li>)}
+          {hubLinks.map((l) => <li><a href={l.href} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{l.label}<span class="ml-1 text-ink-3">· {l.n.toLocaleString('ko-KR')}곳</span></a></li>)}
         </ul>
       </section>
     )}
@@ -62,7 +62,7 @@ const others = GUIDES.filter((o) => o.slug !== g.slug);
         <h2 class="mb-3 text-h2 font-bold text-ink">{r.title}</h2>
         <ul class="flex flex-wrap gap-2">
           {r.links.map((l) => (
-            <li><a href={l.href} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[14px] font-medium text-ink-2 hover:text-brand">{l.label}{l.meta && <span class="ml-1 text-ink-3">· {l.meta}</span>}</a></li>
+            <li><a href={l.href} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{l.label}{l.meta && <span class="ml-1 text-ink-3">· {l.meta}</span>}</a></li>
           ))}
         </ul>
       </section>
