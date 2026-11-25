@@ -25,6 +25,8 @@ areas.forEach(([addr, lat, lng], ai) => {
       [FIELD.payment]: '카드, 현금', [FIELD.note]: '', [FIELD.agency]: '테스트 관리기관', [FIELD.phone]: '',
       [FIELD.lat]: i === 3 ? '' : String(lat + (r() - 0.5) * 0.03), [FIELD.lng]: i === 3 ? '' : String(lng + (r() - 0.5) * 0.03),
       [FIELD.baseDate]: '2026-11-01',
+      [FIELD.days]: '평일+토요일', [FIELD.grade]: String(1 + (i % 3)), [FIELD.oddEven]: '미시행', [FIELD.dayPassHours]: '', [FIELD.disabled]: i % 2 ? 'Y' : 'N',
+      [FIELD.providerCode]: `MOCK${ai}`, [FIELD.providerName]: '테스트 제공기관',
     });
   }
 });

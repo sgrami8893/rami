@@ -11,7 +11,12 @@ const rows: [string, string][] = [
   ['요금 구분', FEE_LABEL[l.fee.type]],
   ['기본', l.fee.baseMin !== null ? `${l.fee.baseMin}분 ${won(l.fee.baseFee)}` : '-'],
   ['추가', l.fee.unitMin !== null ? `${l.fee.unitMin}분마다 ${won(l.fee.unitFee)}` : '-'],
-  ['1일 주차권', won(l.fee.dayPass)], ['월 정기권', won(l.fee.monthly)],
+  ['1일 주차권', won(l.fee.dayPass) + (l.dayPassHours ? ` (${l.dayPassHours})` : '')], ['월 정기권', won(l.fee.monthly)],
+  ['결제 방법', l.payment.join(', ') || '-'],
+];
+const info: [string, string][] = [
+  ['운영 요일', l.days || '-'], ['부제 시행', l.oddEven || '-'], ['급지', l.grade ? `${l.grade}급지` : '-'],
+  ['장애인 전용 구역', l.disabledSpots === null ? '정보 없음' : l.disabledSpots ? '있음' : '없음'],
 ];
 ---
 <BaseLayout tool="parking" title={`${l.name} 주차장 요금·운영시간 - ${sgName}`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !lotIndexable(l)} sidebar={false}>
@@ -32,6 +37,12 @@ const rows: [string, string][] = [
     <h2 class="text-h2 font-bold text-ink">요금</h2>
     <table class="mt-2 w-full text-[15px]"><tbody>
       {rows.map(([k, v]) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{k}</th><td class="py-2.5 text-right text-ink">{v}</td></tr>)}
+    </tbody></table>
+  </section>
+  <section class="mt-6">
+    <h2 class="text-h2 font-bold text-ink">이용 정보</h2>
+    <table class="mt-2 w-full text-[15px]"><tbody>
+      {info.map(([k, v]) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{k}</th><td class="py-2.5 text-right text-ink">{v}</td></tr>)}
     </tbody></table>
   </section>
   <section class="mt-6 text-body text-ink-2">

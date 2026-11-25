@@ -1,5 +1,6 @@
 // 주차장 표준데이터 → ParkingLot 정규화 (골격, 2026-11-25).
-// ⚠ 원천 필드명(FIELD)은 실제 CSV 헤더를 받기 전의 예상치다. 헤더를 받으면 FIELD만 고치고 테스트를 실데이터 행으로 바꾼다.
+// ⚠ 원천 필드명(FIELD)은 2026-11-25 제미나이가 2차 자료(미러 스키마)로 확인한 34개 헤더로 잠정 매핑했다.
+//    실제 다운로드 CSV 첫 줄로 교차 검증하기 전까지는 PARKING_PREVIEW 빌드에서만 쓴다(배포 노출 금지).
 import { resolveRegion, type SidoSlug } from './regions.ts';
 
 export const FIELD = {
@@ -8,9 +9,14 @@ export const FIELD = {
   wdOpen: '평일운영시작시각', wdClose: '평일운영종료시각', satOpen: '토요일운영시작시각', satClose: '토요일운영종료시각',
   holOpen: '공휴일운영시작시각', holClose: '공휴일운영종료시각',
   feeInfo: '요금정보', baseMin: '주차기본시간', baseFee: '주차기본요금', unitMin: '추가단위시간', unitFee: '추가단위요금',
-  dayPass: '1일주차권요금', monthly: '월정기권요금', payment: '결제방법', note: '특기사항',
-  agency: '관리기관명', phone: '전화번호', lat: '위도', lng: '경도', baseDate: '데이터기준일자',
+  dayPassHours: '1일주차권요금적용시간', dayPass: '1일주차권요금', monthly: '월정기권요금', payment: '결제방법', note: '특기사항',
+  agency: '관리기관명', phone: '전화번호', lat: '위도', lng: '경도', disabled: '장애인전용주차구역보유여부', baseDate: '데이터기준일자',
+  grade: '급지구분', oddEven: '부제시행구분', days: '운영요일', providerCode: '제공기관코드', providerName: '제공기관명',
 } as const;
+
+/** 이 필드가 없으면 갱신을 중단한다(파이프라인 검증용). 나머지는 없어도 빈값으로 처리. */
+export const REQUIRED_FIELDS: (keyof typeof FIELD)[] = ['id', 'name', 'road', 'jibun', 'feeInfo', 'lat', 'lng', 'baseDate'];
+export const missingFields = (header: string[]) => REQUIRED_FIELDS.filter((k) => !header.includes(FIELD[k])).map((k) => FIELD[k]);
 
 export type FeeType = 'free' | 'paid' | 'mixed' | 'unknown';
 export type DayHours = [string, string] | '24h' | null;
@@ -23,7 +29,9 @@ export interface ParkingLot {
   spaces: number | null;
   hours: { weekday: DayHours; sat: DayHours; holiday: DayHours };
   fee: { type: FeeType; baseMin: number | null; baseFee: number | null; unitMin: number | null; unitFee: number | null; dayPass: number | null; monthly: number | null };
+  dayPassHours: string; days: string; grade: string; oddEven: string; disabledSpots: boolean | null;
   payment: string[]; note: string; agency: string; phone: string; baseDate: string | null;
+  providerCode: string; providerName: string;
   flags: ('feeConflict' | 'hoursAmbiguous' | 'coordOutOfRange')[];
 }
 
@@ -78,7 +86,8 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
   const kind = g('kind');
   const type = g('lotType');
   return {
-    id: g('id') || `${region.sigungu}-${g('name')}`,
+    // 관리번호는 제공기관마다 따로 매겨질 수 있어 제공기관코드를 앞에 붙인다(없으면 시군구-이름)
+    id: g('id') ? (g('providerCode') ? `${g('providerCode')}-${g('id')}` : g('id')) : `${region.sigungu}-${g('name')}`,
     name: g('name'),
     kind: kind.includes('공영') ? 'public' : kind.includes('민영') ? 'private' : 'unknown',
     lotType: type.includes('노상') ? 'onStreet' : type.includes('노외') ? 'offStreet' : type.includes('부설') ? 'attached' : 'unknown',
@@ -87,6 +96,9 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
     spaces: num(g('spaces')),
     hours: { weekday: wd.h, sat: sat.h, holiday: hol.h },
     fee: { type: fee.type, ...amounts },
+    dayPassHours: g('dayPassHours'), days: g('days'), grade: g('grade'), oddEven: g('oddEven'),
+    disabledSpots: /^(Y|y|예|있음|보유)$/.test(g('disabled')) ? true : /^(N|n|아니오|없음|미보유)$/.test(g('disabled')) ? false : null,
+    providerCode: g('providerCode'), providerName: g('providerName'),
     payment: g('payment').split(/[,+/]/).map((s) => s.trim()).filter(Boolean),
     note: g('note'), agency: g('agency'), phone: g('phone'), baseDate: g('baseDate') || null,
     flags,
