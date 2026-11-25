@@ -1,4 +1,4 @@
-# 동네나우 (dongnenow)
+# 동네콕콕 (dongnekokkok)
 
 동네 생활 공공정보 허브. 도구마다 독립 하위 폴더 + 독립 내부 링크 + 독립 사이트맵.
 첫 도구: `/muin/` 무인민원발급기 찾기 (서울·경기·인천).
@@ -13,14 +13,14 @@ npm test              # 데이터 파이프라인 테스트
 ```
 
 ## 설정 한 곳: `src/config.ts`
-- `SITE_NAME`(동네나우), `PROD_URL`(https://dongnenow.kr), `TOOLS`(허브에 노출할 도구, `soon`은 링크 없이 "준비 중")
+- `SITE_NAME`(동네콕콕), `PROD_URL`(https://dongnekokkok.kr), `TOOLS`(허브에 노출할 도구, `soon`은 링크 없이 "준비 중")
 - `SITE_URL`은 빌드 환경변수 `SITE_URL`로 덮어쓴다. 정식 도메인이 아닌 주소로 빌드하면 **모든 페이지 noindex + robots.txt 전체 차단**(임시 주소가 검색에 잡히지 않게).
 - 애드센스 `ADSENSE`, 오류 제보 구글 폼 `REPORT_FORM`, 문의 메일 `CONTACT_EMAIL`, 출처 `DATA_SOURCES`는 공개 전 채울 것.
 
 ## Cloudflare Pages
 - Framework preset: Astro / Build command: `npm run build` / Output: `dist` / Node: `.node-version`(22)
 - 1차 검수(도메인 구매 전): 환경변수 `SITE_URL=https://<프로젝트명>.pages.dev` → canonical·sitemap이 pages.dev 주소, 검색 차단 상태로 확인
-- 도메인 연결 후: `SITE_URL` 환경변수를 지우거나 `https://dongnenow.kr`로 바꾸고 재배포 → 색인 허용
+- 도메인 연결 후: `SITE_URL` 환경변수를 지우거나 `https://dongnekokkok.kr`로 바꾸고 재배포 → 색인 허용
 
 ## 페이지 (무인발급기)
 - `/muin/` 도구 메인, `/muin/[sido]/`, `/muin/[sido]/[sigungu]/`(필터·FAQ·광고 A/B/C), `/muin/[sido]/[sigungu]/k/[id]/` 기기 상세

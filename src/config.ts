@@ -1,7 +1,7 @@
 // ===== 사이트 전역 설정: 사이트명·도메인이 바뀌면 이 파일만 고친다 =====
-export const SITE_NAME = '동네나우';
+export const SITE_NAME = '동네콕콕';
 /** 정식 도메인(구매 후 사용). */
-export const PROD_URL = 'https://dongnenow.kr';
+export const PROD_URL = 'https://dongnekokkok.kr';
 /**
  * canonical·sitemap·robots.txt 기준 주소. 빌드 환경변수 SITE_URL 로 덮어쓴다.
  * 1차 확인용: Cloudflare Pages 환경변수에 SITE_URL=https://<프로젝트>.pages.dev 지정.
