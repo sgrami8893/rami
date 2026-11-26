@@ -1,0 +1,16 @@
+---
+// 문장 속 금액·숫자+단위('1억 3,695만 원', '574건', '55만')가 중간에서 줄바꿈되지 않게 nowrap 조각으로 감싼다(2026-11-26 제미나이 1단계).
+// 글자는 그대로(텍스트 노드), 스타일만 붙인다.
+interface Props { text: string }
+const { text } = Astro.props;
+const RE = /\d[\d,.]*(?:\s?억(?:\s\d[\d,]*\s?만)?|\s?만)?(?:\s?원)?(?:건|곳|%|㎡|년|분기|개월|시간|분)?/g;
+const parts: { t: string; n: boolean }[] = [];
+let last = 0;
+for (const m of text.matchAll(RE)) {
+  if (m.index! > last) parts.push({ t: text.slice(last, m.index), n: false });
+  parts.push({ t: m[0], n: true });
+  last = m.index! + m[0].length;
+}
+if (last < text.length) parts.push({ t: text.slice(last), n: false });
+---
+{parts.map((p) => (p.n ? <span class="num">{p.t}</span> : p.t))}

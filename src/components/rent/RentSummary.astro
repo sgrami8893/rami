@@ -5,6 +5,7 @@
 // 탭은 JS가 켜질 때만 동작하고, JS가 없으면 두 유형이 위아래로 모두 보인다(검색엔진도 둘 다 읽음).
 import StatTiles from '../ui/StatTiles.astro';
 import Fold from '../ui/Fold.astro';
+import NumText from '../ui/NumText.astro';
 import { HOUSE_LABEL, K_MIN, RENT_RULE, AREA_BANDS, manwon, bandText, type RentArea, type HouseType } from '../../../scripts/lib/rent.ts';
 interface Props { a: RentArea; place: string; level?: 2 | 3 }
 const { a, place } = Astro.props;
@@ -16,19 +17,17 @@ const man = (v: number) => `${v}만 원`;
 const bandLabel = (key: string, fallback: string) => AREA_BANDS.find((x) => x.key === key)?.label ?? fallback;
 const short = (v: number | null) => (v === null ? '-' : manwon(v).replace(/ 원$/, ''));
 const qLabel = (q: string) => `${q.slice(2, 4)}년 ${q.slice(6)}분기`;
-// 타일: 유형마다 전세·월세 2칸. 금액은 '원'을 빼서 좁은 칸에서도 한 줄
-const tiles = types.flatMap((t) => {
+// 타일: 유형 하나에 전세·월세 2칸(2026-11-26 제미나이 1단계: 400px 패널에서 4칸이 줄바꿈되던 문제 → 빌라/오피스텔 전환과 묶은 2칸)
+const tilesOf = (t: HouseType) => {
   const s = a.byType[t]!;
   return [
-    { label: `${SHORT[t]} 전세 중위`, value: s.jeonse ? short(s.jeonse.median) : '-', sub: `${s.jeonse?.n ?? 0}건` },
-    { label: `${SHORT[t]} 월세 중위`, value: s.wolse?.deposit && s.wolse.monthly ? `${short(s.wolse.deposit.median)} / ${s.wolse.monthly.median}만` : '-', sub: `${s.wolse?.n ?? 0}건 · 보증금/월` },
+    { label: '전세 중위', value: s.jeonse ? short(s.jeonse.median) : '-', sub: `${s.jeonse?.n ?? 0}건` },
+    { label: '월세 중위', value: s.wolse?.deposit && s.wolse.monthly ? `${short(s.wolse.deposit.median)} / ${s.wolse.monthly.median}만` : '-', sub: `${s.wolse?.n ?? 0}건 · 보증금/월` },
   ];
-});
+};
 const uid = `rs-${Math.abs([...`${a.sido}${a.sigungu}${a.dong ?? ''}`].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)).toString(36)}`;
 ---
-<StatTiles items={tiles} cols={types.length > 1 ? 4 : 2} label={`${place} 전월세 중위값 요약`} class="mt-4" />
-
-<div class="rent-tabs mt-6" data-tabs>
+<div class="rent-tabs mt-4" data-tabs>
   {types.length > 1 && (
     <div role="tablist" aria-label="집 종류" class="mb-1 grid grid-cols-2 gap-1 rounded-2xl bg-bg p-1" hidden data-tablist>
       {types.map((t, i) => (
@@ -39,10 +38,11 @@ const uid = `rs-${Math.abs([...`${a.sido}${a.sigungu}${a.dong ?? ''}`].reduce((h
   )}
   {types.map((t) => { const s = a.byType[t]!; const id = `${uid}-${t}`; return (
     <section id={id} aria-labelledby={`${id}-h`} class="pt-3" data-panel {...(types.length > 1 ? { role: 'tabpanel' } : {})}>
+      <StatTiles items={tilesOf(t)} cols={2} label={`${place} ${SHORT[t]} 전월세 중위값 요약`} class="mb-5" />
       <h2 id={`${id}-h`} class="text-h2 font-bold text-ink">{place} {HOUSE_LABEL[t]} 전월세 <span class="text-body font-medium text-ink-3">{s.n}건</span></h2>
       <ul class="mt-2 space-y-0.5 text-cap text-ink-2">
-        <li>전세 {bandLine(bandText(s.jeonse, manwon))}</li>
-        <li>월세 {bandLine(bandText(s.wolse?.monthly ?? null, man))}</li>
+        <li><NumText text={`전세 ${bandLine(bandText(s.jeonse, manwon))}`} /></li>
+        <li><NumText text={`월세 ${bandLine(bandText(s.wolse?.monthly ?? null, man))}`} /></li>
       </ul>
       {s.bands.length > 0 && (
         <div class="mt-3 overflow-x-auto">
@@ -64,11 +64,11 @@ const uid = `rs-${Math.abs([...`${a.sido}${a.sigungu}${a.dong ?? ''}`].reduce((h
         </div>
       )}
       <Fold title="분기별 흐름·계약 정보" tone="plain" class="mt-1 border-b border-line">
-        <table class="w-full text-[length:calc(16px*var(--fs,1))]">
+        <div class="overflow-x-auto"><table class="w-full text-[length:calc(16px*var(--fs,1))]">
           <caption class="sr-only">{place} {HOUSE_LABEL[t]} 분기별 거래 건수와 중위값</caption>
           <thead><tr class="border-b border-line text-cap text-ink-3"><th scope="col" class="py-2 text-left font-medium">분기</th><th scope="col" class="py-2 text-right font-medium">건수</th><th scope="col" class="py-2 text-right font-medium">전세 중위</th><th scope="col" class="py-2 text-right font-medium">월세 중위</th></tr></thead>
-          <tbody>{s.quarters.map((x) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{qLabel(x.q)}</th><td class="py-2.5 text-right text-ink-2">{x.n}</td><td class="py-2.5 text-right text-ink">{x.jeonseMedian !== null ? manwon(x.jeonseMedian) : '-'}</td><td class="py-2.5 text-right text-ink">{x.wolseMonthlyMedian !== null ? `${x.wolseMonthlyMedian}만 원` : '-'}</td></tr>)}</tbody>
-        </table>
+          <tbody>{s.quarters.map((x) => <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{qLabel(x.q)}</th><td class="py-2.5 text-right text-ink-2">{x.n}</td><td class="num py-2.5 text-right text-ink">{x.jeonseMedian !== null ? manwon(x.jeonseMedian) : '-'}</td><td class="num py-2.5 text-right text-ink">{x.wolseMonthlyMedian !== null ? `${x.wolseMonthlyMedian}만 원` : '-'}</td></tr>)}</tbody>
+        </table></div>
         <p class="mt-2 text-cap text-ink-2">신규 계약 {s.newCount}건 · 갱신 계약 {s.renewCount}건{s.usedRightCount ? ` (계약갱신요구권 사용 ${s.usedRightCount}건)` : ''}{s.buildYearMedian ? ` · 건축년도 중위 ${s.buildYearMedian}년` : ''}</p>
       </Fold>
     </section>

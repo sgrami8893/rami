@@ -52,7 +52,7 @@ const link = 'inline-flex min-h-11 items-center px-1 text-cap font-semibold text
         <a class="map-card-link mt-2 flex h-11 items-center justify-center rounded-xl bg-brand text-[length:calc(17px*var(--fs,1))] font-semibold text-white hover:brightness-95">상세 보기</a>
       </div>
       {(tool || nav) && (
-        <div class="map-toolbar pointer-events-none absolute left-3 right-[60px] top-3 z-[1000] flex flex-wrap items-start gap-2">
+        <div class="map-toolbar pointer-events-none absolute left-3 right-[68px] top-3 z-[1000] flex flex-wrap items-start gap-2">
           {tool && <MapTools current={tool} sido={area?.sido} sgg={area?.sigungu} />}
           {nav && <RegionChips data={nav} />}
           {filters.length > 0 && (

@@ -15,7 +15,7 @@ const groups = SIDO_ORDER.map((s) => {
   const shown = cur && !top.includes(cur) ? [cur, ...top.slice(0, 7)] : top;
   return { s, top: shown, rest: all.filter((r) => !shown.includes(r)), total: all.length };
 }).filter((g) => g.top.length);
-const base = 'rounded-xl px-2.5 py-1 text-cap';
+const base = 'inline-flex min-h-9 items-center rounded-xl px-2.5 text-cap'; // 칩 36px + 간격 8px(2026-11-26 제미나이 1단계)
 const cls = (r: { sido: string; sigungu: string }) => isCurrent(r) ? `${base} ${flat ? 'bg-ink text-white' : 'bg-brand-weak text-brand'} font-semibold` : `${base} ${flat ? 'bg-card' : 'bg-bg'} text-ink-2 hover:text-brand`;
 ---
 <aside class={flat ? '-mt-4 -mb-16 hidden border-l border-line bg-subtle pt-4 pl-6 lg:block' : 'hidden lg:block'} aria-label="지역별 빠른 탐색">
@@ -24,17 +24,17 @@ const cls = (r: { sido: string; sigungu: string }) => isCurrent(r) ? `${base} ${
       <h2 class="mb-3 text-body font-bold text-ink">지역별 빠른 탐색</h2>
       {groups.map(({ s, top, rest, total }) => (
         <div class="mb-3 last:mb-0">
-          <a href={regionPath(s)} class="text-cap font-semibold text-ink-2 hover:text-brand">{sidoName(s)} 전체 <span class="font-medium text-ink-3">{total}개 시·군·구</span></a>
-          <div class="mt-1.5 flex flex-wrap gap-1.5">
+          <a href={regionPath(s)} class="inline-flex min-h-11 items-center text-cap font-semibold text-ink-2 hover:text-brand">{sidoName(s)} 전체 <span class="font-medium text-ink-3">{total}개 시·군·구</span></a>
+          <div class="mt-1.5 flex flex-wrap gap-2">
             {top.map((r) => <a href={regionPath(r.sido, r.sigungu)} aria-current={isCurrent(r) ? 'page' : undefined} class={cls(r)}>{r.sigunguName}</a>)}
           </div>
           {rest.length > 0 && (
             <details class="group mt-1.5">
-              <summary class="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-cap font-semibold text-brand hover:underline [&::-webkit-details-marker]:hidden">
+              <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-cap font-semibold text-brand hover:underline [&::-webkit-details-marker]:hidden">
                 <span class="group-open:hidden">나머지 {rest.length}곳 더 보기</span><span class="hidden group-open:inline">접기</span>
                 <Icon name="chevron-down" size={14} class="transition-transform group-open:rotate-180" />
               </summary>
-              <div class="mt-1.5 flex flex-wrap gap-1.5">
+              <div class="mt-1.5 flex flex-wrap gap-2">
                 {rest.map((r) => <a href={regionPath(r.sido, r.sigungu)} aria-current={isCurrent(r) ? 'page' : undefined} class={cls(r)}>{r.sigunguName}</a>)}
               </div>
             </details>

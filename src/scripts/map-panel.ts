@@ -90,6 +90,9 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
     if (p?.addr) copyText(p.addr, e.currentTarget as HTMLElement);
   });
   map.on('click', () => { if (active) select(null); });
+  // 목록 행 위 마우스 강조는 지도 이동·확대가 시작되면 지운다(묶음이 다시 그려지며 강조가 남던 문제, 2026-11-26 제미나이 1단계)
+  const clearHover = () => { hoverEl?.classList.remove('is-hover'); hoverEl = null; };
+  map.on('zoomstart movestart', clearHover);
 
   for (const p of points) {
     const m = L.marker([p.lat, p.lng], { icon: pinOf(p), title: p.name, keyboard: true, alt: p.name });
@@ -124,6 +127,7 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
     filter(ids) {
       const next = ids ?? new Set(points.map((p) => p.id));
       if (next.size === shown.size && [...next].every((x) => shown.has(x))) return;
+      clearHover();
       shown = new Set([...next].filter((x) => markers.has(x)));
       cluster.clearLayers();
       cluster.addLayers([...shown].map((x) => markers.get(x)!));

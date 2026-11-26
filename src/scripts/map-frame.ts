@@ -46,8 +46,10 @@ export async function areaFrame(L: typeof Leaflet, map: Leaflet.Map, a: Area) {
   const frame = createFrame(L, map);
   const framePane = 'dnkk-frame';
   let ghost: Leaflet.GeoJSON | null = null;
-  const unghost = () => { if (ghost) { map.removeLayer(ghost); ghost = null; } };
-  map.on('mouseout', unghost);
+  let ghostReset: (() => void) | null = null;
+  const unghost = () => { if (ghost) { map.removeLayer(ghost); ghost = null; } const r = ghostReset; ghostReset = null; r?.(); };
+  map.on('mouseout zoomstart movestart', unghost);
+  map.getContainer().addEventListener('mouseleave', unghost);
   if (a.sgg) {
     const [sg, emd] = await Promise.all([getGeo(`${AREA_SRC}sgg.json`), getGeo(`${AREA_SRC}emd/${a.sgg}.json`)]);
     const me = sg?.features.find((f) => f.properties.f === a.sgg);
@@ -63,8 +65,8 @@ export async function areaFrame(L: typeof Leaflet, map: Leaflet.Map, a: Area) {
           l.bindTooltip(String(f.properties.k), { sticky: true, direction: 'top', offset: [0, -12], className: 'rm-tip map-area-tip', opacity: 1 });
           if (!isMe(f.properties.k)) {
             // 테두리는 별도 유령 선으로(도형을 맨 앞으로 옮기면 mouseout을 놓쳐 강조가 남는다)
-            l.on('mouseover', () => { unghost(); ghost = L.geoJSON(f.geometry, { pane: framePane, interactive: false, style: { color: PICK, weight: 3, opacity: 1, fill: false, lineJoin: 'round', className: 'rm-glow' } }).addTo(map); (l as Leaflet.Path).setStyle({ fillColor: '#FFFFFF', fillOpacity: 0.15 }); });
-            l.on('mouseout', () => { unghost(); kids.resetStyle(l); });
+            l.on('mouseover', () => { unghost(); ghost = L.geoJSON(f.geometry, { pane: framePane, interactive: false, style: { color: PICK, weight: 3, opacity: 1, fill: false, lineJoin: 'round', className: 'rm-glow' } }).addTo(map); (l as Leaflet.Path).setStyle({ fillColor: '#FFFFFF', fillOpacity: 0.15 }); ghostReset = () => kids.resetStyle(l); });
+            l.on('mouseout', unghost);
           }
         },
       }).addTo(map);

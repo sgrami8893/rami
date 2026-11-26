@@ -1,13 +1,14 @@
 ---
 import { GUIDES, guidePath, GUIDE_BASE } from '../lib/guides.ts';
-interface Props { title?: string; limit?: number; flat?: boolean }
-const { title = '무인민원발급기 이용 가이드', limit, flat = true } = Astro.props; // 순백 캔버스에서는 리스트형이 기본
+interface Props { title?: string; limit?: number; flat?: boolean; inFold?: boolean }
+const { title = '무인민원발급기 이용 가이드', limit, flat = true, inFold = false } = Astro.props;
+const H = inFold ? 'h3' : 'h2'; // 순백 캔버스에서는 리스트형이 기본
 const list = limit ? GUIDES.slice(0, limit) : GUIDES;
 ---
-<section class={flat ? 'py-8' : 'mt-10'}>
-  <div class={`flex items-baseline justify-between ${flat ? 'mb-1' : 'mb-3 px-1'}`}>
-    <h2 class="text-h2 font-bold text-ink">{title}</h2>
-    <a href={GUIDE_BASE} class="text-cap font-semibold text-brand">가이드 전체 보기</a>
+<section class={inFold ? 'pb-2' : flat ? 'py-8' : 'mt-10'}>
+  <div class={`flex items-center justify-between ${flat ? 'mb-1' : 'mb-3 px-1'}`}>
+    <H class={inFold ? 'text-body font-semibold text-ink-2' : 'text-h2 font-bold text-ink'}>{title}</H>
+    <a href={GUIDE_BASE} class="inline-flex min-h-11 items-center text-cap font-semibold text-brand">가이드 전체 보기</a>
   </div>
   <ul class={flat ? 'divide-y divide-line' : 'grid gap-2 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2'}>
     {list.map((g) => (

@@ -108,15 +108,18 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // 브라우저가 mouseout을 놓쳐 흰 테두리·풍선이 남던 문제(2026-11-26 사용자 제보)
   let ghost: Leaflet.GeoJSON | null = null;
   let hovered: Leaflet.Path | null = null;
-  const unlift = () => { if (ghost) { map.removeLayer(ghost); ghost = null; } hovered?.closeTooltip(); hovered = null; };
-  const lift = (l: Leaflet.Path) => {
-    unlift(); hovered = l;
+  // 1단계(2026-11-26 제미나이): 마우스 강조는 한 곳만. 지도 밖으로 나가거나 이동·확대가 시작되거나 유형을 바꾸면 채움까지 원래대로
+  let hoverReset: (() => void) | null = null;
+  const unlift = () => { if (ghost) { map.removeLayer(ghost); ghost = null; } hovered?.closeTooltip(); hovered = null; const r = hoverReset; hoverReset = null; r?.(); };
+  const lift = (l: Leaflet.Path, reset?: () => void) => {
+    unlift(); hovered = l; hoverReset = reset ?? null;
     const g = (l as Leaflet.Polygon).feature?.geometry;
     if (g) ghost = L.geoJSON(g, { pane: 'dnkk-frame', interactive: false, style: { color: PICK, weight: 3, opacity: 1, fill: false, lineJoin: 'round', className: 'rm-glow' } }).addTo(map);
     const fo = (l.options as Leaflet.PathOptions).fillOpacity ?? FILL;
     l.setStyle({ fillOpacity: Math.min(0.9, fo + 0.15) });
   };
-  map.on('mouseout', unlift);
+  map.on('mouseout zoomstart movestart', unlift);
+  map.getContainer().addEventListener('mouseleave', unlift);
   // 경계 가독성(2026-11-26 사용자 '경계가 잘 안 보여'): 회색 배경지도 위에 진한 채움 + 흰 경계 2px, 시·군·구 경계는 진한 선
   // 2026-11-26 사용자 '너무 진해, 투명도 올려' → 배경지도가 비치게 0.6
   const FILL = 0.6;
@@ -142,8 +145,8 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
       layer.bindTooltip(() => tipEl(`${p.sd} ${p.nm}`, p), TIP);
-      layer.on('mouseover', () => { if (!isNear() && inScope(p.f)) lift(layer as Leaflet.Path); });
-      layer.on('mouseout', () => { unlift(); restyle(); });
+      layer.on('mouseover', () => { if (!isNear() && inScope(p.f)) lift(layer as Leaflet.Path, restyle); });
+      layer.on('mouseout', unlift);
     },
   }).addTo(map);
   const sggByFile = new Map<string, { p: SggP; layer: Leaflet.Polygon }>();
@@ -177,8 +180,8 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
           dongs.set(key, [...(dongs.get(key) ?? []), { p, layer: l as Leaflet.Polygon, sg }]);
           l.on('click', (e) => { L.DomEvent.stopPropagation(e); pickDong(key); });
           l.bindTooltip(() => tipEl(`${sg.sd} ${sg.nm} ${p.k}`, p), TIP);
-          l.on('mouseover', () => { if (key !== selected) lift(l as Leaflet.Path); });
-          l.on('mouseout', () => { unlift(); if (key !== selected) (l as Leaflet.Path).setStyle(dongStyle(p)); });
+          l.on('mouseover', () => { if (key !== selected) lift(l as Leaflet.Path, () => { if (key !== selected) (l as Leaflet.Path).setStyle(dongStyle(p)); }); });
+          l.on('mouseout', unlift);
         },
       });
       loaded.set(f, layer);
@@ -226,7 +229,8 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     const placed: DOMRect[] = [...pane.querySelectorAll<HTMLElement>('.rm-toolbar > *, .rm-legend, .rm-card, .leaflet-control-zoom')].filter((x) => !x.closest('[hidden]') && x.offsetParent !== null).map((x) => x.getBoundingClientRect());
     for (const b of list) {
       if (!view.contains(b.at)) continue;
-      const m = L.marker(b.at, { icon: labelIcon(b), keyboard: true, title: '', riseOnHover: true, zIndexOffset: b.active ? 1000 : 0 });
+      // 라벨은 마우스가 통과한다(pointer-events: none, global.css): 누르면 아래 도형이 받아 같은 곳을 고른다. 키보드는 라벨 버튼(Enter)
+      const m = L.marker(b.at, { icon: labelIcon(b), keyboard: true, title: '', zIndexOffset: b.active ? 1000 : 0 });
       m.on('click', (e) => { L.DomEvent.stopPropagation(e); b.pick(); });
       labels.addLayer(m);
       const el = m.getElement()!;
@@ -289,7 +293,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     sggLayer.eachLayer((l) => { const el = (l as Leaflet.Path).getElement() as HTMLElement | undefined; if (el) el.style.pointerEvents = near || !inScope((l as Leaflet.Polygon).feature!.properties.f) ? 'none' : ''; });
   };
   map.on('unload', () => clearTimeout(timer));
-  map.on('moveend', () => { clearTimeout(timer); timer = window.setTimeout(() => { autoScope(); refresh(); }, 180); });
+  map.on('moveend', () => { clearTimeout(timer); timer = window.setTimeout(() => { autoScope(); refresh(); }, 300); }); // 범위는 화면 가운데 기준, 300ms 디바운스
 
   // ---- 요약 ----
   const box = () => { const s = sideEl(); return s && s.offsetParent !== null ? s : card; };
@@ -302,8 +306,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     q('.rp-rows').replaceChildren(...rows.map(([t, j, d, w]) => {
       const tr = document.createElement('tr');
       const th = document.createElement('th'); th.scope = 'row'; th.textContent = t;
-      const a = document.createElement('td'); a.textContent = won(j);
-      const b = document.createElement('td'); b.textContent = w === null ? '-' : `${won(d)} / 월 ${w}만 원`;
+      const a = document.createElement('td'); a.className = 'num'; a.textContent = won(j);
+      // 금액은 줄바꿈 없이, ' / '에서만 줄이 바뀐다
+      const nw = (t: string) => { const x = document.createElement('span'); x.className = 'num'; x.textContent = t; return x; };
+      const b = document.createElement('td');
+      if (w === null) b.textContent = '-'; else b.append(nw(won(d)), ' / ', nw(`월 ${w}만 원`));
       tr.append(th, a, b); return tr;
     }));
     const link = q<HTMLAnchorElement>('.rp-link');
@@ -509,7 +516,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 유형·전월세 전환 ----
   pane.querySelectorAll<HTMLInputElement>('input[name="rm-type"], input[name="rm-kind"]').forEach((r) => r.addEventListener('change', () => {
-    read(); drawLegend(); restyle(); drawLabels();
+    unlift(); read(); drawLegend(); restyle(); drawLabels();
     announce(`${type === 'v' ? '빌라' : '오피스텔'} ${kind === 'j' ? '전세' : '월세'} 중위값으로 칠했어요.`);
   }));
 
