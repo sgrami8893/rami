@@ -18,7 +18,7 @@ export interface Layer {
   filter?(keys: Set<string> | null): void;
   resize(): void;
   /** '내 주변': 내 위치 점(좌표는 지도 메모리에만) */
-  me?(pt: { lat: number; lng: number }): void;
+  me?(pt: { lat: number; lng: number }, lots?: { lat: number; lng: number; name: string; href: string; tag: string; tone: string }[]): void;
   destroy(): void;
 }
 export type Ctx = {
@@ -179,8 +179,8 @@ function setup() {
 
   // '내 주변'(near.ts): 지도를 내 동으로 옮기고 내 위치 점을 찍는다
   document.addEventListener('map:near', (ev) => {
-    const d = (ev as CustomEvent<{ focus: Focus; pt: { lat: number; lng: number } }>).detail;
-    if (canvas.dataset.kind !== 'rent') return;
+    const d = (ev as CustomEvent<{ focus: Focus; pt: { lat: number; lng: number }; lots?: { lat: number; lng: number; name: string; href: string; tag: string; tone: string }[] }>).detail;
+    if (canvas.dataset.kind !== 'rent') { const me = (l: Layer) => l.me?.(d.pt, d.lots); if (layer) me(layer); else if (LG.matches) ensure().then(me).catch(() => {}); return; }
     const run = (l: Layer) => { l.focus(d.focus); l.me?.(d.pt); };
     if (layer) run(layer); else { canvas.dataset.focus = JSON.stringify(d.focus); pendingMe = d; if (LG.matches) ensure().catch(() => {}); }
   }, sig);

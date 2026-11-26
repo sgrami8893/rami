@@ -85,15 +85,15 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     }
     if (budget && level() === 'home') {
       const c = counts?.get(p.f) ?? 0;
-      return { fillColor: c ? ROOM_COLORS[countStep(c)] : OVER, fillOpacity: c ? 0.72 : 0.5, color: '#FFFFFF', weight: 1.25, opacity: 1 };
+      return { fillColor: c ? ROOM_COLORS[countStep(c)] : OVER, fillOpacity: c ? 0.5 : 0.45, color: '#FFFFFF', weight: 1.5, opacity: 1 };
     }
     const v = valueOf(p);
-    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.5 : 0.72, color: '#FFFFFF', weight: 1.25, opacity: 1 };
+    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : 0.5, color: '#FFFFFF', weight: 1.5, opacity: 1 };
   };
   const dongStyle = (p: DongP): Leaflet.PathOptions => {
     const v = valueOf(p);
     const sel = focus.dong === p.k;
-    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.5 : sel ? 0.85 : 0.7, color: '#FFFFFF', weight: 1, opacity: 1 };
+    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : sel ? 0.75 : 0.5, color: '#FFFFFF', weight: 1.5, opacity: 1 };
   };
 
   // 강조선(마우스·고른 동): 맨 위 칸에 흰 3px + 그림자. 누를 수 없음
@@ -106,12 +106,14 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   // ---- 라벨 ----
   const labels = L.layerGroup().addTo(map);
   let labelItems: { m: Leaflet.Marker; pri: number; w: number; h: number }[] = [];
-  const addLabel = (ll: [number, number], name: string, val: string | null, pri: number, muted = false) => {
+  // 라벨 v3(2026-11-26 '지도 더 편하게·예쁘게'): 이름(작은 회색) + 값 배지(그 칸의 단계 색, 진한 두 단계는 흰 글자). 칸 채움은 옅게 → 숫자가 주인공
+  const DARK = new Set(['#B23A5B', '#6B1F57']);
+  const addLabel = (ll: [number, number], name: string, val: string | null, pri: number, muted = false, color?: string, sel = false) => {
     const w = Math.max(name.length, (val ?? '').length) * 13 + 20;
     const m = L.marker([ll[0], ll[1]], { interactive: false, keyboard: false, icon: L.divIcon({ className: 'mv-lbl-wrap', iconSize: [0, 0],
-      html: `<span class="mv-lbl${muted ? ' is-muted' : ''}"><b>${esc(name)}</b>${val ? `<i>${esc(val)}</i>` : ''}</span>` }) });
+      html: `<span class="mv-lbl${muted ? ' is-muted' : ''}${sel ? ' is-sel' : ''}"><b>${esc(name)}</b>${val ? `<i style="--c:${color ?? '#fff'};--t:${color && DARK.has(color) ? '#fff' : '#191F28'}">${esc(val)}</i>` : ''}</span>` }) });
     m.addTo(labels);
-    labelItems.push({ m, pri, w, h: val ? 40 : 24 });
+    labelItems.push({ m, pri, w, h: val ? 46 : 24 });
   };
   const layoutLabels = () => {
     const sorted = [...labelItems].sort((a, b) => b.pri - a.pri);
@@ -126,15 +128,15 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       for (const f of sgg.features) {
         const p = f.properties;
         if (!sggActive(p.f)) continue;
-        if (budget && level() === 'home') { const c = counts?.get(p.f) ?? 0; addLabel(p.l, p.nm, c ? `${c}곳` : null, c * 1000 + p.n, !c); continue; }
+        if (budget && level() === 'home') { const c = counts?.get(p.f) ?? 0; addLabel(p.l, p.nm, c ? `${c}곳` : null, c * 1000 + p.n, !c, c ? ROOM_COLORS[countStep(c)] : undefined); continue; }
         const v = valueOf(p);
-        addLabel(p.l, p.nm, v === null ? null : fmt(v, k), p.n, v === null);
+        addLabel(p.l, p.nm, v === null ? null : fmt(v, k), p.n, v === null, colorOf(v));
       }
     } else if (dongLayer) {
       for (const [, lyr] of dongByK) {
         const p = lyr.feature.properties;
         const v = valueOf(p);
-        addLabel(p.l, p.k, v === null ? null : fmt(v, k), (focus.dong === p.k ? 1e9 : 0) + p.n, v === null);
+        addLabel(p.l, p.k, v === null ? null : fmt(v, k), (focus.dong === p.k ? 1e9 : 0) + p.n, v === null, colorOf(v), focus.dong === p.k);
       }
     }
     requestAnimationFrame(layoutLabels);

@@ -35,6 +35,11 @@ const src = kind === 'rent' ? '최근 12개월 실거래 중위값 · 경계: �
           <p class="mv-legend-note"></p>
         </div>
       )}
+      {kind === 'pins' && (
+        <div class="mv-legend mv-legend-pins" aria-hidden="true">
+          <span><i style="background:#0E7C4A"></i>무료</span><span><i style="background:#1F2937"></i>유료</span><span><i style="background:#0F766E"></i>혼합</span><span><i style="background:#8B95A1"></i>확인 필요</span>
+        </div>
+      )}
       <div class="mv-card" role="region" aria-label="고른 곳 요약" tabindex="-1" hidden>
         <button type="button" class="mv-card-close" aria-label="요약 닫기"><Icon name="x" size={20} /></button>
         <p class="mv-card-title"></p>
