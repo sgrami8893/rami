@@ -168,11 +168,10 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
    도형은 Tab으로 오지 않고(키보드는 라벨 버튼·지역 선택으로 고름), 고른 곳은 도형 모양의 굵은 테두리로 이미 보인다. */
 .map-pane path.leaflet-interactive:focus, .map-pane path.leaflet-interactive:focus-visible, .map-pane svg:focus, .map-pane svg *:focus { outline: none; }
 /* 지금 보는 시·군·구 테두리·고른 동: 파란 빛 테(검은 선 대신) */
-.rent-map path.rm-glow { filter: drop-shadow(0 0 3px rgb(37 99 235 / 0.45)) drop-shadow(0 1px 2px rgb(30 41 59 / 0.25)); }
+.leaflet-container path.rm-glow { filter: drop-shadow(0 0 2px rgb(15 23 42 / 0.55)) drop-shadow(0 1px 4px rgb(15 23 42 / 0.3)); }
 .rent-map path.leaflet-interactive { transition: fill-opacity .15s ease; }
-/* 지역 틀(map-frame.ts): 짙은 남색 외곽선에 은은한 파란 빛. 이 페이지의 동 강조도 같은 빛 */
-.leaflet-container path.map-frame-line { filter: drop-shadow(0 0 4px rgb(37 99 235 / 0.35)); }
-.leaflet-container path.map-frame-pick { filter: drop-shadow(0 0 3px rgb(37 99 235 / 0.45)); }
+/* 지역 틀(map-frame.ts): 중간 회청색 외곽선에 아주 옅은 그림자(검은 선·파란 빛 없음) */
+.leaflet-container path.map-frame-line { filter: drop-shadow(0 1px 2px rgb(15 23 42 / 0.18)); }
 
 /* 지도 화면 안 이동(soft-nav.ts): 본문 맨 위 '이전 화면으로' 버튼, 불러오는 동안 본문을 살짝 흐리게 */
 .soft-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 12px; padding: 0 14px 0 10px; border-radius: 9999px;
