@@ -68,3 +68,15 @@ test('국토부 실거래가 API의 정상 코드 000을 받아들인다', async
   assert.equal(p.items[0].umdNm, '역삼동');
   assert.throws(() => parsePage('<response><header><resultCode>030</resultCode><resultMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</resultMsg></header></response>'));
 });
+
+test('개편 지역: 범위 탐색으로 찾은 새 코드도 시·군·구로 판정', async () => {
+  const { regionOfDeal } = await import('../lib/rent-lawd.ts');
+  assert.equal(regionOfDeal('41192', '심곡동')?.sigungu, 'bucheon-si');
+  assert.equal(regionOfDeal('41593', '반송동')?.sigungu, 'hwaseong-si');
+  assert.equal(regionOfDeal('28115', '운서동')?.sigunguName, '영종구');
+  assert.equal(regionOfDeal('28265', '당하동')?.sigunguName, '검단구');
+  assert.equal(regionOfDeal('28265', '청라동')?.sigunguName, '서해구');
+  assert.equal(regionOfDeal('28116', '송림동')?.sigunguName, '제물포구');
+  assert.equal(regionOfDeal('28110', '운서동')?.sigunguName, '영종구'); // 옛 코드(개편 전 달)
+  assert.equal(regionOfDeal('99999', '어딘가'), null);
+});

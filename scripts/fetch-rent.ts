@@ -9,11 +9,11 @@
 //      → 최근 13개월 × 수도권 지역코드 × 2종류 호출(약 2,000회, 개발계정 하루 1만 회 안).
 //        받은 원본은 .cache/rent/ 에 월별로 저장(커밋 안 함). 다시 실행하면 최근 2개월만 새로 받는다(신고 지연 반영).
 //      → 통계만 src/data/rent-stats.json 에 저장(지번·건물명·층·계약일은 저장하지 않음). 확인 후 커밋.
-// 옵션: --months 13  --delay 200  --refresh(캐시 무시)  --force(안전장치 무시)
+// 옵션: --months 13  --delay 200  --refresh(캐시 무시)  --reprobe(개편 지역 새 코드 다시 찾기)  --force(안전장치 무시)
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { parsePage, redact, type Page } from './lib/parking-api.ts';
-import { LAWD } from './lib/rent-lawd.ts';
+import { LAWD, PROBE_RANGES } from './lib/rent-lawd.ts';
 import { normalizeDeal, missingFields, aggregate, type Deal, type HouseType } from './lib/rent.ts';
 
 /** 엔드포인트. 오피스텔은 포털 15126475 페이지에서 확인(2026-11-25). 연립다세대(RH)는 같은 규칙으로 추정 → --sample로 확인 */
@@ -73,6 +73,36 @@ const ymList = (n: number) => {
 };
 const TYPES: HouseType[] = ['villa', 'officetel'];
 
+/** 개편 지역의 새 코드 찾기: PROBE_RANGES 안에서 지난달 거래가 있는 코드. 결과는 .cache/rent/codes.json 에 저장해 다시 쓰고, --reprobe 로 새로 찾는다 */
+async function discoverCodes(verbose = false): Promise<string[]> {
+  const file = `${CACHE}/codes.json`;
+  if (existsSync(file) && !flag('--reprobe') && !verbose) return JSON.parse(await readFile(file, 'utf8'));
+  const known = new Set(LAWD.map((l) => l.code));
+  const ym = ymList(2)[0];
+  const found: string[] = [];
+  for (const r of PROBE_RANGES) {
+    console.log(`  ${r.label} 새 코드 찾는 중(${r.from}~${r.to})…`);
+    for (let c = r.from; c <= r.to; c++) {
+      const code = String(c);
+      if (known.has(code)) continue;
+      const res: { t: HouseType; n: number; dongs: string[] }[] = [];
+      for (const t of TYPES) {
+        try { const p = await getPage(t, code, ym, 1, 20); res.push({ t, n: p.totalCount, dongs: p.items.map((i) => String(i.umdNm ?? '')) }); }
+        catch { res.push({ t, n: 0, dongs: [] }); } // 없는 코드가 오류로 오면 0건으로 본다
+        await sleep(DELAY);
+      }
+      if (res.some((x) => x.n > 0)) {
+        found.push(code);
+        const dongs = [...new Set(res.flatMap((x) => x.dongs))].filter(Boolean).slice(0, 6).join('·');
+        console.log(`  ✓ ${code}: 빌라 ${res[0].n} · 오피스텔 ${res[1].n} (${dongs})`);
+      }
+    }
+  }
+  await mkdir(CACHE, { recursive: true });
+  await writeFile(file, JSON.stringify(found));
+  return found;
+}
+
 async function main() {
   if (!KEY) fail('환경변수 DATA_GO_KR_KEY 가 없어요. .env 파일에 DATA_GO_KR_KEY=인증키 를 넣고 다시 실행하세요.');
   await mkdir(DEBUG_DIR, { recursive: true });
@@ -103,6 +133,9 @@ async function main() {
       console.log(`${l.code} ${l.city}${l.gu ? ` ${l.gu}` : ''}: 빌라 ${n[0]} · 오피스텔 ${n[1]}${n[0] + n[1] === 0 ? '  ← 0건: 코드 확인' : ''}${l.verify ? `  (확인: ${l.verify})` : ''}`);
       await sleep(DELAY);
     }
+    console.log('\n개편 지역 새 코드 찾기:');
+    const found = await discoverCodes(true);
+    console.log(`→ 새 코드 ${found.length}개: ${found.join(', ') || '없음'}. 이 화면 아래쪽을 복사해 보내 주세요.`);
     return;
   }
 
@@ -112,7 +145,11 @@ async function main() {
   const fresh = new Set(months.slice(-2));
   const deals: Deal[] = [];
   let calls = 0, bad = 0, raw = 0;
-  for (const t of TYPES) for (const l of LAWD) for (const ym of months) {
+  const extra = await discoverCodes();
+  const codes = [...LAWD.map((l) => l.code), ...extra];
+  console.log(`지역코드 ${codes.length}개(개편 지역 새 코드 ${extra.length}개 포함) × ${months.length}개월 × 2종류`);
+  for (const t of TYPES) for (const code of codes) for (const ym of months) {
+    const l = { code };
     const file = `${CACHE}/${t}-${l.code}-${ym}.json`;
     let items: Record<string, unknown>[];
     if (existsSync(file) && !fresh.has(ym) && !flag('--refresh')) items = JSON.parse(await readFile(file, 'utf8'));
@@ -131,7 +168,8 @@ async function main() {
     if (n(prev) && n(stats) < n(prev) * 0.8) fail(`총 거래가 ${n(prev)} → ${n(stats)}로 20% 넘게 줄었어요. 확인 후 --force`);
   }
   const report = {
-    fetchedAt: stats.generatedAt, period: [stats.from, stats.to], rawItems: raw, normalized: deals.length, dropped: bad, unknownRegion: unknown,
+    fetchedAt: stats.generatedAt, period: [stats.from, stats.to], rawItems: raw, normalized: deals.length, dropped: bad, unknownRegion: unknown, discoveredCodes: extra,
+    bySigungu: Object.fromEntries(stats.areas.filter((a) => a.dong === null).map((a) => [`${a.sido}/${a.sigunguName}`, a.n])),
     byType: Object.fromEntries(TYPES.map((t) => [t, deals.filter((d) => d.type === t).length])),
     sigungu: stats.areas.filter((a) => a.dong === null).length, dongs: stats.areas.filter((a) => a.dong !== null).length,
     dongsOver10: stats.areas.filter((a) => a.dong !== null && a.n >= 10).length, dongsOver30: stats.areas.filter((a) => a.dong !== null && a.n >= 30).length,
