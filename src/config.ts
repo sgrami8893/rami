@@ -61,8 +61,12 @@ export const MAP_PROVIDERS = {
   ngii: { name: '바로e맵(국토지리정보원)', url: '', attribution: '배경지도: 국토지리정보원', maxZoom: 19, policyUrl: 'https://map.ngii.go.kr' }, // url 확인 필요
 } as const;
 type MapProviderKey = keyof typeof MAP_PROVIDERS;
-const mapProvider = env('MAP_PROVIDER') as MapProviderKey | '';
-const mapKey = env('PUBLIC_MAP_KEY');
+// 기본값: VWorld 개발키(2026-11-26 발급, 2027-05-26 만료, 서비스 URL https://dongnekokkok.pages.dev 에 묶임).
+// 브라우저에 그대로 보이는 공개 키라 저장소에 둔다(도메인 제한). 만료 전에 운영키로 바꾸고, 정식 도메인을 사면 키에 도메인을 추가한다.
+// 환경변수 MAP_PROVIDER·PUBLIC_MAP_KEY가 있으면 그 값이 우선. MAP_PROVIDER=none 이면 지도를 끈다.
+const DEFAULT_MAP = { provider: 'vworld', key: '382E903F-B63C-43C4-AC23-5811EBF70B19' } as const;
+const mapProvider = (env('MAP_PROVIDER') || DEFAULT_MAP.provider) as MapProviderKey | 'none' | '';
+const mapKey = env('PUBLIC_MAP_KEY') || (mapProvider === DEFAULT_MAP.provider ? DEFAULT_MAP.key : '');
 const preset = mapProvider && mapProvider in MAP_PROVIDERS ? MAP_PROVIDERS[mapProvider] : null;
 /** 실제로 쓸 지도 설정. 테스트용으로 MAP_TILE_URL(키 포함 전체 주소)을 직접 줄 수도 있다. */
 export const MAP = env('MAP_TILE_URL')
