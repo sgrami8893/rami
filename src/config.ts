@@ -54,8 +54,10 @@ export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
  */
 const env = (k: string) => (globalThis.process?.env?.[k] ?? '').trim();
 export const MAP_PROVIDERS = {
-  // url 형식은 2차 자료 기준(확인 필요). https 지원 여부를 반드시 확인한 뒤 켠다.
-  vworld: { name: 'VWorld(국토교통부 공간정보 오픈플랫폼)', url: 'https://api.vworld.kr/req/wmts/1.0.0/{key}/Base/{z}/{y}/{x}.png', attribution: '배경지도: VWorld', maxZoom: 19, policyUrl: 'https://www.vworld.kr' },
+  // VWorld 이용약관(2026-11-26 사용자 확인): 13조 8항 자체 웹 서비스 연동 허용, 9항 '오픈플랫폼을 이용해 만든 것' 표기 의무,
+  // 10항 서비스 내용 삭제·변경 금지, 19조 6항 데이터 무단 저장 금지 → 타일은 브라우저가 VWorld에서 직접 받고 저장·캐시·프록시하지 않는다.
+  // 인증키는 본인 사용만(13조 7항), 호출 제한은 별도 공지(13조 4·5항). 키는 vworld.kr에서 서비스 URL(도메인)을 등록해 발급한다.
+  vworld: { name: '브이월드(국토교통부 공간정보 오픈플랫폼)', url: 'https://api.vworld.kr/req/wmts/1.0.0/{key}/Base/{z}/{y}/{x}.png', attribution: '<a href="https://www.vworld.kr" target="_blank" rel="noopener noreferrer">배경지도 © 브이월드(공간정보 오픈플랫폼)</a>', maxZoom: 19, policyUrl: 'https://www.vworld.kr' },
   ngii: { name: '바로e맵(국토지리정보원)', url: '', attribution: '배경지도: 국토지리정보원', maxZoom: 19, policyUrl: 'https://map.ngii.go.kr' }, // url 확인 필요
 } as const;
 type MapProviderKey = keyof typeof MAP_PROVIDERS;
