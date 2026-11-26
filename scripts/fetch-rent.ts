@@ -72,6 +72,10 @@ const TYPES: HouseType[] = ['villa', 'officetel'];
 
 await mkdir(DEBUG_DIR, { recursive: true });
 
+/** 예시 파일은 깃허브에 올려도 되게 지번·건물명·층·일자 값을 가린다(필드명은 그대로 남김) */
+const SENSITIVE = /jibun|지번|bonbun|bubun|roadnm|도로명|^(mhouseNm|offiNm|aptNm|연립다세대|단지|단지명)$|floor|층|dealDay|^일$/i;
+const mask = (it: Record<string, unknown>) => Object.fromEntries(Object.entries(it).map(([k, v]) => [k, SENSITIVE.test(k) && v !== '' ? '(가림)' : v]));
+
 if (flag('--sample')) {
   const ym = ymList(2)[0];
   const out: Record<string, unknown> = {};
@@ -80,10 +84,10 @@ if (flag('--sample')) {
     const keys = p.items[0] ? Object.keys(p.items[0]) : [];
     console.log(`\n[${t}] 강남구 ${ym} 총 ${p.totalCount}건 · 응답 필드: ${keys.join(', ') || '(항목 없음)'}`);
     if (p.items[0]) console.log(`  필수 필드 매핑 실패: ${missingFields(p.items[0]).join(', ') || '없음'}`);
-    out[t] = { totalCount: p.totalCount, items: p.items };
+    out[t] = { totalCount: p.totalCount, fields: keys, items: p.items.map(mask) };
   }
   await writeFile(`${DEBUG_DIR}/rent-api-sample.json`, JSON.stringify(out, null, 1));
-  console.log(`\n예시 저장: ${DEBUG_DIR}/rent-api-sample.json (이 파일을 그대로 전달해 주면 매핑을 확정할게요. 지번·건물명이 들어 있으니 공개 채널에는 올리지 마세요)`);
+  console.log(`\n예시 저장: ${DEBUG_DIR}/rent-api-sample.json (지번·건물명·층·일자는 가려져 있어요. 이 파일을 깃허브에 올려 주면 매핑을 확정할게요)`);
   process.exit(0);
 }
 
