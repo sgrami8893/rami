@@ -76,31 +76,35 @@ const uid = `rs-${Math.abs([...`${a.sido}${a.sigungu}${a.dong ?? ''}`].reduce((h
 </div>
 
 <script>
-  // WAI-ARIA 탭 패턴: 좌우 화살표·Home·End로 이동, 선택된 탭만 Tab 순서에 들어간다.
-  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
-    const list = root.querySelector<HTMLElement>('[data-tablist]');
-    if (!list) return;
-    const tabs = [...list.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-    const panel = (t: HTMLButtonElement) => document.getElementById(t.getAttribute('aria-controls') ?? '');
-    const select = (t: HTMLButtonElement, focus = false) => {
-      for (const x of tabs) {
-        const on = x === t;
-        x.setAttribute('aria-selected', String(on));
-        x.tabIndex = on ? 0 : -1;
-        const p = panel(x); if (p) p.hidden = !on;
-      }
-      if (focus) t.focus();
-    };
-    list.hidden = false;
-    for (const x of tabs) { const p = panel(x); if (p) p.setAttribute('aria-labelledby', x.id); }
-    select(tabs[0]);
-    tabs.forEach((t, i) => {
-      t.addEventListener('click', () => select(t));
-      t.addEventListener('keydown', (e) => {
-        const k = e.key;
-        const j = k === 'ArrowRight' ? (i + 1) % tabs.length : k === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length : k === 'Home' ? 0 : k === 'End' ? tabs.length - 1 : -1;
-        if (j < 0) return;
-        e.preventDefault(); select(tabs[j], true);
+  import { onPage } from '../../scripts/soft-nav.ts';
+  // 본문이 지도 화면 안 이동(soft-nav)으로 바뀌어도 다시 묶이게 onPage로 감싼다
+  onPage(() => {
+    // WAI-ARIA 탭 패턴: 좌우 화살표·Home·End로 이동, 선택된 탭만 Tab 순서에 들어간다.
+    document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+      const list = root.querySelector<HTMLElement>('[data-tablist]');
+      if (!list) return;
+      const tabs = [...list.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+      const panel = (t: HTMLButtonElement) => document.getElementById(t.getAttribute('aria-controls') ?? '');
+      const select = (t: HTMLButtonElement, focus = false) => {
+        for (const x of tabs) {
+          const on = x === t;
+          x.setAttribute('aria-selected', String(on));
+          x.tabIndex = on ? 0 : -1;
+          const p = panel(x); if (p) p.hidden = !on;
+        }
+        if (focus) t.focus();
+      };
+      list.hidden = false;
+      for (const x of tabs) { const p = panel(x); if (p) p.setAttribute('aria-labelledby', x.id); }
+      select(tabs[0]);
+      tabs.forEach((t, i) => {
+        t.addEventListener('click', () => select(t));
+        t.addEventListener('keydown', (e) => {
+          const k = e.key;
+          const j = k === 'ArrowRight' ? (i + 1) % tabs.length : k === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length : k === 'Home' ? 0 : k === 'End' ? tabs.length - 1 : -1;
+          if (j < 0) return;
+          e.preventDefault(); select(tabs[j], true);
+        });
       });
     });
   });

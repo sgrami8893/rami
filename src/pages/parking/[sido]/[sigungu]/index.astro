@@ -64,7 +64,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     ))}
   </div>
   <LotMore />
-  {mapOn(withCoords) && <MapPanel slot="map" points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} />}
+  {mapOn(withCoords) && <MapPanel slot="map" points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} area={{ sido, sigungu: r.sigungu }} />}
 </BaseLayout>
 
 <script>

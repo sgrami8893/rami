@@ -8,10 +8,13 @@
 import { MAP } from '../config.ts';
 import { validPoints, type MapPoint } from '../lib/map.ts';
 import Icon from './Icon.astro';
+import { hasArea } from '../lib/area-geo.ts';
 
 export type { MapPoint };
-interface Props { points: MapPoint[]; label: string; missing?: number }
-const { points, label, missing = 0 } = Astro.props;
+// area: 이 페이지의 지역(시·도 slug, 시·군·구 slug, 동 이름). 경계 자료가 있으면 지도에 지역 틀을 그린다(src/scripts/map-frame.ts)
+interface Props { points: MapPoint[]; label: string; missing?: number; area?: { sido: string; sigungu?: string; dong?: string } }
+const { points, label, missing = 0, area } = Astro.props;
+const areaData = area && hasArea(area.sido, area.sigungu) ? JSON.stringify({ sido: area.sido, sgg: area.sigungu ? `${area.sido}__${area.sigungu}` : undefined, dong: area.dong }) : undefined;
 const valid = validPoints(points);
 const show = MAP.enabled && valid.length > 0;
 const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom };
@@ -27,7 +30,7 @@ const link = 'inline-flex min-h-11 items-center px-1 text-cap font-semibold text
       </button>
     </div>
     <div class="relative min-h-0 flex-1">
-      <div class="map-canvas absolute inset-0" data-points={JSON.stringify(valid)} data-cfg={JSON.stringify(cfg)}>
+      <div class="map-canvas absolute inset-0" data-points={JSON.stringify(valid)} data-cfg={JSON.stringify(cfg)} data-area={areaData}>
         <p class="map-loading flex h-full items-center justify-center text-cap text-ink-3">지도 불러오는 중</p>
       </div>
       <div class="map-card map-float absolute inset-x-3 bottom-9 z-[1000] p-4 lg:inset-x-auto lg:left-3 lg:w-[360px]" role="region" aria-label="선택한 곳 요약" hidden>

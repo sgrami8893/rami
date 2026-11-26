@@ -21,7 +21,12 @@ export async function baseMap(canvas: HTMLElement) {
   // (허용 값: Base, midnight, Hybrid, Satellite, white).
   const url = cfg.url;
   // 단계구분도 아래 배경지도는 옅게(투명도만 낮춤, 타일 내용은 그대로) 해서 색칠이 배경 글자·도로에 묻히지 않게 한다
-  const tiles = L.tileLayer(url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 9, bounds: area, keepBuffer: 1, opacity: 1 }).addTo(map);
+  // 배경지도 캐시(2026-11-26 사용자 '최대한 캐시'): VWorld 약관 19조 6항(데이터 저장 금지) 때문에 서비스워커·프록시·자체 저장은 쓰지 않는다.
+  // 대신 ① 타일 주소에 캐시를 깨는 값을 붙이지 않아 브라우저 HTTP 캐시가 그대로 작동하고 ② 화면 밖 타일을 4칸까지 지우지 않고 남겨(keepBuffer)
+  // 지도를 되돌려 끌 때 다시 받지 않으며 ③ 확대·축소 중에는 새 타일을 요청하지 않는다(updateWhenZooming false, 모바일은 멈춘 뒤에만 요청).
+  // 지도 화면 안 이동(soft-nav)은 지도를 새로 만들지 않으므로 이미 받은 타일을 그대로 쓴다.
+  const tiles = L.tileLayer(url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 9, bounds: area, keepBuffer: 4,
+    updateWhenZooming: false, updateWhenIdle: L.Browser.mobile, opacity: 1 }).addTo(map);
   // 타일이 계속 실패하면(키 한도 초과·차단 등) 빈 지도 대신 안내 문구를 띄운다.
   let failed = 0;
   tiles.on('tileerror', () => {

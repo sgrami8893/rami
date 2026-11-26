@@ -12,6 +12,7 @@ import { announce } from './copy.ts';
 import { picker } from './map-picker.ts';
 import type { MapApi } from './map-panel.ts';
 import { createBuildings, BUILD_ZOOM } from './rent-buildings.ts';
+import { createFrame, getGeo, AREA_SRC } from './map-frame.ts';
 
 type M = (number | null)[]; // [빌라 전세, 빌라 월세, 빌라 월세 보증금, 오피 전세, 오피 월세, 오피 월세 보증금]
 type SggP = { f: string; nm: string; sd: string; l: [number, number]; n: number; h: string | null; m: M; b?: number };
@@ -21,6 +22,7 @@ type SggFC = FC<SggP> & { period: string; low: number; breaks: Record<string, nu
 type Focus = { sido?: string; slug?: string; dong?: string };
 
 const DONG_ZOOM = 12;      // 이 줌부터 동 단위
+const SIDO_ZOOM = 10;      // 이 줌부터 화면 가운데의 시·도만(시·군·구 단계)
 const LOW_LABEL_ZOOM = 14; // '거래 적음' 라벨은 이만큼 가까이서만
 // 파랑 6단계(밝음→진함). 라벨은 흰 바탕 알약이라 칸 색과 상관없이 글자 대비 4.5:1 이상
 // 2026-11-26 사용자 '1도 모르겠음' → 단계 사이 밝기 차이를 크게(한 색상 파랑 100→700 중 6단계, 밝은→진한). 색각이상에서도 밝기 차이로 구분된다
@@ -51,7 +53,9 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   if (!sgg) throw new Error('rent geo missing');
   const legend = pane.querySelector<HTMLElement>('.rm-legend');
   const card = pane.querySelector<HTMLElement>('.rm-card')!;
-  const side = document.getElementById('rent-pick');
+  // 왼쪽 패널 요약 칸은 본문이 바뀌면(soft-nav) 새 요소가 되므로 매번 찾는다
+  const sideEl = () => document.getElementById('rent-pick');
+  const side = sideEl();
   let type: Type = 'v', kind: Kind = 'j';
   const read = () => {
     type = (pane.querySelector<HTMLInputElement>('input[name="rm-type"]:checked')?.value as Type) ?? 'v';
@@ -90,7 +94,10 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     return d;
   };
   const TIP = { sticky: true, direction: 'top' as const, offset: [0, -14] as [number, number], className: 'rm-tip', opacity: 1 };
-  const HOVER = { color: '#191F28', weight: 3, opacity: 1 };
+  // 경계 스타일 v3(2026-11-26 사용자 '경계 색 세련되게'): 검은 선 없음. 동 경계 흰 1.25px(90%), 마우스 올리면 파랑 2px + 채움 살짝 진하게,
+  // 고른 동은 파랑 3px + 은은한 그림자, 지금 보는 시·군·구 테두리는 짙은 남색 2.5px + 파란 빛 테(CSS .rm-glow)
+  const ACCENT = '#2563EB', SLATE = '#1E293B';
+  const HOVER = { color: ACCENT, weight: 2, opacity: 1, fillOpacity: 0.95 };
   // 경계 가독성(2026-11-26 사용자 '경계가 잘 안 보여'): 회색 배경지도 위에 진한 채움 + 흰 경계 2px, 시·군·구 경계는 진한 선
   const FILL = 0.85;
 
@@ -110,7 +117,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 도형 ----
   const sggLayer = L.geoJSON(sgg as unknown as GeoJSON.FeatureCollection, {
-    style: (f) => ({ color: '#FFFFFF', weight: 2.2, opacity: 1, fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: FILL }),
+    style: (f) => ({ color: '#FFFFFF', weight: 1.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round', fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: FILL }),
     onEachFeature: (f, layer) => {
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
@@ -121,12 +128,22 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   }).addTo(map);
   const sggByFile = new Map<string, { p: SggP; layer: Leaflet.Polygon }>();
   sggLayer.eachLayer((l) => { const p = (l as Leaflet.Polygon).feature!.properties as SggP; sggByFile.set(p.f, { p, layer: l as Leaflet.Polygon }); });
+  // ---- 지역 틀(2026-11-26 사용자 '한 단계 들어갈 때마다 바깥 테두리'): 시·군·구 단계는 그 시·도 외곽선, 동 단계는 그 시·군·구 외곽선.
+  // 틀 바깥은 옅은 막으로 덮는다(map-frame.ts, 주차장·무인발급기 지도와 같은 모양) ----
+  const frame = createFrame(L, map);
+  let sidoFC: Awaited<ReturnType<typeof getGeo>> = null;
+  const updateFrame = () => {
+    const g = scopeSgg ? (sggByFile.get(scopeSgg)?.layer.feature?.geometry as GeoJSON.Polygon | undefined)
+      : scopeSido ? sidoFC?.features.find((x) => x.properties.sido === scopeSido)?.geometry : undefined;
+    frame.set(g ?? null);
+  };
+  void getGeo(`${AREA_SRC}sido.json`).then((x) => { sidoFC = x; updateFrame(); });
 
   const dongGroup = L.featureGroup();
   const loaded = new Map<string, Leaflet.GeoJSON>();
   const loading = new Map<string, Promise<void>>();
   const dongs = new Map<string, { p: DongP; layer: Leaflet.Polygon; sg: SggP }[]>(); // 키: 파일__동이름 (화성 '능동'처럼 같은 이름 조각이 여럿일 수 있음)
-  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 2, opacity: 1, fillColor: colorOf(valueOf(p)), fillOpacity: FILL });
+  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1.25, opacity: 0.9, lineJoin: 'round' as const, fillColor: colorOf(valueOf(p)), fillOpacity: FILL });
   const loadFile = (f: string) => {
     if (loaded.has(f)) return Promise.resolve();
     if (!loading.has(f)) loading.set(f, fetch(`${src}${f}.json`).then((r) => r.json() as Promise<FC<DongP> | null>).then((fc) => {
@@ -210,21 +227,25 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   let selectedSgg: string | null = null;
   const restyle = () => {
     const near = isNear();
+    sggLayer.eachLayer((l) => { const f = (l as Leaflet.Polygon).feature!.properties as SggP; ((l as Leaflet.Path).getElement() as Element | undefined)?.classList.toggle('rm-glow', !near && f.f === selectedSgg); });
     sggLayer.setStyle((f) => {
       const p = f!.properties as SggP;
       if (!inScope(p.f)) return { stroke: false, fill: false };
       return near
-        ? { stroke: true, fill: false, color: '#191F28', weight: scopeSgg ? 2.5 : 1.5, opacity: scopeSgg ? 0.9 : 0.45, fillOpacity: 0, fillColor: GREY }
-        : { stroke: true, fill: true, color: p.f === selectedSgg ? '#191F28' : '#FFFFFF', weight: p.f === selectedSgg ? 3.5 : 2.2, opacity: 1, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
+        // 동 단계: 고른 시·군·구 테두리는 틀(map-frame)이 그리므로 여기서는 범위를 안 정했을 때만 옅은 선
+        ? (scopeSgg ? { stroke: false, fill: false } : { stroke: true, fill: false, color: SLATE, weight: 1.25, opacity: 0.4, fillOpacity: 0, fillColor: GREY })
+        : { stroke: true, fill: true, color: p.f === selectedSgg ? ACCENT : '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.9, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
     });
     for (const [key, parts] of dongs) for (const { p, layer } of parts) {
-      layer.setStyle(key === selected ? { ...dongStyle(p), color: '#191F28', weight: 4 } : dongStyle(p));
+      layer.setStyle(key === selected ? { ...dongStyle(p), color: ACCENT, weight: 3, opacity: 1 } : dongStyle(p));
+      (layer.getElement() as Element | undefined)?.classList.toggle('rm-glow', key === selected);
       if (key === selected) layer.bringToFront();
     }
   };
   let timer = 0;
   const refresh = () => {
     const near = isNear();
+    updateFrame();
     // 범위 밖 시·군·구의 동은 그리지 않는다
     for (const [f, layer] of loaded) {
       if (inScope(f) && !dongGroup.hasLayer(layer)) dongGroup.addLayer(layer);
@@ -245,10 +266,10 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     // 시·군·구 경계선은 동 위에서 클릭을 막지 않게
     sggLayer.eachLayer((l) => { const el = (l as Leaflet.Path).getElement() as HTMLElement | undefined; if (el) el.style.pointerEvents = near || !inScope((l as Leaflet.Polygon).feature!.properties.f) ? 'none' : ''; });
   };
-  map.on('moveend', () => { clearTimeout(timer); timer = window.setTimeout(refresh, 180); });
+  map.on('moveend', () => { clearTimeout(timer); timer = window.setTimeout(() => { autoScope(); refresh(); }, 180); });
 
   // ---- 요약 ----
-  const box = () => (side && side.offsetParent !== null ? side : card);
+  const box = () => { const s = sideEl(); return s && s.offsetParent !== null ? s : card; };
   const fill = (el: HTMLElement, o: { badge: string; name: string; n: number; m: M; href: string | null; linkText: string }) => {
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
     q('.rp-badge').textContent = o.badge;
@@ -290,6 +311,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   function pickSgg(p: SggP, layer: Leaflet.Polygon) {
     selected = null; selectedSgg = p.f;
     setScope(sidoOf(p.f), p.f, false);
+    skipAuto = true;
     show({ badge: p.sd, name: p.nm, n: p.n, m: p.m, href: p.h, linkText: `${p.nm} 시세 자세히 보기` });
     map.fitBounds(layer.getBounds(), { padding: [24, 24], maxZoom: 13.5 });
   }
@@ -379,11 +401,49 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     syncSelect(f, selected && f && fileOfKey(selected) === f ? selected.slice(f.length + 2) : null);
     if (f) loadFile(f).then(refresh);
     if (fit) {
+      skipAuto = true;
       const b = f ? sggByFile.get(f)?.layer.getBounds() : sido ? sidoBounds(sido) : allBounds();
       if (b && b.isValid()) map.fitBounds(b, { padding: [24, 24], maxZoom: f ? 13.5 : 12 });
     }
     refresh();
     if (fit) announce(f ? `${sggByFile.get(f)?.p.nm ?? ''}만 보여 줘요.` : sido ? `${sidoName(sido)}만 보여 줘요.` : '전체 지역을 보여 줘요.');
+  }
+  // ---- 지도 위치에 따라 범위·칩 자동 갱신(2026-11-26 사용자 '위치에 따라 박스도 갱신, 구 단위 들어가면 다른 곳 안 보이게') ----
+  // 동이 보이는 줌(12+)에서는 화면 가운데가 속한 시·군·구로 범위를 옮긴다(지도는 움직이지 않음). 그보다 멀리 보면 시·군·구 범위를 푼다.
+  // 칩·목록으로 직접 고른 직후 한 번은 건너뛴다(오목한 시·군·구는 경계 상자 가운데가 이웃 구일 수 있어서).
+  let skipAuto = false;
+  const inRing = (pt: Leaflet.LatLng, ring: Leaflet.LatLng[]) => {
+    let c = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i], b = ring[j];
+      if ((a.lat > pt.lat) !== (b.lat > pt.lat) && pt.lng < ((b.lng - a.lng) * (pt.lat - a.lat)) / (b.lat - a.lat) + a.lng) c = !c;
+    }
+    return c;
+  };
+  const contains = (layer: Leaflet.Polygon, pt: Leaflet.LatLng) => {
+    if (!layer.getBounds().contains(pt)) return false;
+    let c = false;
+    const walk = (x: unknown): void => { const arr = x as unknown[]; if (arr.length && arr[0] instanceof L.LatLng) { if (inRing(pt, arr as Leaflet.LatLng[])) c = !c; } else arr.forEach(walk); };
+    walk(layer.getLatLngs());
+    return c;
+  };
+  function autoScope() {
+    if (skipAuto) { skipAuto = false; return; }
+    const z = map.getZoom();
+    if (z >= DONG_ZOOM) {
+      const ctr = map.getCenter();
+      const hit = (scopeSgg && contains(sggByFile.get(scopeSgg)!.layer, ctr)) ? null : [...sggByFile.values()].find(({ layer }) => contains(layer, ctr));
+      if (hit && hit.p.f !== scopeSgg) setScope(sidoOf(hit.p.f), hit.p.f, false);
+      return;
+    }
+    if (scopeSgg && z < DONG_ZOOM - 0.5) setScope(scopeSido, null, false);
+    // 시·군·구 단계(줌 10~12): 화면 가운데가 속한 시·도로 범위를 옮긴다. 더 멀리 보면 전체 지역
+    if (z >= SIDO_ZOOM) {
+      const ctr = map.getCenter();
+      const inSido = scopeSido && [...sggByFile.values()].some(({ p, layer }) => sidoOf(p.f) === scopeSido && contains(layer, ctr));
+      const hit = inSido ? null : [...sggByFile.values()].find(({ layer }) => contains(layer, ctr));
+      if (hit && sidoOf(hit.p.f) !== scopeSido) setScope(sidoOf(hit.p.f), null, false);
+    } else if (scopeSido && z < SIDO_ZOOM - 0.5) setScope(null, null, false);
   }
   const toolbar = pane.querySelector<HTMLElement>('.rm-toolbar');
   if (toolbar) toolbar.hidden = false;
@@ -422,6 +482,27 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   if (sgFocus) setScope(sidoOf(sgFocus.p.f), sgFocus.p.f, false);
   else if (focus.sido) setScope(focus.sido, null, false);
   refresh();
+
+  // 지도 화면 안 이동(soft-nav): 새 본문의 지도 초점으로 범위·선택만 바꾸고, 지도는 그대로 둔다
+  document.addEventListener('dnkk:swap', (e) => {
+    const f = (e as CustomEvent<{ focus: Focus | null }>).detail.focus ?? {};
+    const s = sideEl(); if (s) s.hidden = false;
+    card.hidden = true;
+    if (f.sido && f.slug) {
+      const file = `${f.sido}__${f.slug}`;
+      void loadFile(file).then(() => {
+        const key = f.dong ? `${file}__${f.dong}` : null;
+        selected = key && dongs.has(key) ? key : null; selectedSgg = null;
+        setScope(f.sido!, file, !selected);
+        if (selected) {
+          const b = L.latLngBounds([]); dongs.get(selected)!.forEach(({ layer }) => b.extend(layer.getBounds()));
+          if (!map.getBounds().contains(b)) map.fitBounds(b, { padding: [60, 60], maxZoom: 14.5 });
+          syncSelect(file, f.dong!);
+        }
+        restyle(); drawLabels();
+      });
+    } else if (f.sido) { selected = null; setScope(f.sido, null); }
+  });
 
   return { focus() {}, hover() {}, filter() {}, resize() { map.invalidateSize(); } };
 }

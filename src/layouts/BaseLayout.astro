@@ -4,7 +4,7 @@ import '../styles/fonts/pretendard/pretendard.css'; // Pretendard Variable 동�
 import '../styles/global.css';
 // 가장 자주 쓰는 글자(라틴 + 상위 한글) 서브셋 1개만 미리 받는다. 나머지는 unicode-range로 필요할 때만.
 import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91.woff2?url';
-import { SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
+import { MAP, SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
 import Breadcrumb from '../components/Breadcrumb.astro';
 import Logo from '../components/Logo.astro';
 import FontSizeMenu from '../components/FontSizeMenu.astro';
@@ -36,6 +36,8 @@ const { title, description, noindex = false, jsonld = [], crumbs = [], wide = fa
 // 왼쪽 400px 패널(본문 전부: 요약·필터·목록) + 오른쪽 큰 지도(화면 높이에 고정)로 나눈다. 본문 HTML은 그대로(검색엔진용).
 // 모바일은 기존 한 줄 흐름 그대로이고, 지도는 '지도로 보기' 버튼으로 전체 화면에 연다.
 const split = Astro.slots.has('map');
+// 지도 화면은 배경지도 타일 서버에 미리 연결해 첫 타일을 빨리 받는다(연결만, 데이터 저장 없음)
+const tileOrigin = split && MAP.enabled && MAP.url.startsWith('https://') ? new URL(MAP.url.replace(/\{[^}]+\}/g, '0')).origin : null;
 const sidebar = split ? false : (Astro.props.sidebar ?? Boolean(tool));
 const white = (Astro.props.canvas ?? 'white') === 'white'; // 3차 개편: 전 페이지 순백 캔버스
 const frame = split ? 'max-w-2xl lg:max-w-none' : sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
@@ -59,6 +61,8 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
     <script is:inline>try{var f=localStorage.getItem('dnkk:fs:v1');if(f==='l'||f==='xl')document.documentElement.dataset.fs=f}catch(e){}</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
+    {tileOrigin && <link rel="preconnect" href={tileOrigin} />}
+    {tileOrigin && <link rel="dns-prefetch" href={tileOrigin} />}
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {(noindex || NOINDEX_ALL) && <meta name="robots" content="noindex,follow" />}

@@ -135,50 +135,55 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
 </BaseLayout>
 
 <script>
-  // 시·군·구 즉시 필터: 내장된 링크 목록을 숨김/표시만 한다(Enter는 첫 결과로 이동).
-  const q = document.getElementById('q') as HTMLInputElement | null;
-  const box = document.getElementById('all-regions') as HTMLDetailsElement | null;
-  const items = [...document.querySelectorAll<HTMLLIElement>('#region-list li')];
-  const empty = document.getElementById('region-empty');
-  const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
-  const clear = document.getElementById('q-clear');
-  // 찾을 정보(무인발급기·주차장·전월세) 선택: 지역 링크 주소를 그 도구로 바꾸고, 그 도구에 페이지가 없는 지역은 숨긴다
-  let tool = document.querySelector<HTMLInputElement>('input[name="pick"]')?.value ?? 'muin';
-  const total = document.getElementById('region-total');
-  const applyTool = () => {
-    document.querySelectorAll<HTMLAnchorElement>('[data-region-link]').forEach((a) => {
-      const h = a.dataset[`href${tool[0].toUpperCase()}${tool.slice(1)}`];
-      if (h) a.href = h;
-      const li = a.closest('li');
-      if (li) li.dataset.off = h ? '' : '1'; else a.hidden = !h;
-    });
-    if (total) total.textContent = String(items.filter((li) => !li.dataset.off).length);
-    q?.dispatchEvent(new Event('input'));
-  };
-  document.querySelectorAll<HTMLInputElement>('input[name="pick"]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { tool = r.value; applyTool(); } }));
-  // 헤더의 검색 버튼(/#search)으로 들어오면 검색창에 바로 포커스
-  // 헤드라인부터 보이도록 맨 위로 올린 뒤, 스크롤 없이 포커스만 준다
-  const focusIfHash = () => { if (location.hash === '#search') { scrollTo({ top: 0 }); q?.focus({ preventScroll: true }); } };
+  import { onPage } from '../scripts/soft-nav.ts';
+  // 지도 화면 안 이동(soft-nav)으로 홈 본문이 다시 들어오면 다시 연결한다(본문이 홈이 아니면 건너뜀)
+  const focusIfHash = () => { if (location.hash === '#search') { scrollTo({ top: 0 }); (document.getElementById('q') as HTMLInputElement | null)?.focus({ preventScroll: true }); } };
   // 브라우저의 해시 이동(load 이후)이 포커스를 되돌리지 않도록 load 뒤에 한 번 더 실행
-  focusIfHash();
   addEventListener('load', () => setTimeout(focusIfHash, 0));
   addEventListener('hashchange', focusIfHash);
-  clear?.addEventListener('click', () => { if (!q) return; q.value = ''; q.dispatchEvent(new Event('input')); q.focus(); });
-  q?.addEventListener('input', () => {
-    if (clear) clear.hidden = !q.value;
-    const v = norm(q.value);
-    let n = 0;
-    for (const li of items) { const ok = !li.dataset.off && (!v || norm(li.dataset.key ?? '').includes(v)); li.hidden = !ok; if (ok) n++; }
-    if (box && v.length > 0) box.open = true;
-    if (empty) empty.hidden = n > 0;
-  });
-  // 첫 그리기: 선택값(새로고침 시 브라우저가 기억한 라디오 포함)을 반영
-  const picked = document.querySelector<HTMLInputElement>('input[name="pick"]:checked');
-  if (picked) tool = picked.value;
-  applyTool();
-  q?.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    const first = items.find((li) => !li.hidden)?.querySelector('a');
-    if (first && q.value.trim()) location.href = first.href;
+  onPage(() => {
+    if (!document.getElementById('region-list')) return;
+    // 시·군·구 즉시 필터: 내장된 링크 목록을 숨김/표시만 한다(Enter는 첫 결과로 이동).
+    const q = document.getElementById('q') as HTMLInputElement | null;
+    const box = document.getElementById('all-regions') as HTMLDetailsElement | null;
+    const items = [...document.querySelectorAll<HTMLLIElement>('#region-list li')];
+    const empty = document.getElementById('region-empty');
+    const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+    const clear = document.getElementById('q-clear');
+    // 찾을 정보(무인발급기·주차장·전월세) 선택: 지역 링크 주소를 그 도구로 바꾸고, 그 도구에 페이지가 없는 지역은 숨긴다
+    let tool = document.querySelector<HTMLInputElement>('input[name="pick"]')?.value ?? 'muin';
+    const total = document.getElementById('region-total');
+    const applyTool = () => {
+      document.querySelectorAll<HTMLAnchorElement>('[data-region-link]').forEach((a) => {
+        const h = a.dataset[`href${tool[0].toUpperCase()}${tool.slice(1)}`];
+        if (h) a.href = h;
+        const li = a.closest('li');
+        if (li) li.dataset.off = h ? '' : '1'; else a.hidden = !h;
+      });
+      if (total) total.textContent = String(items.filter((li) => !li.dataset.off).length);
+      q?.dispatchEvent(new Event('input'));
+    };
+    document.querySelectorAll<HTMLInputElement>('input[name="pick"]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { tool = r.value; applyTool(); } }));
+    // 헤더의 검색 버튼(/#search)으로 들어오면 검색창에 바로 포커스
+    // 헤드라인부터 보이도록 맨 위로 올린 뒤, 스크롤 없이 포커스만 준다
+    focusIfHash();
+    clear?.addEventListener('click', () => { if (!q) return; q.value = ''; q.dispatchEvent(new Event('input')); q.focus(); });
+    q?.addEventListener('input', () => {
+      if (clear) clear.hidden = !q.value;
+      const v = norm(q.value);
+      let n = 0;
+      for (const li of items) { const ok = !li.dataset.off && (!v || norm(li.dataset.key ?? '').includes(v)); li.hidden = !ok; if (ok) n++; }
+      if (box && v.length > 0) box.open = true;
+      if (empty) empty.hidden = n > 0;
+    });
+    // 첫 그리기: 선택값(새로고침 시 브라우저가 기억한 라디오 포함)을 반영
+    const picked = document.querySelector<HTMLInputElement>('input[name="pick"]:checked');
+    if (picked) tool = picked.value;
+    applyTool();
+    q?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const first = items.find((li) => !li.hidden)?.querySelector('a');
+      if (first && q.value.trim()) location.href = first.href;
+    });
   });
 </script>

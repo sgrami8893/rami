@@ -56,7 +56,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       </ul>
     </section>
   )}
-  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} />}
+  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} area={{ sido }} />}
 </BaseLayout>
 
 <script>
