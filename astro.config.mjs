@@ -1,9 +1,10 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { SITE_URL, TOOLS, CHECKLIST_VERIFIED } from './src/config.ts';
 import { hubNoindexPaths } from './src/lib/hubs.ts';
+import { dedupeLots, parkingNoindexPaths } from './scripts/lib/parking.ts';
 
 // 무인발급기: 대체 기기가 없는 상세 페이지는 noindex -> sitemap에서도 제외
 const kiosks = JSON.parse(readFileSync(new URL('./src/data/kiosks.json', import.meta.url), 'utf8'));
@@ -11,6 +12,9 @@ const noindex = new Set(kiosks.filter((k) => !k.nearby?.length).map((k) => `/mui
 // 조건 허브(24h·weekend·registry·family) 중 색인 기준 미달 페이지도 제외 (src/lib/hubs.ts HUB_RULE)
 hubNoindexPaths(kiosks, ['seoul', 'gyeonggi', 'incheon']).forEach((p) => noindex.add(p));
 if (!CHECKLIST_VERIFIED) noindex.add('/muin/checklist/');
+// 주차장: 상세(정보 부족)·얇은 시·군·구·기준 미달 무료 허브는 페이지와 같은 기준으로 사이트맵에서 뺀다
+const parkingFile = new URL('./src/data/parking.json', import.meta.url);
+if (existsSync(parkingFile)) parkingNoindexPaths(dedupeLots(JSON.parse(readFileSync(parkingFile, 'utf8'))).lots).forEach((p) => noindex.add(p));
 // 준비 중(status 'soon') 도구 경로는 미리보기 빌드에서 페이지가 생겨도 사이트맵에 넣지 않는다
 const notLive = [...TOOLS.filter((t) => t.status !== 'live').map((t) => t.path), '/rent/']; // /rent/: 전월세 시세 골격(미리보기 전용)
 

@@ -15,7 +15,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { buildUrl, parsePage, resolveMapping, toRow, redact, type Page } from './lib/parking-api.ts';
-import { normalizeParking, type ParkingLot } from './lib/parking.ts';
+import { normalizeParking, dedupeLots, type ParkingLot } from './lib/parking.ts';
 
 const args = process.argv.slice(2);
 const flag = (n: string) => args.includes(n);
@@ -90,15 +90,12 @@ if (m.missingRequired.length) fail(`필수 필드를 찾지 못했어요: ${m.mi
 const rows = items.map((i) => toRow(i, m.map));
 const bad = rows.filter((r) => !r['주차장명'] || !(r['소재지도로명주소'] || r['소재지지번주소'])).length;
 if (bad / rows.length > MAX_BAD_ROWS && !FORCE) fail(`이름·주소가 빠진 행이 ${bad}건(${((bad / rows.length) * 100).toFixed(1)}%)이에요`);
-const lots: ParkingLot[] = [];
-const seen = new Map<string, number>();
-for (const r of rows) {
-  const l = normalizeParking(r);
-  if (!l) continue;
-  const c = seen.get(l.id) ?? 0; seen.set(l.id, c + 1);
-  if (c) l.id = `${l.id}-${c + 1}`; // 같은 관리번호 중복은 뒤에 번호를 붙여 구분
-  lots.push(l);
-}
+const raw = rows.map(normalizeParking).filter((l): l is ParkingLot => !!l);
+const idCount = new Map<string, number>();
+raw.forEach((l) => idCount.set(l.id, (idCount.get(l.id) ?? 0) + 1));
+// 같은 관리번호: 완전 중복은 1건만, 내용이 다르면 이름+주소 해시로 구분(다시 받아도 URL이 같음)
+const dd = dedupeLots(raw);
+const lots = dd.lots;
 if (!lots.length) fail('수도권 주차장이 0곳이에요. 주소 필드 매핑을 확인하세요.');
 
 // 4) 이전 데이터와 비교(급감 방지)
@@ -114,7 +111,8 @@ const report = {
   bySido: count(lots.map((l) => l.sido)), feeType: count(lots.map((l) => l.fee.type)), kind: count(lots.map((l) => l.kind)),
   noCoord: lots.filter((l) => l.lat === null).length, flags: count(lots.flatMap((l) => l.flags)),
   baseDate: { min: lots.map((l) => l.baseDate).filter(Boolean).sort()[0] ?? null, max: lots.map((l) => l.baseDate).filter(Boolean).sort().at(-1) ?? null },
-  duplicateIds: [...seen.values()].filter((v) => v > 1).length,
+  duplicateIds: [...idCount.values()].filter((v) => v > 1).length, duplicateExactRemoved: dd.exactRemoved, duplicateSplit: dd.splitIds,
+  hoursAmbiguousDetail: count(lots.filter((l) => l.flags.includes('hoursAmbiguous')).flatMap((l) => Object.values(l.hours).map((h) => (h === '24h' ? 'zeroToZero' : h === null ? 'unparsed' : 'ok')))),
   mapping: { mode: m.mode, missingOptional: m.missingOptional, unknownKeys: m.unknownKeys },
 };
 await writeFile(OUT, JSON.stringify(lots));

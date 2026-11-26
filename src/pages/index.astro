@@ -2,13 +2,14 @@
 // 허브: 도구 목록만 둔다. 도구별 콘텐츠·내부 링크·사이트맵은 각 하위 폴더(/muin/ …)에서 독립적으로 관리.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { SITE_NAME, SITE_URL, TOOLS } from '../config.ts';
+import { lots as parkingLots } from '../lib/parking.ts';
 import { kiosks, stats, regionsIn, SIDO_ORDER, sidoShort, regionPath, subGuOf } from '../lib/data.ts';
 import GuideList from '../components/GuideList.astro';
 import Icon from '../components/Icon.astro';
 import type { IconName } from '../lib/icons.ts';
 const ICON: Record<string, IconName> = { muin: 'file-text', waste: 'trash-2', parking: 'square-parking', cert: 'award' };
 
-const counts: Record<string, string> = { muin: `수도권 ${kiosks.length.toLocaleString('ko-KR')}곳` };
+const counts: Record<string, string> = { muin: `수도권 ${kiosks.length.toLocaleString('ko-KR')}곳`, ...(parkingLots.length ? { parking: `수도권 ${parkingLots.length.toLocaleString('ko-KR')}곳 · 무료 ${parkingLots.filter((l) => l.fee.type === 'free').length.toLocaleString('ko-KR')}곳` } : {}) };
 const live = TOOLS.filter((t) => t.status === 'live');
 // 검색용: 시·군·구 67곳을 HTML에 내장(JS 없이도 '전체 지역'에서 링크로 이동 가능)
 const allRegions = SIDO_ORDER.flatMap((s) => [...regionsIn(s)].sort((a, b) => a.sigunguName.localeCompare(b.sigunguName, 'ko')));

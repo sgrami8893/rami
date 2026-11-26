@@ -1,5 +1,5 @@
 ---
-import { lotPath, FEE_LABEL, LOT_TYPE, hoursText, type ParkingLot } from '../../lib/parking.ts';
+import { lotPath, FEE_LABEL, LOT_TYPE, dayText, type ParkingLot } from '../../lib/parking.ts';
 import { lotHours } from '../../../scripts/lib/parking.ts';
 import { calcFee, feeText, sortValue } from '../../../scripts/lib/parking-fee.ts';
 interface Props { l: ParkingLot; level?: 2 | 3 }
@@ -14,7 +14,7 @@ const tone = l.fee.type === 'free' ? 'text-ok' : l.fee.type === 'unknown' ? 'tex
     <span class={`shrink-0 text-cap font-semibold ${tone}`}>{FEE_LABEL[l.fee.type]}</span>
   </div>
   <p class="mt-1"><span class="p-open badge invisible bg-off-bg text-off">운영시간 확인 중</span></p>
-  <p class="mt-1 text-[length:calc(16px*var(--fs,1))] text-ink-2">평일 {hoursText(l.hours.weekday)} · {LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
+  <p class="mt-1 text-[length:calc(16px*var(--fs,1))] text-ink-2">평일 {dayText(l, 'weekday')} · {l.kind === 'private' ? '민영 ' : ''}{LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
   <p class="mt-1 text-[length:calc(16px*var(--fs,1))] text-ink-2"><span class="text-ink-3">2시간</span> <span class={`font-semibold ${two.status === 'ok' || two.status === 'free' ? 'text-ink' : 'text-ink-3'}`}>{two.status === 'none' ? '요금 정보 없음' : feeText(two)}</span></p>
   <p class="mt-0.5 break-words text-cap text-ink-3">{l.roadAddress || l.jibunAddress}</p>
 </article>

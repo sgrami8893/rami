@@ -27,11 +27,11 @@ const dpath = (d: string) => `${parkingPath(sido, r.sigungu)}${encodeURIComponen
 const withCoords = ls.filter((l) => l.lat !== null && l.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }, { name: r.name, href: parkingPath(sido, r.sigungu) }];
 ---
-<BaseLayout tool="parking" title={`${r.name} 공영주차장 ${ls.length}곳 (무료 ${r.free}곳) | 위치·요금·운영시간`} description="골격 미리보기" crumbs={crumbs}
+<BaseLayout tool="parking" title={`${r.name} 공영주차장 ${ls.length}곳 (무료 ${r.free}곳) | 위치·요금·운영시간`} description={`${sidoShort(sido)} ${r.name} 공영주차장 ${ls.length}곳(무료 ${r.free}곳)의 위치, 2시간 주차 요금 비교, 평일·주말 운영시간을 동별로 확인하세요.`} crumbs={crumbs}
   noindex={IS_MOCK || !regionIndexable(ls.length)} canvas="white" sidebar={false}>
   <MockBanner />
   <h1 class="text-title font-bold text-ink">{r.name} 공영주차장 {ls.length}곳</h1>
-  <p class="mt-1 text-cap text-ink-3">무료 {r.free}곳 · 색인 판정: {regionIndexable(ls.length) ? '색인 대상' : '얇은 페이지(noindex)'}</p>
+  <p class="mt-1 text-cap text-ink-3">무료 {r.free}곳 · 유료·혼합 {ls.length - r.free}곳</p>
   <MapPanel points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} />
   <section class="mt-5 rounded-2xl bg-bg px-4 py-4" aria-labelledby="cmp-h">
     <h2 id="cmp-h" class="text-body font-bold text-ink">2시간 주차 요금 비교</h2>

@@ -5,7 +5,7 @@ import type { ParkingLot } from '../../lib/parking.ts';
 interface Props { l: ParkingLot }
 const { l } = Astro.props;
 const dm = dayMinutes(l);
-const dayNote = l.hours.weekday && l.hours.weekday !== '24h' ? `평일 운영시간 ${Math.floor(dm / 60)}시간${dm % 60 ? ` ${dm % 60}분` : ''} 기준` : '24시간 기준';
+const dayNote = l.hours.weekday && l.hours.weekday !== '24h' ? `평일 운영시간 ${Math.floor(dm / 60)}시간${dm % 60 ? ` ${dm % 60}분` : ''} 기준` : l.ambiguousDays?.includes('weekday') ? '평일 운영시간 확인 필요, 24시간으로 가정' : '24시간 기준';
 const results = DURATIONS.map((d) => {
   const r = calcFee(l, d.minutes ?? dm);
   return { ...d, r, text: feeText(r), detail: d.key === 'day' ? [dayNote, feeBreakdown(l, r)].filter(Boolean).join(' · ') : feeBreakdown(l, r) };

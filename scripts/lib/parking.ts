@@ -33,7 +33,10 @@ export interface ParkingLot {
   payment: string[]; note: string; agency: string; phone: string; baseDate: string | null;
   providerCode: string; providerName: string;
   flags: ('feeConflict' | 'hoursAmbiguous' | 'coordOutOfRange')[];
+  /** 원천이 00:00~00:00(24시간인지 미입력인지 알 수 없음)이었던 요일. 화면엔 '24시간(확인 필요)', '지금 운영 중' 판정에서는 제외 */
+  ambiguousDays?: DayKey[];
 }
+export type DayKey = 'weekday' | 'sat' | 'holiday';
 
 const num = (s: string | undefined) => {
   const t = (s ?? '').replace(/[,원\s]/g, '');
@@ -78,6 +81,7 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
   const flags: ParkingLot['flags'] = [];
   const wd = dayHours(g('wdOpen'), g('wdClose')), sat = dayHours(g('satOpen'), g('satClose')), hol = dayHours(g('holOpen'), g('holClose'));
   if (wd.ambiguous || sat.ambiguous || hol.ambiguous) flags.push('hoursAmbiguous');
+  const ambiguousDays = ([['weekday', wd], ['sat', sat], ['holiday', hol]] as const).filter(([, d]) => d.ambiguous && d.h === '24h').map(([k]) => k);
   const amounts = { baseMin: num(g('baseMin')), baseFee: num(g('baseFee')), unitMin: num(g('unitMin')), unitFee: num(g('unitFee')), dayPass: num(g('dayPass')), monthly: num(g('monthly')) };
   const fee = classifyFee(g('feeInfo'), [amounts.baseFee, amounts.unitFee, amounts.dayPass, amounts.monthly]);
   if (fee.conflict) flags.push('feeConflict');
@@ -104,7 +108,7 @@ export function normalizeParking(row: Record<string, string>): ParkingLot | null
     providerCode: g('providerCode'), providerName: g('providerName'),
     payment: g('payment').split(/[,+/]/).map((s) => s.trim()).filter(Boolean),
     note: g('note'), agency: g('agency'), phone: g('phone'), baseDate: g('baseDate') || null,
-    flags,
+    flags, ...(ambiguousDays.length ? { ambiguousDays } : {}),
   };
 }
 
@@ -130,9 +134,17 @@ export function freeSigunguIndexable(lots: ParkingLot[]) {
 }
 
 /** 운영시간 판정용 형식(scripts/lib/hours.ts Hours)으로 변환. 일요일은 공휴일 시간을 쓴다. 정보 없음은 undefined(판정 불가). */
-export function lotHours(l: Pick<ParkingLot, 'hours'>) {
-  const conv = (h: DayHours) => (h === null ? undefined : h === '24h' ? (['00:00', '24:00'] as [string, string]) : h);
-  return { weekday: conv(l.hours.weekday), sat: conv(l.hours.sat), sun: conv(l.hours.holiday), holiday: conv(l.hours.holiday) };
+export function lotHours(l: Pick<ParkingLot, 'hours' | 'ambiguousDays'>) {
+  const amb = new Set(l.ambiguousDays ?? []);
+  const conv = (k: DayKey) => { const h = l.hours[k]; return h === null || amb.has(k) ? undefined : h === '24h' ? (['00:00', '24:00'] as [string, string]) : h; };
+  return { weekday: conv('weekday'), sat: conv('sat'), sun: conv('holiday'), holiday: conv('holiday') };
+}
+
+/** 예전 수집 파일(ambiguousDays 없음) 보정: hoursAmbiguous 표시가 있고 24시간으로 바뀐 요일을 모호한 요일로 본다 */
+export function withAmbiguousDays(l: ParkingLot): ParkingLot {
+  if (l.ambiguousDays || !l.flags.includes('hoursAmbiguous')) return l;
+  const d = (['weekday', 'sat', 'holiday'] as DayKey[]).filter((k) => l.hours[k] === '24h');
+  return d.length ? { ...l, ambiguousDays: d } : l;
 }
 
 /** 동 페이지(주차장): 같은 동 5곳 이상 + 시·군·구의 85% 이하(무인민원발급기 동 페이지와 같은 기준) */
@@ -144,4 +156,64 @@ export function parkingDongs(lots: ParkingLot[]) {
   for (const l of lots) total.set(`${l.sido}/${l.sigungu}`, (total.get(`${l.sido}/${l.sigungu}`) ?? 0) + 1);
   return [...by.values()].filter((ls) => ls.length >= PARKING_DONG_RULE.min && ls.length / (total.get(`${ls[0].sido}/${ls[0].sigungu}`) ?? 1) <= PARKING_DONG_RULE.maxShare)
     .map((ls) => ({ sido: ls[0].sido, sigungu: ls[0].sigungu, sigunguName: ls[0].sigunguName, dong: ls[0].dong!, lots: ls }));
+}
+
+/** 짧고 안정적인 해시(FNV-1a, 36진수 6자리). 중복 관리번호를 주소로 구분할 때 쓴다(수집 순서가 바뀌어도 주소가 같으면 같은 값). */
+export function shortHash(s: string) {
+  let h = 0x811c9dc5;
+  for (const ch of s) { h ^= ch.codePointAt(0)!; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36).padStart(6, '0').slice(-6);
+}
+
+/**
+ * 같은 관리번호(제공기관코드-관리번호) 정리. 원천에는 같은 번호가 여러 번 나오는 경우가 있다(2026-11-26 실데이터 82건).
+ * - 이름·주소·좌표가 같은 완전 중복: 기준일이 가장 최근인 1건만 남긴다(같으면 정보가 많은 쪽).
+ * - 내용이 다른 중복: 번호 뒤에 이름+주소 해시를 붙여 구분한다. 수집 순서와 무관해서 다시 받아도 주소(URL)가 바뀌지 않는다.
+ * 예전 수집 파일의 '-2' 같은 순번 접미사도 원래 번호로 되돌려 같은 규칙을 적용한다.
+ */
+export function dedupeLots(lots: ParkingLot[]) {
+  const ids = new Set(lots.map((l) => l.id));
+  const base = (l: ParkingLot) => { const m = l.id.match(/^(.*)-(\d{1,2})$/); return m && ids.has(m[1]) && Number(m[2]) >= 2 ? m[1] : l.id; };
+  const groups = new Map<string, ParkingLot[]>();
+  for (const l of lots) { const b = base(l); groups.set(b, [...(groups.get(b) ?? []), { ...l, id: b }]); }
+  const key = (l: ParkingLot) => [l.name, l.roadAddress || l.jibunAddress, l.lat?.toFixed(5), l.lng?.toFixed(5)].join('|');
+  const filled = (l: ParkingLot) => Object.values(l).filter((v) => v !== null && v !== '').length;
+  const out: ParkingLot[] = [];
+  let exact = 0, split = 0;
+  for (const [id, g] of groups) {
+    if (g.length === 1) { out.push(g[0]); continue; }
+    const byKey = new Map<string, ParkingLot>();
+    for (const l of g) {
+      const k = key(l), prev = byKey.get(k);
+      if (!prev) { byKey.set(k, l); continue; }
+      exact++;
+      if ((l.baseDate ?? '') > (prev.baseDate ?? '') || ((l.baseDate ?? '') === (prev.baseDate ?? '') && filled(l) > filled(prev))) byKey.set(k, l);
+    }
+    if (byKey.size === 1) { out.push([...byKey.values()][0]); continue; }
+    split += byKey.size;
+    const used = new Set<string>();
+    for (const [k, l] of byKey) {
+      let sfx = shortHash(k), n = 1;
+      while (used.has(sfx)) sfx = shortHash(`${k}#${++n}`);
+      used.add(sfx);
+      out.push({ ...l, id: `${id}-${sfx}` });
+    }
+  }
+  return { lots: out, exactRemoved: exact, splitIds: split };
+}
+
+/** 사이트맵에서 뺄 주차장 페이지(각 페이지의 noindex 판정과 같은 기준). astro.config.mjs에서 쓴다. */
+export function parkingNoindexPaths(lots: ParkingLot[]) {
+  const out = new Set<string>();
+  const bySg = new Map<string, ParkingLot[]>();
+  for (const l of lots) {
+    if (!lotIndexable(l)) out.add(`/parking/${l.sido}/${l.sigungu}/p/${encodeURIComponent(l.id)}/`);
+    const k = `${l.sido}/${l.sigungu}`; bySg.set(k, [...(bySg.get(k) ?? []), l]);
+  }
+  for (const [k, ls] of bySg) {
+    if (!regionIndexable(ls.length)) out.add(`/parking/${k}/`);
+    if (!freeSigunguIndexable(ls).indexable) out.add(`/parking/${k}/free/`);
+  }
+  for (const s of new Set(lots.map((l) => l.sido))) if (!freeHubIndexable(lots, s).indexable) out.add(`/parking/${s}/free/`);
+  return out;
 }

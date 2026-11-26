@@ -42,3 +42,25 @@ test('헤더 34개(잠정) 매핑과 필수 필드 검증', () => {
   const l = normalizeParking(row({ id: '123', providerCode: '3220000', name: 'A', road: '서울특별시 강남구 테헤란로 1', disabled: 'Y' }))!;
   assert.equal(l.id, '3220000-123'); assert.equal(l.disabledSpots, true);
 });
+
+test('중복 관리번호: 완전 중복은 1건, 다른 내용은 주소 해시로 구분(순서 무관)', async () => {
+  const { dedupeLots } = await import('../lib/parking.ts');
+  const mk = (id: string, name: string, addr: string, baseDate = '2026-01-01') => ({ id, name, roadAddress: addr, jibunAddress: '', lat: 37.5, lng: 127, baseDate, flags: [] }) as unknown as ParkingLot;
+  const a = [mk('X-1', 'A', '주소1', '2026-01-01'), mk('X-1', 'A', '주소1', '2026-02-01'), mk('X-1', 'B', '주소2'), mk('Y-1', 'C', '주소3')];
+  const r1 = dedupeLots(a), r2 = dedupeLots([...a].reverse());
+  assert.equal(r1.lots.length, 3); assert.equal(r1.exactRemoved, 1);
+  assert.deepEqual(r1.lots.map((l) => l.id).sort(), r2.lots.map((l) => l.id).sort());
+  assert.equal(r1.lots.find((l) => l.name === 'A')!.baseDate, '2026-02-01');
+  assert.ok(r1.lots.some((l) => l.id === 'Y-1'));
+  // 예전 파일의 순번 접미사(-2)도 같은 규칙으로
+  const old = dedupeLots([mk('X-1', 'A', '주소1'), mk('X-1-2', 'B', '주소2')]);
+  assert.deepEqual(old.lots.map((l) => l.id).sort(), dedupeLots([mk('X-1', 'A', '주소1'), mk('X-1', 'B', '주소2')]).lots.map((l) => l.id).sort());
+});
+test('00:00~00:00은 24시간(확인 필요), 지금 운영 판정에서는 제외', async () => {
+  const { lotHours, withAmbiguousDays } = await import('../lib/parking.ts');
+  const l = normalizeParking(row({ name: 'A', road: '서울특별시 강남구 테헤란로 1', feeInfo: '무료', wdOpen: '00:00', wdClose: '00:00', satOpen: '09:00', satClose: '18:00' }))!;
+  assert.deepEqual(l.ambiguousDays, ['weekday']);
+  assert.equal(lotHours(l).weekday, undefined); assert.deepEqual(lotHours(l).sat, ['09:00', '18:00']);
+  const legacy = { ...l, ambiguousDays: undefined };
+  assert.deepEqual(withAmbiguousDays(legacy).ambiguousDays, ['weekday']);
+});

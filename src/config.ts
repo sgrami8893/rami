@@ -18,7 +18,7 @@ export const SITE_DESC = '서울·경기·인천 무인민원발급기 2,100여 
 export const TOOLS = [
   { slug: 'muin', name: '무인민원발급기 찾기', path: '/muin/', status: 'live', desc: '서울·경기·인천 무인민원발급기 위치, 지금 운영시간인 곳, 24시간·주말 운영, 등기부등본·가족관계증명서 발급 기기.' },
   { slug: 'waste', name: '대형폐기물 수수료', path: '/waste/', status: 'soon', desc: '가구·가전 버릴 때 우리 동네 대형폐기물 배출 수수료 확인.' },
-  { slug: 'parking', name: '공영주차장', path: '/parking/', status: 'soon', desc: '동네 공영주차장 위치와 요금.' },
+  { slug: 'parking', name: '공영주차장 찾기', path: '/parking/', status: 'live', desc: '서울·경기·인천 공영주차장 4,700여 곳의 요금과 운영시간, 무료 주차장, 2시간 주차 요금 비교.' },
   { slug: 'cert', name: '국가기술자격 시험', path: '/cert/', status: 'soon', desc: '국가기술자격 시험 일정과 합격률.' },
 ] as const;
 export type ToolSlug = (typeof TOOLS)[number]['slug'];
@@ -42,6 +42,8 @@ export const CONTACT_EMAIL = '[운영자 이메일 주소]';
 /** 도구별 데이터 출처(푸터·소개에 표기). TODO: 실제 내려받은 페이지 URL과 이용허락 유형 확인 후 확정. */
 export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
   muin: { name: '행정안전부 무인민원발급기 정보', url: 'https://www.localdata.go.kr' },
+  // 공공데이터포털 '전국주차장정보표준데이터'(API tn_pubr_prkplce_info_api). 이용허락범위는 포털 화면에서 확인 후 about에 기록
+  parking: { name: '공공데이터포털 전국주차장정보표준데이터', url: 'https://www.data.go.kr/data/15012896/standard.do' },
 };
 
 /**
@@ -52,13 +54,19 @@ export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
  */
 const env = (k: string) => (globalThis.process?.env?.[k] ?? '').trim();
 export const MAP_PROVIDERS = {
-  // url 형식은 2차 자료 기준(확인 필요). https 지원 여부를 반드시 확인한 뒤 켠다.
-  vworld: { name: 'VWorld(국토교통부 공간정보 오픈플랫폼)', url: 'https://api.vworld.kr/req/wmts/1.0.0/{key}/Base/{z}/{y}/{x}.png', attribution: '배경지도: VWorld', maxZoom: 19, policyUrl: 'https://www.vworld.kr' },
+  // VWorld 이용약관(2026-11-26 사용자 확인): 13조 8항 자체 웹 서비스 연동 허용, 9항 '오픈플랫폼을 이용해 만든 것' 표기 의무,
+  // 10항 서비스 내용 삭제·변경 금지, 19조 6항 데이터 무단 저장 금지 → 타일은 브라우저가 VWorld에서 직접 받고 저장·캐시·프록시하지 않는다.
+  // 인증키는 본인 사용만(13조 7항), 호출 제한은 별도 공지(13조 4·5항). 키는 vworld.kr에서 서비스 URL(도메인)을 등록해 발급한다.
+  vworld: { name: '브이월드(국토교통부 공간정보 오픈플랫폼)', url: 'https://api.vworld.kr/req/wmts/1.0.0/{key}/Base/{z}/{y}/{x}.png', attribution: '<a href="https://www.vworld.kr" target="_blank" rel="noopener noreferrer">배경지도 © 브이월드(공간정보 오픈플랫폼)</a>', maxZoom: 19, policyUrl: 'https://www.vworld.kr' },
   ngii: { name: '바로e맵(국토지리정보원)', url: '', attribution: '배경지도: 국토지리정보원', maxZoom: 19, policyUrl: 'https://map.ngii.go.kr' }, // url 확인 필요
 } as const;
 type MapProviderKey = keyof typeof MAP_PROVIDERS;
-const mapProvider = env('MAP_PROVIDER') as MapProviderKey | '';
-const mapKey = env('PUBLIC_MAP_KEY');
+// 기본값: VWorld 개발키(2026-11-26 발급, 2027-05-26 만료, 서비스 URL https://dongnekokkok.pages.dev 에 묶임).
+// 브라우저에 그대로 보이는 공개 키라 저장소에 둔다(도메인 제한). 만료 전에 운영키로 바꾸고, 정식 도메인을 사면 키에 도메인을 추가한다.
+// 환경변수 MAP_PROVIDER·PUBLIC_MAP_KEY가 있으면 그 값이 우선. MAP_PROVIDER=none 이면 지도를 끈다.
+const DEFAULT_MAP = { provider: 'vworld', key: '382E903F-B63C-43C4-AC23-5811EBF70B19' } as const;
+const mapProvider = (env('MAP_PROVIDER') || DEFAULT_MAP.provider) as MapProviderKey | 'none' | '';
+const mapKey = env('PUBLIC_MAP_KEY') || (mapProvider === DEFAULT_MAP.provider ? DEFAULT_MAP.key : '');
 const preset = mapProvider && mapProvider in MAP_PROVIDERS ? MAP_PROVIDERS[mapProvider] : null;
 /** 실제로 쓸 지도 설정. 테스트용으로 MAP_TILE_URL(키 포함 전체 주소)을 직접 줄 수도 있다. */
 export const MAP = env('MAP_TILE_URL')
@@ -68,8 +76,9 @@ export const MAP = env('MAP_TILE_URL')
     : { enabled: false, url: '', attribution: '', maxZoom: 19, name: '', policyUrl: '' };
 
 /**
- * /parking/ 골격 미리보기. PARKING_PREVIEW=1 로 빌드할 때만 주차장 페이지를 만든다(가짜 데이터, 모두 noindex).
- * Cloudflare Pages 환경변수에는 넣지 않는다 → 배포 빌드에는 /parking/ 페이지가 하나도 생기지 않는다.
+ * /parking/ 미리보기. PARKING_PREVIEW=1 로 빌드하면 TOOLS의 parking이 'soon'이어도 페이지를 만든다
+ * (실데이터 parking.json이 있으면 실데이터, 없으면 가짜 데이터+noindex). Cloudflare Pages 환경변수에는 넣지 않는다.
+ * 배포 공개는 TOOLS의 parking status를 'live'로 바꾸는 것으로 한다(src/lib/parking.ts).
  */
 export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';
 

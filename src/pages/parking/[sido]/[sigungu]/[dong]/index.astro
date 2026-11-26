@@ -1,5 +1,5 @@
 ---
-// 주차장 동 페이지(미리보기 전용): 같은 동 5곳 이상·시·군·구의 85% 이하(scripts/lib/parking.ts parkingDongs)
+// 주차장 동 페이지: 같은 동 5곳 이상·시·군·구의 85% 이하(scripts/lib/parking.ts parkingDongs)
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
 import LotRow from '../../../../../components/parking/LotRow.astro';
@@ -24,7 +24,7 @@ const self = `${base}${encodeURIComponent(d.dong)}/`;
 const others = parkingDongs(lots).filter((x) => x.sido === d.sido && x.sigungu === d.sigungu && x.dong !== d.dong);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(d.sido), href: parkingPath(d.sido) }, { name: d.sigunguName, href: base }, { name: d.dong, href: self }];
 ---
-<BaseLayout tool="parking" title={`${d.sigunguName} ${d.dong} 공영주차장 ${ls.length}곳 (무료 ${free}곳) | 요금·운영시간`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK} canvas="white" sidebar={false}>
+<BaseLayout tool="parking" title={`${d.sigunguName} ${d.dong} 공영주차장 ${ls.length}곳 (무료 ${free}곳) | 요금·운영시간`} description={`${d.sigunguName} ${d.dong} 공영주차장 ${ls.length}곳(무료 ${free}곳)의 요금, 2시간 주차 요금 비교, 운영시간을 한눈에 보세요.`} crumbs={crumbs} noindex={IS_MOCK} canvas="white" sidebar={false}>
   <MockBanner />
   <h1 class="text-title font-bold text-ink">{d.sigunguName} {d.dong} 공영주차장 {ls.length}곳</h1>
   <p class="mt-1 text-cap text-ink-3">무료 {free}곳 · 2시간 요금 {twoh.length ? `${w(Math.min(...twoh))} ~ ${w(Math.max(...twoh))}` : '계산 가능한 요금 없음'} · 주소의 법정동 기준이에요</p>
