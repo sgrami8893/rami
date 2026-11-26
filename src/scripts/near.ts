@@ -12,7 +12,8 @@ type M = (number | null)[];
 type Geom = { type: 'Polygon'; coordinates: number[][][] } | { type: 'MultiPolygon'; coordinates: number[][][][] };
 type SggF = { properties: { f: string; nm: string; sd: string; n: number; h: string | null; m: M }; geometry: Geom };
 type DongF = { properties: { k: string; n: number; h: string | null; m: M }; geometry: Geom };
-export type Lot = { lat: number; lng: number; name: string; href: string; tag: string; fee: string; d: number };
+export type Lot = { lat: number; lng: number; name: string; href: string; tag: string; fee: string; tone: string; d: number };
+const FEE: Record<string, string> = { free: '무료', paid: '유료', mixed: '무료·유료 혼합', unknown: '요금 확인 필요' };
 export type Near = { pt: Pt; sido: string; slug: string; sggName: string; sd: string; dong: string | null; n: number; m: M; href: string | null; low: number; lots: Lot[] };
 
 const inRing = (x: number, y: number, r: number[][]) => {
@@ -61,8 +62,8 @@ export async function findNear(pt: Pt): Promise<Near | null> {
   const [sido, slug] = s.properties.f.split('__');
   const emd = await fetch(`/geo/rent/${encodeURIComponent(s.properties.f)}.json`).then((r) => (r.ok ? r.json() as Promise<{ features: DongF[] }> : null)).catch(() => null);
   const d = emd?.features.find((f) => inPoly(pt, f.geometry));
-  const lots = (await lotsP).map(([lat, lng, name, href, tag, fee]) => ({ lat, lng, name, href, tag, fee, d: dist(pt, { lat, lng }) }))
-    .filter((l) => l.d <= 3000).sort((a, b) => a.d - b.d).slice(0, 5);
+  const lots = (await lotsP).map(([lat, lng, name, href, tag, tone]) => ({ lat, lng, name, href, tag, tone, fee: FEE[tone] ?? '', d: dist(pt, { lat, lng }) }))
+    .filter((l) => l.d <= 3000).sort((a, b) => a.d - b.d).slice(0, 8);
   const p = d?.properties ?? s.properties;
   return { pt, sido, slug, sggName: s.properties.nm, sd: s.properties.sd, dong: d?.properties.k ?? null, n: p.n, m: p.m, href: p.h ?? s.properties.h, low: sgg.low, lots };
 }
@@ -71,7 +72,9 @@ const short = (v: number) => { const e = Math.floor(v / 10000), r = v % 10000; r
 const el = (tag: string, cls = '', text?: string) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 
 /** 결과 그리기(홈 카드·깊은 화면 패널 공통). 글자는 textContent만 */
-export function renderNear(box: HTMLElement, r: Near) {
+export type NearTool = 'home' | 'rent' | 'parking';
+/** tool: 전월세 화면은 전월세만, 주차장 화면은 주차장만, 홈은 둘 다(2026-11-26 사용자 '주차장에서 내 주변 보기에 전월세가 왜 떠') */
+export function renderNear(box: HTMLElement, r: Near, tool: NearTool = 'home') {
   const m = rentMode();
   const o = m.t === 'v' ? 0 : 3;
   const kind = m.t === 'v' ? '빌라' : '오피스텔';
@@ -89,11 +92,16 @@ export function renderNear(box: HTMLElement, r: Near) {
   if (ans.childElementCount) card.append(ans);
   card.append(note);
   if (r.href) { const a = el('a', 'v-btn sec mt-3 w-full', `${r.dong ?? r.sggName} 전월세 자세히`) as HTMLAnchorElement; a.href = r.href; card.append(a); }
-  const parts: HTMLElement[] = [card];
-  if (r.lots.length) {
-    parts.push(el('h2', 'v-cap', '가까운 공영주차장'));
+  const parts: HTMLElement[] = tool === 'parking' ? [] : [card];
+  if (tool === 'parking') {
+    const h = el('p', 'near-place'); h.append(el('span', 'k', '내 주변'), el('b', '', place));
+    parts.push(h);
+    if (!r.lots.length) parts.push(el('p', 'text-body text-ink-2', '3km 안에 공영주차장이 없어요.'));
+  }
+  if (r.lots.length && tool !== 'rent') {
+    if (tool !== 'parking') parts.push(el('h2', 'v-cap', '가까운 공영주차장'));
     const list = el('div', 'v-list');
-    for (const l of r.lots) {
+    for (const l of r.lots.slice(0, tool === 'parking' ? 8 : 5)) {
       const row = el('div', 'v-row');
       const t = el('div', 't');
       const a = el('a', 'n', l.name) as HTMLAnchorElement; a.href = l.href;
@@ -109,4 +117,4 @@ export function renderNear(box: HTMLElement, r: Near) {
 }
 
 /** 지도에도 알린다(지도는 그 동으로 옮기고 내 위치 점을 찍음. 좌표는 지도 메모리에만) */
-export const tellMap = (r: Near) => document.dispatchEvent(new CustomEvent('map:near', { detail: { focus: { sido: r.sido, slug: r.slug, dong: r.dong ?? undefined }, pt: r.pt } }));
+export const tellMap = (r: Near) => document.dispatchEvent(new CustomEvent('map:near', { detail: { focus: { sido: r.sido, slug: r.slug, dong: r.dong ?? undefined }, pt: r.pt, lots: r.lots } }));

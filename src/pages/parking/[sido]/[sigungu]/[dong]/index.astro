@@ -35,7 +35,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <MockBanner />
   <PlaceBar levels={parkingPlace(d.sido, d.sigungu, d.dong)} />
   <h1 class="v-h1">{d.sigunguName} {d.dong} 공영주차장 {ls.length}곳</h1>
-  <Near class="mt-2" />
+  <Near class="mt-2" tool="parking" />
   <p class="mt-1 text-cap text-ink-3">무료 {free}곳 · 2시간 요금 {twoh.length ? `${w(Math.min(...twoh))} ~ ${w(Math.max(...twoh))}` : '계산 가능한 요금 없음'} · 주소의 법정동 기준이에요</p>
   {free > 0 && <FreeNote class="mt-3" />}
   <MapPill />

@@ -23,7 +23,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   {IS_MOCK && <MockBanner />}
   <PlaceBar levels={rentPlace(sido)} />
   <h1 class="v-h1">{sidoName(sido)} 빌라·오피스텔 전월세</h1>
-  <Near class="mt-2" />
+  <Near class="mt-2" tool="rent" />
   <p class="mt-1 text-cap text-ink-3">{periodText()} 신고된 거래 {total.toLocaleString('ko-KR')}건</p>
   <RentMode class="mt-3" />
   <VList label={`${sidoName(sido)} 시·군·구별 전월세 중위값`} count={`시·군·구 ${list.length}곳`} limit={15} sorts={[{ v: 'n', label: '거래 많은 순' }, { v: 'lo', label: '낮은 순' }, { v: 'hi', label: '높은 순' }, { v: 'nm', label: '이름순' }]}>

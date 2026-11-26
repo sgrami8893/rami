@@ -496,3 +496,23 @@ html[data-rt="o"]:not([data-rk="w"]) .v-row .sw-wrap .sw.rm-oj, html[data-rt="o"
 .v-sortchips button[aria-pressed="true"] { border-color: var(--color-ink); background: var(--color-ink); color: #fff; }
 @media (min-width: 1024px) { .v-hbtn.s { display: none; } .v-sortchips { margin: 2px 0 6px; padding: 2px 0; flex-wrap: wrap; } }
 .v-chip[hidden] { display: none; }
+
+/* 지도 라벨 v3: 흰 카드(이름) + 단계 색 값 배지 */
+.mv-lbl { gap: 2px; padding: 4px 5px 5px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgb(25 31 40 / .14), 0 4px 12px rgb(25 31 40 / .12); }
+.mv-lbl b { padding: 0 4px; font-size: calc(12px * var(--fs, 1)); font-weight: 600; color: #4E5968; }
+.mv-lbl i { display: block; padding: 1px 8px; border-radius: 8px; background: var(--c, #fff); color: var(--t, #191F28); font-size: calc(14px * var(--fs, 1)); font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgb(15 23 42 / .08); }
+.mv-lbl.is-muted { padding: 3px 8px; background: rgb(243 245 248 / .92); box-shadow: none; }
+.mv-lbl.is-sel { box-shadow: 0 0 0 2.5px #191F28, 0 6px 16px rgb(25 31 40 / .25); }
+.mv-lbl.is-sel b { color: #191F28; font-weight: 800; }
+
+/* 주차장 핀 v3 */
+.map-tag-mixed { --tag: #0F766E; }
+.map-tag-unknown { --tag: #8B95A1; }
+.map-tag .nm { display: none; }
+.map-hit.is-active .map-tag { --tag: #191F28; flex-direction: column; height: auto; padding: 5px 12px; border-radius: 14px; line-height: 1.25; }
+.map-hit.is-active .map-tag .nm { display: block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; font-size: calc(13px * var(--fs, 1)); font-weight: 800; }
+.map-cluster em { margin-left: 6px; padding-left: 6px; border-left: 1px solid #E5E8EB; font-style: normal; font-size: calc(12px * var(--fs, 1)); font-weight: 700; color: #0E7C4A; }
+.mv-legend-pins { display: flex; flex-wrap: wrap; gap: 4px 10px; width: auto; max-width: calc(100% - 24px); padding: 8px 12px; }
+.mv-legend-pins span { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: #4E5968; }
+.mv-legend-pins i { width: 10px; height: 10px; border-radius: 9999px; border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgb(15 23 42 / .15); }

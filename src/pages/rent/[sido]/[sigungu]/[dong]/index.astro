@@ -44,7 +44,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   {IS_MOCK && <MockBanner />}
   <PlaceBar levels={rentPlace(sido, a.sigungu, dong)} />
   <h1 class="v-h1">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
-  <Near class="mt-2" />
+  <Near class="mt-2" tool="rent" />
   <RentMode class="mt-3" />
   <RentAnswer a={a} compare={{ v: cmp('villa'), o: cmp('officetel') }} />
   <Tabs tabs={tabs} label={`${dong} 전월세 보기`} />
