@@ -78,34 +78,47 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
   backdrop-filter: blur(8px);
 }
 .map-hit { display: flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; }
-/* 핀: 파란 원 + 흰 테두리 + 가운데 흰 점, 고르면 진한 색으로 커지고 파란 빛 테 */
-.map-pin { position: relative; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: var(--color-brand); border: 2.5px solid #fff;
-  box-shadow: 0 0 0 1px rgb(25 31 40 / 0.08), 0 2px 6px rgb(25 31 40 / 0.28); transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease; }
-.map-pin-dot { width: 7px; height: 7px; border-radius: 9999px; background: #fff; }
-/* 전월세 건물 핀(2026-11-26): 파란 단계구분도 위에서 보이게 진한 색 + 작은 크기, 고르면 파랑 */
-.map-pin-bld { width: 20px; height: 20px; background: #191F28; border-width: 2px; }
-.map-pin-bld .map-pin-dot { width: 6px; height: 6px; }
-.map-hit.is-active .map-pin-bld { background: var(--color-brand); }
-/* 묶음: 흰 알약 + 파란 숫자 + 옅은 파란 테(개수에 따라 3단계 크기) */
-.map-cluster { display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: #fff; color: var(--color-brand); font-weight: 800; letter-spacing: -0.01em;
-  font-size: calc(14px * var(--fs, 1)); font-variant-numeric: tabular-nums; border: 1px solid rgb(37 99 235 / 0.25);
-  box-shadow: 0 0 0 5px rgb(37 99 235 / 0.14), 0 2px 8px rgb(25 31 40 / 0.18); transition: transform .15s ease, background-color .15s ease, color .15s ease; }
-.map-cluster-s { width: 34px; height: 34px; }
-.map-cluster-m { width: 40px; height: 40px; }
-.map-cluster-l { width: 48px; height: 48px; font-size: calc(15px * var(--fs, 1)); box-shadow: 0 0 0 7px rgb(37 99 235 / 0.16), 0 2px 10px rgb(25 31 40 / 0.2); }
+/* 핀 v3(2026-11-26 사용자 '핀·클러스터 맘에 안 듦'): 핵심 사실을 적은 알약 + 아래 꼬리. 래퍼(.map-hit-tag)는 크기 0으로 좌표에 있고
+   알약은 그 위 가운데에 선다. 무료는 초록, 나머지는 짙은 회색(따뜻한 단계구분도 색과 겹치지 않게), 고른 곳은 파랑으로 커진다 */
+.map-hit-tag { width: 0; height: 0; overflow: visible; }
+.map-tag { --tag: #1F2937; position: absolute; left: 0; bottom: 8px; transform: translateX(-50%); transform-origin: 50% calc(100% + 8px);
+  display: flex; align-items: center; height: 30px; padding: 0 11px; border-radius: 9999px; background: var(--tag); color: #fff; white-space: nowrap;
+  font-weight: 700; font-size: calc(13px * var(--fs, 1)); letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+  border: 1.5px solid #fff; box-shadow: 0 2px 8px rgb(15 23 42 / 0.28); transition: transform .15s ease, background-color .15s ease; }
+.map-tag::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 9px; height: 9px; background: var(--tag); border-right: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+  transform: translateX(-50%) rotate(45deg); border-bottom-right-radius: 2px; }
+.map-tag-free { --tag: #0E7C4A; }
+.map-hit-tag:hover { z-index: 1000 !important; }
+.map-hit-tag:hover .map-tag, .map-hit.is-hover .map-tag { transform: translateX(-50%) scale(1.08); }
+.map-hit.is-active .map-tag { --tag: var(--color-brand); transform: translateX(-50%) scale(1.15); box-shadow: 0 4px 14px rgb(15 23 42 / 0.35); }
+/* 묶음: 흰 알약 + 굵은 숫자 '12곳', 개수에 따라 3단계 크기, 부드러운 그림자 */
+.map-cluster { display: flex; align-items: baseline; justify-content: center; gap: 1px; padding: 0 12px; border-radius: 9999px; background: #fff; color: #1F2937; white-space: nowrap;
+  font-size: calc(12px * var(--fs, 1)); font-weight: 600; font-variant-numeric: tabular-nums; border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 10px rgb(15 23 42 / 0.18); transition: transform .15s ease, background-color .15s ease, color .15s ease; }
+.map-cluster b { font-size: calc(15px * var(--fs, 1)); font-weight: 800; letter-spacing: -0.02em; }
+.map-cluster-s { height: 32px; line-height: 32px; }
+.map-cluster-m { height: 36px; line-height: 36px; }
+.map-cluster-l { height: 42px; line-height: 42px; padding: 0 15px; }
+.map-cluster-l b { font-size: calc(17px * var(--fs, 1)); }
 .map-hit:hover .map-cluster { transform: scale(1.06); }
-/* 목록 행에 마우스를 올린 곳(또는 그곳이 든 묶음) / 지금 고른 곳 */
-.map-hit.is-hover .map-pin { background: #191F28; transform: scale(1.2); }
-.map-hit.is-hover .map-cluster { background: var(--color-brand); color: #fff; transform: scale(1.1); }
-.map-hit.is-active .map-pin { background: #191F28; transform: scale(1.35); box-shadow: 0 0 0 5px rgb(37 99 235 / 0.3), 0 3px 10px rgb(25 31 40 / 0.35); }
+.map-hit.is-hover .map-cluster { background: #1F2937; color: #fff; border-color: #1F2937; transform: scale(1.1); }
 .map-hit:focus-visible { outline: none; }
 .map-hit:focus-visible > span:first-child { outline: 3px solid var(--color-brand); outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .map-pin, .map-cluster, .rm-label { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .map-tag, .map-cluster, .rm-label { transition: none; } }
 /* 확대·축소 버튼: 흰 떠 있는 상자, 44px */
 .map-pane .leaflet-container { font-family: inherit; background: #EEF1F4; }
 .map-pane .leaflet-touch .leaflet-bar, .map-pane .leaflet-bar { border: 1px solid #E5E8EB; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgb(25 31 40 / 0.06), 0 6px 20px rgb(25 31 40 / 0.10); }
 .map-pane .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; font-size: 22px; font-weight: 400; color: #191F28; border-bottom-color: #E5E8EB; }
 .map-pane .leaflet-bar a:hover { background: #F3F5F8; }
+/* 지도 단계 막대(전월세): 확대 버튼 아래 세로 알약 3칸, 지금 단계는 짙은 칸 */
+.map-pane .rm-level { display: flex; flex-direction: column; background: #fff; }
+.rm-level-btn { width: 44px; min-height: 44px; padding: 0 2px; font-size: calc(12px * var(--fs, 1)); font-weight: 700; color: #4B5563; letter-spacing: -0.03em; line-height: 1.1; word-break: keep-all; border-bottom: 1px solid #E5E8EB; }
+.rm-level-btn:last-child { border-bottom: 0; }
+.rm-level-btn:hover { background: #F3F5F8; }
+.rm-level-btn[aria-pressed="true"] { background: #1F2937; color: #fff; }
+.rm-level-btn:focus-visible { outline: 3px solid var(--color-brand); outline-offset: -3px; border-radius: 0; }
+/* 거리 축척: 작은 반투명 막대 */
+.map-pane .leaflet-control-scale-line { border-color: #475569; color: #334155; background: rgb(255 255 255 / 0.8); font-size: 11px; }
 .map-pane .leaflet-top.leaflet-right { margin-top: 2px; }
 .map-pane .leaflet-control-attribution { font-size: 12px; border-top-left-radius: 8px; background: rgb(255 255 255 / 0.85); color: #485463; }
 .map-pane .leaflet-control-attribution a { color: #1B64DA; }
@@ -114,14 +127,15 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
    흰 알약 안에 '동 이름 + 값'. 칸 색과 상관없이 글자 대비를 지키고, 색만으로 정보를 주지 않는다(WCAG 1.4.1). */
 .rm-label-wrap { width: auto !important; height: auto !important; background: none; border: 0; }
 .rm-label-wrap:focus-visible { outline: none; }
-.rm-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 9px 3px 8px; white-space: nowrap;
-  border-radius: 9999px; background: #fff; color: #191F28; border: 1px solid rgb(25 31 40 / 0.08);
-  box-shadow: 0 1px 2px rgb(25 31 40 / 0.08), 0 3px 10px rgb(25 31 40 / 0.12); font-size: calc(13px * var(--fs, 1)); line-height: 1.2; font-variant-numeric: tabular-nums; cursor: pointer;
+.rm-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 10px 3px 8px; white-space: nowrap;
+  border-radius: 9999px; background: rgb(255 255 255 / 0.92); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #191F28; border: 1px solid rgb(15 23 42 / 0.08);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 2px 8px rgb(15 23 42 / 0.10); font-size: calc(12px * var(--fs, 1)); line-height: 1.2; font-variant-numeric: tabular-nums; cursor: pointer;
   transition: transform .12s ease, background-color .12s ease; }
-.rm-label-name { font-weight: 600; color: #485463; }
-.rm-label-val { font-weight: 800; letter-spacing: -0.01em; color: #191F28; }
-.rm-label.is-low { background: #F3F5F8; box-shadow: none; }
-.rm-label.is-low .rm-label-val { font-weight: 600; color: #5F6B78; }
+.rm-label-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; box-shadow: inset 0 0 0 1px rgb(15 23 42 / 0.15); }
+.rm-label-name { font-weight: 600; color: #5B6573; letter-spacing: -0.01em; }
+.rm-label-val { font-weight: 700; font-size: calc(13.5px * var(--fs, 1)); letter-spacing: -0.02em; color: #191F28; }
+.rm-label.is-low { background: rgb(243 245 248 / 0.92); box-shadow: none; }
+.rm-label.is-low .rm-label-val { font-weight: 600; font-size: calc(12px * var(--fs, 1)); color: #5B6573; }
 .rm-label-wrap:hover .rm-label { transform: translate(-50%, -50%) scale(1.05); }
 .rm-label.is-active { background: #191F28; border-color: #191F28; }
 .rm-label.is-active .rm-label-name { color: #C9D1DB; }

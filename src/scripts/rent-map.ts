@@ -71,6 +71,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // 다른 지역의 색·라벨은 줌과 상관없이 숨긴다. 선택 상자·'위로' 버튼으로 한 단계씩 올라간다 ----
   let scopeSido: string | null = null;
   let scopeSgg: string | null = null;
+  let levelBtns: HTMLButtonElement[] = [];
   const sidoOf = (f: string) => f.split('__')[0];
   const fileOfKey = (key: string) => key.split('__').slice(0, 2).join('__');
   const inScope = (f: string) => (scopeSgg ? f === scopeSgg : scopeSido ? sidoOf(f) === scopeSido : true);
@@ -100,10 +101,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // v4(2026-11-26 사용자 '경계선이 꼭 시커매야 하나', '포커스해도 경계선이 안 보여'): 고른 곳·마우스 올린 곳은 흰 3px + 어두운 부드러운 그림자(CSS .rm-glow)
   // 를 맨 앞으로. 어떤 칸 색 위에서도 보인다. 바깥 틀은 map-frame.ts의 중간 회청색
   const PICK = '#FFFFFF', SLATE = '#475569';
-  const HOVER = { color: PICK, weight: 3, opacity: 1, fillOpacity: 0.95 };
+  const HOVER = { color: PICK, weight: 3, opacity: 1, fillOpacity: 0.75 };
   const lift = (l: Leaflet.Path) => { l.setStyle(HOVER); (l.getElement() as Element | undefined)?.classList.add('rm-glow'); l.bringToFront(); };
   // 경계 가독성(2026-11-26 사용자 '경계가 잘 안 보여'): 회색 배경지도 위에 진한 채움 + 흰 경계 2px, 시·군·구 경계는 진한 선
-  const FILL = 0.85;
+  // 2026-11-26 사용자 '너무 진해, 투명도 올려' → 배경지도가 비치게 0.6
+  const FILL = 0.6;
 
   // ---- 범례 ----
   const drawLegend = () => {
@@ -121,7 +123,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 도형 ----
   const sggLayer = L.geoJSON(sgg as unknown as GeoJSON.FeatureCollection, {
-    style: (f) => ({ color: '#FFFFFF', weight: 1.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round', fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: FILL }),
+    style: (f) => ({ color: '#FFFFFF', weight: 1.5, opacity: 0.75, lineJoin: 'round', lineCap: 'round', fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: FILL }),
     onEachFeature: (f, layer) => {
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
@@ -147,7 +149,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const loaded = new Map<string, Leaflet.GeoJSON>();
   const loading = new Map<string, Promise<void>>();
   const dongs = new Map<string, { p: DongP; layer: Leaflet.Polygon; sg: SggP }[]>(); // 키: 파일__동이름 (화성 '능동'처럼 같은 이름 조각이 여럿일 수 있음)
-  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1.25, opacity: 0.9, lineJoin: 'round' as const, fillColor: colorOf(valueOf(p)), fillOpacity: FILL });
+  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1.25, opacity: 0.7, lineJoin: 'round' as const, fillColor: colorOf(valueOf(p)), fillOpacity: FILL });
   const loadFile = (f: string) => {
     if (loaded.has(f)) return Promise.resolve();
     if (!loading.has(f)) loading.set(f, fetch(`${src}${f}.json`).then((r) => r.json() as Promise<FC<DongP> | null>).then((fc) => {
@@ -175,10 +177,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 라벨(키보드로 고를 수 있는 버튼) ----
   const labels = L.layerGroup().addTo(map);
-  type Lab = { id: string; at: [number, number]; name: string; value: string | null; n: number; pick: () => void; active: boolean; layer: Leaflet.Polygon };
+  type Lab = { id: string; at: [number, number]; name: string; value: string | null; n: number; pick: () => void; active: boolean; layer: Leaflet.Polygon; color: string };
   const labelIcon = (b: Lab) => L.divIcon({
     className: 'rm-label-wrap', iconSize: undefined,
-    html: `<span class="rm-label${b.value ? '' : ' is-low'}${b.active ? ' is-active' : ''}"><span class="rm-label-name">${esc(b.name)}</span><span class="rm-label-val">${esc(b.value ?? '거래 적음')}</span></span>`,
+    // 라벨 v3(2026-11-26 사용자 '라벨 폰트·박스 이쁘고 가독성 좋게'): 칸 색 점 + 이름(흐린 600) + 값(진한 700, 조금 크게)
+    html: `<span class="rm-label${b.value ? '' : ' is-low'}${b.active ? ' is-active' : ''}"><span class="rm-label-dot" style="background:${b.color}"></span><span class="rm-label-name">${esc(b.name)}</span><span class="rm-label-val">${esc(b.value ?? '거래 적음')}</span></span>`,
   });
   const drawLabels = () => {
     labels.clearLayers();
@@ -189,7 +192,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       for (const { p } of sggByFile.values()) {
         if (!inScope(p.f)) continue;
         const v = valueOf(p);
-        list.push({ id: p.f, at: p.l, name: p.nm, value: v === null ? null : valueText(v, kind), n: p.n, pick: () => pickSgg(p, sggByFile.get(p.f)!.layer), active: false, layer: sggByFile.get(p.f)!.layer });
+        list.push({ id: p.f, at: p.l, name: p.nm, value: v === null ? null : valueText(v, kind), color: colorOf(v), n: p.n, pick: () => pickSgg(p, sggByFile.get(p.f)!.layer), active: false, layer: sggByFile.get(p.f)!.layer });
       }
     } else {
       for (const [key, parts] of dongs) {
@@ -199,7 +202,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
         if (v === null && z < LOW_LABEL_ZOOM) continue;
         if (blds?.pinsShown && z >= BUILD_ZOOM && key !== selected) continue; // 건물 핀과 겹치지 않게
         // 리 단위(읍·면)는 '봉담읍 와우리' → 라벨은 '와우리'
-        list.push({ id: key, at: p.l, name: p.k.split(' ').pop()!, value: v === null ? null : valueText(v, kind), n: p.n + (v === null ? 0 : 1e6), pick: () => pickDong(key), active: key === selected, layer: parts[0].layer });
+        list.push({ id: key, at: p.l, name: p.k.split(' ').pop()!, value: v === null ? null : valueText(v, kind), color: colorOf(v), n: p.n + (v === null ? 0 : 1e6), pick: () => pickDong(key), active: key === selected, layer: parts[0].layer });
         void sg;
       }
     }
@@ -238,7 +241,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       return near
         // 동 단계: 고른 시·군·구 테두리는 틀(map-frame)이 그리므로 여기서는 범위를 안 정했을 때만 옅은 선
         ? (scopeSgg ? { stroke: false, fill: false } : { stroke: true, fill: false, color: SLATE, weight: 1.25, opacity: 0.4, fillOpacity: 0, fillColor: GREY })
-        : { stroke: true, fill: true, color: '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.9, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
+        : { stroke: true, fill: true, color: '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.75, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
     });
     if (!near && selectedSgg) sggByFile.get(selectedSgg)?.layer.bringToFront();
     for (const [key, parts] of dongs) for (const { p, layer } of parts) {
@@ -250,7 +253,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   let timer = 0;
   const refresh = () => {
     const near = isNear();
-    updateFrame();
+    updateFrame(); syncLevel();
     // 범위 밖 시·군·구의 동은 그리지 않는다
     for (const [f, layer] of loaded) {
       if (inScope(f) && !dongGroup.hasLayer(layer)) dongGroup.addLayer(layer);
@@ -432,6 +435,10 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     walk(layer.getLatLngs());
     return c;
   };
+  function syncLevel() {
+    const cur = isNear() ? 'dong' : scopeSido ? 'sgg' : 'sido';
+    for (const b of levelBtns) b.setAttribute('aria-pressed', String(b.dataset.level === cur));
+  }
   function autoScope() {
     if (skipAuto) { skipAuto = false; return; }
     const z = map.getZoom();
@@ -452,6 +459,35 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   }
   const toolbar = pane.querySelector<HTMLElement>('.rm-toolbar');
   if (toolbar) toolbar.hidden = false;
+
+  // ---- 단계 막대(2026-11-26 사용자 '축척바: 시도·시군구·읍면동 레벨'): 확대 버튼 아래 세로 3칸. 지금 단계를 표시하고, 누르면 그 단계로 이동 ----
+  // 시도 = 전체 지역(범위 없음), 시군구 = 화면 가운데 시·도의 시·군·구들, 읍면동 = 화면 가운데 시·군·구의 동들
+  const LEVELS = [['sido', '시도'], ['sgg', '시군구'], ['dong', '읍면동']] as const;
+  const Level = L.Control.extend({ options: { position: 'topright' }, onAdd() {
+    const box = L.DomUtil.create('div', 'rm-level leaflet-bar');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', '지도 단계');
+    L.DomEvent.disableClickPropagation(box); L.DomEvent.disableScrollPropagation(box);
+    levelBtns = LEVELS.map(([k, label]) => {
+      const b = L.DomUtil.create('button', 'rm-level-btn', box) as HTMLButtonElement;
+      b.type = 'button'; b.dataset.level = k; b.textContent = label;
+      b.setAttribute('aria-label', `${label} 단계로 보기`);
+      b.addEventListener('click', () => goLevel(k));
+      return b;
+    });
+    return box;
+  } });
+  new Level().addTo(map);
+  const centerSgg = () => { const c = map.getCenter(); return [...sggByFile.values()].find(({ layer }) => contains(layer, c)); };
+  function goLevel(k: 'sido' | 'sgg' | 'dong') {
+    const hit = centerSgg();
+    if (k === 'sido') setScope(null, null);
+    else if (k === 'sgg') setScope(scopeSido ?? (hit ? sidoOf(hit.p.f) : 'seoul'), null);
+    else {
+      const f = scopeSgg ?? hit?.p.f ?? [...sggByFile.keys()].find((x) => sidoOf(x) === (scopeSido ?? 'seoul'));
+      if (f) setScope(sidoOf(f), f);
+    }
+  }
+  syncLevel();
   syncSelect(null, null);
 
   // ---- 유형·전월세 전환 ----

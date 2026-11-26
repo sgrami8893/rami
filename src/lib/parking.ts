@@ -42,6 +42,9 @@ export const toPoint = (l: ParkingLot) => ({
   id: l.id, name: l.name, lat: l.lat as number, lng: l.lng as number, href: lotPath(l), badge: FEE_LABEL[l.fee.type],
   meta: [`평일 ${dayText(l, 'weekday')}`, l.spaces !== null ? `${l.spaces}면` : ''].filter(Boolean).join(' · '),
   addr: l.roadAddress || l.jibunAddress || undefined,
+  // 핀 알약(2026-11-26 사용자 '핀·클러스터 맘에 안 듦'): 무료 / 기본요금(300원/5분) / 유료
+  tag: l.fee.type === 'free' ? '무료' : l.fee.baseFee !== null && l.fee.baseMin ? `${l.fee.baseFee.toLocaleString('ko-KR')}원/${l.fee.baseMin}분` : l.fee.type === 'unknown' ? '요금?' : '유료',
+  tone: l.fee.type,
 });
 /** 세 요일 묶음(평일·토·공휴일)이 모두 24시간으로 확인된 곳('확인 필요'로 바꾼 00:00~00:00은 제외) */
 export const is24hLot = (l: ParkingLot) => (['weekday', 'sat', 'holiday'] as const).every((k) => l.hours[k] === '24h' && !l.ambiguousDays?.includes(k));

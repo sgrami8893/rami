@@ -9,6 +9,8 @@ export interface MapPoint {
   /** 요약 카드 1줄(예: 평일 9~18 · 120면) */ meta?: string;
   /** 이름 위 작은 표시(예: 무료, 24시간) */ badge?: string;
   /** 도로명(없으면 지번) 주소: 카드 표시·주소 복사·네이버 지도 검색에 쓴다 */ addr?: string;
+  /** 핀 알약에 쓰는 짧은 사실(예: 무료, 300원/5분, 24시간). 없으면 이름 첫 글자 대신 '·' */ tag?: string;
+  /** 핀 색: free 초록, paid·mixed·info 짙은 회색 */ tone?: 'free' | 'paid' | 'mixed' | 'unknown' | 'info';
 }
 
 export const validPoints = <T extends { lat: number | null; lng: number | null }>(ps: T[]) =>
@@ -20,6 +22,7 @@ export const mapOn = (ps: { lat: number | null; lng: number | null }[]) => MAP.e
 export const kioskPoint = (k: Kiosk): MapPoint => ({
   id: k.id, name: k.name, lat: k.lat as number, lng: k.lng as number, href: kioskPath(k),
   badge: k.is24h ? '24시간' : undefined,
+  tag: k.is24h ? '24시간' : '발급기', tone: 'info',
   meta: [k.hoursConfidence === 'unknown' ? '운영시간 확인 필요' : hoursLine(k.hours), k.locationDetail].filter(Boolean).join(' · '),
   addr: k.roadAddress || undefined,
 });

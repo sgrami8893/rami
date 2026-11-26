@@ -17,6 +17,7 @@ export async function baseMap(canvas: HTMLElement) {
     maxBounds: area, maxBoundsViscosity: 1, minZoom: 9, zoomSnap: 0.5, wheelPxPerZoomLevel: 90 });
   map.attributionControl.setPrefix('Leaflet');
   L.control.zoom({ position: 'topright', zoomInTitle: '지도 확대', zoomOutTitle: '지도 축소' }).addTo(map); // 기본 영어 라벨 대신 한국어
+  L.control.scale({ position: 'bottomright', imperial: false, maxWidth: 90 }).addTo(map); // 거리 축척(m·km)
   // 배경지도는 모든 지도에서 VWorld 기본(Base) 지도(2026-11-26 사용자 '일반 지도면 된다'). VWorld에는 gray 레이어가 없어 오류가 났다
   // (허용 값: Base, midnight, Hybrid, Satellite, white).
   const url = cfg.url;
