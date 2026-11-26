@@ -1,17 +1,23 @@
 ---
-import { lotPath, FEE_LABEL, LOT_TYPE, dayText, type ParkingLot } from '../../lib/parking.ts';
+import { lotPath, FEE_LABEL, LOT_TYPE, dayText, is24hLot, type ParkingLot } from '../../lib/parking.ts';
+import { validPoints } from '../../lib/map.ts';
+import Icon from '../Icon.astro';
 import { lotHours } from '../../../scripts/lib/parking.ts';
 import { calcFee, feeText, sortValue } from '../../../scripts/lib/parking-fee.ts';
 interface Props { l: ParkingLot; level?: 2 | 3 }
 const { l, level = 3 } = Astro.props;
 const H = `h${level}`;
 const two = calcFee(l, 120);
+const mapped = validPoints([l]).length > 0; // 지도에 핀이 있는 곳만 지도 연결(data-map-id·'지도' 버튼)
 const tone = l.fee.type === 'free' ? 'text-ok' : l.fee.type === 'unknown' ? 'text-warn' : 'text-ink-2';
 ---
 <!-- 2026-11-26 재배치: 한 곳당 5줄 → 4줄. 상태 배지는 운영시간 줄 맨 앞, 무료/유료 표시는 2시간 요금 줄에 -->
-<article data-name={l.name} data-free={l.fee.type === 'free' ? '1' : ''} data-hours={JSON.stringify(lotHours(l))} data-fee2={Number.isFinite(sortValue(two)) ? sortValue(two) : ''} class="lot relative -mx-5 px-5 py-3.5 active:bg-subtle lg:-mx-3 lg:rounded-xl lg:px-3 lg:hover:bg-subtle">
+<article data-name={l.name} data-map-id={mapped ? l.id : undefined} data-f24={is24hLot(l) ? '1' : ''} data-free={l.fee.type === 'free' ? '1' : ''} data-hours={JSON.stringify(lotHours(l))} data-fee2={Number.isFinite(sortValue(two)) ? sortValue(two) : ''} class="lot relative -mx-5 px-5 py-3.5 active:bg-subtle lg:-mx-3 lg:rounded-xl lg:px-3 lg:hover:bg-subtle">
   <H class="text-[length:calc(18px*var(--fs,1))] font-semibold leading-snug text-ink"><a href={lotPath(l)} class="after:absolute after:inset-0">{l.name}</a></H>
   <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:calc(16px*var(--fs,1))] text-ink-2"><span class="p-open badge invisible bg-off-bg text-off">운영시간 확인 중</span><span>평일 {dayText(l, 'weekday')} · {l.kind === 'private' ? '민영 ' : ''}{LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</span></p>
   <p class="mt-1 text-[length:calc(16px*var(--fs,1))] text-ink-2"><span class={`font-semibold ${tone}`}>{FEE_LABEL[l.fee.type]}</span> · <span class="text-ink-3">2시간</span> <span class={`font-semibold ${two.status === 'ok' || two.status === 'free' ? 'text-ink' : 'text-ink-3'}`}>{two.status === 'none' ? '요금 정보 없음' : feeText(two)}</span></p>
-  <p class="mt-0.5 break-words text-cap text-ink-3">{l.roadAddress || l.jibunAddress}</p>
+  <div class="mt-0.5 flex items-center gap-3">
+    <p class="min-w-0 flex-1 break-words text-cap text-ink-3">{l.roadAddress || l.jibunAddress}</p>
+    {mapped && <button type="button" data-map-locate={l.id} hidden class="relative z-10 -my-2 -mr-2 flex min-h-11 shrink-0 items-center px-2 text-[length:calc(16px*var(--fs,1))] font-semibold text-brand" aria-label={`${l.name} 지도에서 보기`}><Icon name="map-pin" size={16} class="mr-1" />지도</button>}
+  </div>
 </article>

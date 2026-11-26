@@ -75,6 +75,7 @@ function apply(kstLabel: string) {
   if (note) note.hidden = !(state.chips.has('registry') || state.chips.has('family'));
   $('#empty-state')!.hidden = shown > 0;
   writeQuery();
+  document.dispatchEvent(new CustomEvent('list:filtered')); // 지도 핀도 같은 조건으로(map-panel.ts)
 }
 
 function kstText(m: number) {

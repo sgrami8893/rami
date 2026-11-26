@@ -7,6 +7,8 @@ import LotRow from '../../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../../components/parking/FreeNote.astro';
 import MapPanel from '../../../../../components/MapPanel.astro';
+import MapButton from '../../../../../components/MapButton.astro';
+import { mapOn } from '../../../../../lib/map.ts';
 import { lots, sidoShort, parkingPath, toPoint, IS_MOCK } from '../../../../../lib/parking.ts';
 import { parkingDongs, type ParkingLot } from '../../../../../../scripts/lib/parking.ts';
 import { calcFee } from '../../../../../../scripts/lib/parking-fee.ts';
@@ -30,7 +32,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <h1 class="text-title font-bold text-ink">{d.sigunguName} {d.dong} 공영주차장 {ls.length}곳</h1>
   <p class="mt-1 text-cap text-ink-3">무료 {free}곳 · 2시간 요금 {twoh.length ? `${w(Math.min(...twoh))} ~ ${w(Math.max(...twoh))}` : '계산 가능한 요금 없음'} · 주소의 법정동 기준이에요</p>
   {free > 0 && <FreeNote class="mt-3" />}
-  <MapPanel points={pts.map(toPoint)} label={`${d.dong} 공영주차장`} missing={ls.length - pts.length} />
+  <MapButton points={pts} />
   <LotFilters total={ls.length} />
   <div id="lot-list" class="mt-1">{ls.map((l) => <LotRow l={l} level={2} />)}</div>
   <LotMore />
@@ -39,6 +41,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     <a href={base} class="mt-3 flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{d.sigunguName} 공영주차장 전체 보기</a>
     {others.length > 0 && <div class="mt-3 flex flex-wrap gap-2">{others.map((o) => <a href={`${base}${encodeURIComponent(o.dong)}/`} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{o.dong}<span class="text-ink-3">{o.lots.length}</span></a>)}</div>}
   </nav>
+  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${d.dong} 공영주차장`} missing={ls.length - pts.length} />}
 </BaseLayout>
 
 <script>
