@@ -73,6 +73,12 @@ export const MAP = env('MAP_TILE_URL')
  */
 export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';
 
+/**
+ * /rent/ (동네 빌라·오피스텔 전월세 시세) 골격 미리보기. RENT_PREVIEW=1 빌드에서만 페이지를 만든다(가짜 데이터, 모두 noindex).
+ * 배포 환경변수에는 넣지 않는다. 실데이터 첫 수집(npm run fetch-rent) 결과 확인 전 공개 금지.
+ */
+export const RENT_PREVIEW = env('RENT_PREVIEW') === '1';
+
 /** 상황별 서류 체크리스트: 상황→서류 묶음의 공식 출처를 확인하기 전까지 noindex·사이트맵 제외 */
 export const CHECKLIST_VERIFIED = false;
 

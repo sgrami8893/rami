@@ -12,6 +12,8 @@
     "update-data": "node scripts/build-data.ts",
     "mock-data": "node scripts/mock-data.ts",
     "fetch-parking": "node --env-file-if-exists=.env scripts/fetch-parking.ts",
+    "fetch-rent": "node --env-file-if-exists=.env scripts/fetch-rent.ts",
+    "mock-rent": "node scripts/mock-rent.ts",
     "test": "node --test scripts/test/*.test.ts"
   },
   "dependencies": {

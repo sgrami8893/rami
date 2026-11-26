@@ -1,0 +1,64 @@
+---
+// 중개보수 상한·전월세 전환 계산기(참고용). 지역 시세 페이지 안에 넣는다(단독 페이지 없음).
+// 계산 규칙과 법령 근거: scripts/lib/rent-calc.ts. 기본값은 이 지역 중위값으로 채운다.
+import { BASE_RATE, BASE_RATE_CHECKED, conversionRate, brokerFee } from '../../../scripts/lib/rent-calc.ts';
+interface Props { deposit?: number; monthly?: number; officetel?: boolean }
+const { deposit = 10000, monthly = 0, officetel = false } = Astro.props;
+const first = brokerFee(deposit, monthly, officetel ? 'officetel-qualified' : 'house');
+const rate = conversionRate();
+const fld = 'mt-1 block min-h-11 w-full rounded-xl border border-line bg-card px-3 text-body text-ink';
+---
+<section class="rent-calc mt-8" aria-labelledby="rent-calc-h" data-base-rate={BASE_RATE}>
+  <h2 id="rent-calc-h" class="text-h2 font-bold text-ink">중개보수·전월세 전환 계산</h2>
+  <p class="mt-1 text-cap text-ink-3">기본값은 이 동네 중위값이에요. 바꿔서 계산해 보세요.</p>
+  <form class="mt-3 grid gap-3 sm:grid-cols-2" onsubmit="return false">
+    <label class="text-cap font-semibold text-ink-2">보증금(만 원)<input name="deposit" type="number" inputmode="numeric" min="0" step="100" value={deposit} class={fld} /></label>
+    <label class="text-cap font-semibold text-ink-2">월세(만 원, 전세면 0)<input name="monthly" type="number" inputmode="numeric" min="0" step="1" value={monthly} class={fld} /></label>
+    <fieldset class="sm:col-span-2">
+      <legend class="text-cap font-semibold text-ink-2">집 종류</legend>
+      <div class="mt-1 grid gap-1.5">
+        <label class="flex min-h-11 items-center gap-2 rounded-xl bg-bg px-3 text-body text-ink"><input type="radio" name="prop" value="house" checked={!officetel} />빌라·주택</label>
+        <label class="flex min-h-11 items-center gap-2 rounded-xl bg-bg px-3 text-body text-ink"><input type="radio" name="prop" value="officetel-qualified" checked={officetel} />오피스텔(전용 85㎡ 이하, 부엌·화장실·욕실 모두 있음)</label>
+        <label class="flex min-h-11 items-center gap-2 rounded-xl bg-bg px-3 text-body text-ink"><input type="radio" name="prop" value="officetel-other" />오피스텔(그 밖)</label>
+      </div>
+    </fieldset>
+  </form>
+  <div class="mt-3 rounded-2xl bg-bg px-4 py-4" aria-live="polite">
+    <p class="text-cap text-ink-3">중개보수 최대 금액(부가세 별도)</p>
+    <p data-out="fee" class="mt-0.5 text-[length:calc(28px*var(--fs,1))] font-bold text-ink">{first.maxFeeWon.toLocaleString('ko-KR')}원</p>
+    <p data-out="fee-detail" class="mt-1 text-cap text-ink-2">거래금액 {first.amount.toLocaleString('ko-KR')}만 원 × 상한요율 {(first.rate * 100).toFixed(1)}%{first.capped ? ` (한도 ${first.capManwon}만 원 적용)` : ''}</p>
+  </div>
+  <div class="mt-4">
+    <label class="text-cap font-semibold text-ink-2">보증금 중 월세로 바꿀 금액(만 원)<input name="convert" type="number" inputmode="numeric" min="0" step="100" value="1000" class={fld} /></label>
+    <p class="mt-2 rounded-2xl bg-bg px-4 py-3 text-body text-ink" aria-live="polite">월세 상한 <strong data-out="conv">{Math.floor((1000 * 10000 * rate) / 100 / 12).toLocaleString('ko-KR')}원</strong> 늘어나요 <span class="text-cap text-ink-3">(법정 전환율 연 {rate}%)</span></p>
+  </div>
+  <details class="mt-2 text-cap text-ink-2">
+    <summary class="inline-flex min-h-11 cursor-pointer items-center font-semibold text-brand">계산 기준 보기</summary>
+    <ul class="mt-1 list-disc space-y-1 pl-5">
+      <li>중개보수: 「공인중개사법 시행규칙」 별표1 주택 임대차 상한요율(5천만 원 미만 0.5%·한도 20만 원, 1억 원 미만 0.4%·한도 30만 원, 6억 원 미만 0.3%, 12억 원 미만 0.4%, 15억 원 미만 0.5%, 그 이상 0.6%). 오피스텔은 같은 시행규칙 제20조제4항(조건 충족 0.4%, 그 밖 0.9% 이내).</li>
+      <li>월세 거래금액: 보증금 + 월세×100. 합이 5천만 원 미만이면 보증금 + 월세×70.</li>
+      <li>상한이라 실제 금액은 이 안에서 중개사무소와 협의해요.</li>
+      <li>전환율: 「주택임대차보호법」 제7조의2·시행령 제9조. 연 10%와 한국은행 기준금리({BASE_RATE}%, {BASE_RATE_CHECKED} 확인) + 2% 중 낮은 비율이에요. 계약 기간 중 보증금을 월세로 바꿀 때의 상한이라 새 계약 시세와는 달라요.</li>
+    </ul>
+  </details>
+  <p class="mt-2 text-cap text-ink-3">참고용 계산이에요. 법률 자문이 아니고, 실제 계약 조건은 중개사무소·계약서로 확인하세요.</p>
+</section>
+
+<script>
+  import { brokerFee, conversionRate, depositToMonthlyWon, type Property } from '../../../scripts/lib/rent-calc.ts';
+  const root = document.querySelector<HTMLElement>('.rent-calc');
+  if (root) {
+    const val = (n: string) => Math.max(0, Number((root.querySelector<HTMLInputElement>(`[name="${n}"]`)?.value ?? '0')) || 0);
+    const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+    const rate = conversionRate(Number(root.dataset.baseRate));
+    const run = () => {
+      const prop = (root.querySelector<HTMLInputElement>('[name="prop"]:checked')?.value ?? 'house') as Property;
+      const f = brokerFee(val('deposit'), val('monthly'), prop);
+      out('fee').textContent = `${f.maxFeeWon.toLocaleString('ko-KR')}원${f.negotiable ? ' 이내 협의' : ''}`;
+      out('fee-detail').textContent = `거래금액 ${f.amount.toLocaleString('ko-KR')}만 원 × 상한요율 ${(f.rate * 100).toFixed(1)}%${f.capped ? ` (한도 ${f.capManwon}만 원 적용)` : ''}`;
+      out('conv').textContent = `${depositToMonthlyWon(val('convert'), rate).toLocaleString('ko-KR')}원`;
+    };
+    root.addEventListener('input', run);
+    root.addEventListener('change', run);
+  }
+</script>
