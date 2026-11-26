@@ -13,7 +13,9 @@ import { baseMap } from './map-base.ts';
 import { announce } from './copy.ts';
 import { picker } from './map-picker.ts';
 import type { MapApi } from './map-panel.ts';
-import { createBuildings, BUILD_ZOOM } from './rent-buildings.ts';
+import { createPins, BUILD_ZOOM } from './rent-bld-pins.ts';
+import { rentMode } from './v2-rent-mode.ts';
+import { navigate } from './soft-nav.ts';
 import { createFrame, getGeo, AREA_SRC } from './map-frame.ts';
 import { takeView } from './soft-nav.ts';
 import { current as currentBudget, judge, loadIndex, pendingScope, ROOM_COLORS, ROOM_BREAKS, roomStep, COUNT_BREAKS, countStep, OVER, typeName, short as shortB, type Budget } from './rent-budget-core.ts';
@@ -65,8 +67,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const side = sideEl();
   let type: Type = 'v', kind: Kind = 'j';
   const read = () => {
-    type = (pane.querySelector<HTMLInputElement>('input[name="rm-type"]:checked')?.value as Type) ?? 'v';
-    kind = (pane.querySelector<HTMLInputElement>('input[name="rm-kind"]:checked')?.value as Kind) ?? 'j';
+    const m = rentMode(); type = m.t; kind = m.k;
   };
   read();
   if (legend) legend.hidden = false;
@@ -242,7 +243,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     return loading.get(f)!;
   };
 
-  let blds: ReturnType<typeof createBuildings> | null = null;
+  let blds: ReturnType<typeof createPins> | null = null;
 
   // ---- 라벨(키보드로 고를 수 있는 버튼) ----
   const labels = L.layerGroup().addTo(map);
@@ -383,13 +384,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     link.hidden = !o.href;
     if (o.href) { link.href = o.href; link.textContent = o.linkText; }
     el.hidden = false;
-    blds?.reset(el);
     el.querySelector('.rp-empty')?.setAttribute('hidden', '');
     el.querySelector('.rp-body')?.removeAttribute('hidden');
   };
   const closeCard = () => {
     selected = null; selectedSgg = null;
-    blds?.reset(box());
     card.hidden = true;
     restyle(); drawLabels();
   };
@@ -404,7 +403,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     if (el !== card) el.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     announce(`${o.name} 요약을 보여 줘요.`);
   };
+  const LG = matchMedia('(min-width: 1024px)');
+  /** PC에서는 지도에서 지역을 누르는 것 = 목록 줄을 누르는 것(그 페이지로 이동). 모바일은 요약 카드 1장 */
+  const go = (href: string | null) => { if (!LG.matches || !href || budget) return false; const u = new URL(href, location.href); if (u.pathname !== location.pathname) void navigate(u); return true; };
   function pickSgg(p: SggP, layer: Leaflet.Polygon) {
+    if (go(p.h)) return;
     selected = null; selectedSgg = p.f;
     setScope(sidoOf(p.f), p.f, false);
     skipAuto = true;
@@ -415,22 +418,20 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     const parts = dongs.get(key);
     if (!parts) return;
     const { p, sg } = parts[0];
+    if (go(p.h)) return;
     selected = key; selectedSgg = null;
     if (scopeSgg !== sg.f) setScope(sidoOf(sg.f), sg.f, false);
     syncSelect(sg.f, p.k);
     show({ badge: `${sg.sd} ${sg.nm}`, name: p.k, n: p.n, m: p.m, href: p.h ?? sg.h, linkText: p.h ? `${p.k.split(' ').pop()} 시세 자세히 보기` : `${sg.nm} 전체 보기` });
-    if (blds && p.b) void blds.listDong(box(), sg.f, p.k).then(() => requestAnimationFrame(() => blds?.hideCovered()));
     restyle(); drawLabels();
   }
 
   // ---- 건물별 실거래 이력(2026-11-26). 자료가 있을 때만(data-bsrc) ----
   const bsrc = canvas.dataset.bsrc;
-  blds = bsrc ? createBuildings({
-    L, map, src: bsrc, card,
-    filesInView: () => { const v = map.getBounds(); return [...sggByFile.values()].filter(({ p, layer }) => p.b && inScope(p.f) && layer.getBounds().intersects(v)).map(({ p }) => p.f); },
-    place: (f) => { const p = sggByFile.get(f)?.p; return p ? `${p.sd} ${p.nm}` : ''; },
-    box,
-    pickDong: (f, dong) => loadFile(f).then(() => pickDong(`${f}__${dong}`)),
+  blds = bsrc ? createPins({
+    L, map, src: bsrc,
+    files: () => { const v = map.getBounds(); return [...sggByFile.values()].filter(({ p, layer }) => p.b && inScope(p.f) && layer.getBounds().intersects(v)).map(({ p }) => p.f); },
+    dongHref: (f, dong) => dongs.get(`${f}__${dong}`)?.[0].p.h ?? null,
   }) : null;
 
   // ---- 지역 선택: 이동 경로 칩(시·도 › 시·군·구 › 동) + 목록 팝업(map-picker.ts). 지도에서 고르면 칩도 따라 바뀐다 ----
@@ -572,7 +573,6 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     });
     return box;
   } });
-  new Level().addTo(map);
   const centerSgg = () => { const c = map.getCenter(); return [...sggByFile.values()].find(({ layer }) => contains(layer, c)); };
   function goLevel(k: 'sido' | 'sgg' | 'dong') {
     const hit = centerSgg();
@@ -587,10 +587,10 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   syncSelect(null, null);
 
   // ---- 유형·전월세 전환 ----
-  pane.querySelectorAll<HTMLInputElement>('input[name="rm-type"], input[name="rm-kind"]').forEach((r) => r.addEventListener('change', () => {
+  document.addEventListener('rent:mode', () => {
+    if (!document.contains(canvas)) return;
     unlift(); read(); drawLegend(); restyle(); drawLabels();
-    announce(`${type === 'v' ? '빌라' : '오피스텔'} ${kind === 'j' ? '전세' : '월세'} 중위값으로 칠했어요.`);
-  }));
+  });
 
   // ---- 내 예산 맞춤(본문 폼 RentBudget) ----
   const segs = pane.querySelector<HTMLElement>('.rm-segs');

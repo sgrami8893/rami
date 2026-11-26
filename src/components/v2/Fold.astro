@@ -1,0 +1,10 @@
+---
+// ④ 접힘(2026-11-26 v2): 산출 기준·출처·가이드처럼 자주 안 보는 내용. 내용은 HTML에 그대로 있어 검색엔진·화면낭독기가 읽는다.
+import Icon from '../Icon.astro';
+interface Props { title: string; open?: boolean; id?: string }
+const { title, open = false, id } = Astro.props;
+---
+<details class="v-fold" open={open} id={id}>
+  <summary>{title}<Icon name="chevron-down" size={18} /></summary>
+  <div class="body"><slot /></div>
+</details>

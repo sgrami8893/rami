@@ -1,0 +1,24 @@
+---
+// ② 답 카드(전월세, 2026-11-26 v2): 고른 유형(빌라/오피스텔)의 전세 중위 · 월세 중위. 유형 전환은 CSS(.rt-v/.rt-o)로.
+import { amt } from '../../lib/rent-view.ts';
+import { periodShort } from '../../lib/rent-period.ts';
+import type { RentArea } from '../../../scripts/lib/rent.ts';
+interface Props { a: RentArea; compare?: { v?: string; o?: string } }
+const { a, compare = {} } = Astro.props;
+const T = [['v', 'villa', '빌라'], ['o', 'officetel', '오피스텔']] as const;
+---
+<div class="v-ans" aria-live="polite">
+  {T.map(([k, key, label]) => { const s = a.byType[key]; return (
+    <div class={`rt-${k}`}>
+      {s ? (
+        <>
+          <div class="v-ans-row">
+            <div><p class="k">전세 중위</p><p class="v num">{s.jeonse ? amt(s.jeonse.median) : '-'}</p></div>
+            <div><p class="k">월세 중위 <span class="font-normal">(보증금/월)</span></p><p class="v num">{s.wolse?.deposit && s.wolse.monthly ? <>{amt(s.wolse.deposit.median)}<small> / </small>{s.wolse.monthly.median}<small>만</small></> : '-'}</p></div>
+          </div>
+          <p class="note">{compare[k] ? `${compare[k]} · ` : ''}{label} {s.n.toLocaleString('ko-KR')}건 · {periodShort()} 실거래</p>
+        </>
+      ) : <p class="text-body text-ink-2">최근 12개월 {label} 거래가 없어요.</p>}
+    </div>
+  ); })}
+</div>

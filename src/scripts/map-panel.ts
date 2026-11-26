@@ -210,7 +210,7 @@ function setupPane() {
     ensure().then((a) => { a.resize(); if (id) a.focus(id); }).catch(() => {});
   };
   document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => b.addEventListener('click', () => show(null, b)));
-  pane.querySelector('[data-map-close]')?.addEventListener('click', () => closeSheet());
+  pane.querySelectorAll('[data-map-close]').forEach((b) => b.addEventListener('click', () => closeSheet()));
   addEventListener('popstate', () => closeSheet(true), sig);
   // 지도 화면 안 이동(soft-nav)으로 본문이 바뀌면 모바일 전체 화면 지도를 닫는다(주소 기록은 soft-nav가 이미 남김)
   document.addEventListener('dnkk:swap', (ev) => { if ((ev as CustomEvent<{ remount: boolean }>).detail.remount) return; if (isOpen()) { pane.removeAttribute('data-open'); pane.removeAttribute('role'); pane.removeAttribute('aria-modal'); document.documentElement.classList.remove('map-sheet-open'); opener = null; } document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => { b.hidden = false; b.addEventListener('click', () => show(null, b)); }); }, sig);

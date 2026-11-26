@@ -1,0 +1,23 @@
+---
+// 전월세 보기 상태(2026-11-26 v2): [빌라|오피스텔] [전세|월세]. 사이트 전체에서 기억(localStorage 'dnkk:rm:v1')하고
+// html[data-rt][data-rk]로 답 카드·목록 값·지도 색이 함께 바뀐다(CSS .rt-* .rk-* .rm-*, 지도는 'rent:mode' 이벤트).
+// JS가 없으면 기본(빌라·전세) 값이 보이고 버튼은 숨는다.
+interface Props { kind?: boolean; class?: string }
+const { kind = true, class: cls = '' } = Astro.props;
+---
+<div class={`v-rentmode flex flex-wrap gap-2 ${cls}`} hidden>
+  <div class="v-seg" role="group" aria-label="주택 유형">
+    <button type="button" data-rm-t="v" aria-pressed="true">빌라</button>
+    <button type="button" data-rm-t="o" aria-pressed="false">오피스텔</button>
+  </div>
+  {kind && (
+    <div class="v-seg" role="group" aria-label="전세·월세">
+      <button type="button" data-rm-k="j" aria-pressed="true">전세</button>
+      <button type="button" data-rm-k="w" aria-pressed="false">월세</button>
+    </div>
+  )}
+</div>
+<script>
+  import { initRentMode } from '../../scripts/v2-rent-mode.ts';
+  initRentMode();
+</script>

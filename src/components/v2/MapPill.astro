@@ -1,0 +1,8 @@
+---
+// 모바일 '지도' 알약(2026-11-26 v2): 모든 찾는 화면에서 같은 자리(아래 가운데). 누르면 전체 화면 지도(map-panel.ts가 연다).
+// PC는 지도가 늘 옆에 있어 숨긴다. JS가 없으면 지도가 안 열리므로 처음엔 hidden이고 map-panel.ts가 보여 준다.
+import Icon from '../Icon.astro';
+interface Props { label?: string }
+const { label = '지도' } = Astro.props;
+---
+<button type="button" class="v-pill" data-map-open hidden aria-haspopup="dialog" aria-controls="map-pane"><Icon name="map" size={20} />{label}</button>

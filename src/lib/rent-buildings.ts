@@ -27,3 +27,16 @@ export function buildingCollection(file: string) {
   if (!g) return null;
   return { from: g.from, to: g.to, b: g.rows.map((r) => r.slice(1)) };
 }
+
+/** 동 상세 '건물별 거래' 탭 머리(2026-11-26 v2 합의): 최근 3년 3건 이상 거래된 건물만 금액 이력을 보여 주고, 1~2건 건물은 수만 센다 */
+export const BLD_MIN = 3;
+export function buildingSplit(file: string, dong: string) {
+  const g = bySgg.get(file);
+  let many = 0, few = 0;
+  for (const r of g?.rows ?? []) {
+    if (r[1] !== dong) continue;
+    const n = (r[8] as number[][]).reduce((s, u) => s + Math.floor((u.length - 1) / 3), 0);
+    if (n >= BLD_MIN) many++; else few++;
+  }
+  return { many, few };
+}

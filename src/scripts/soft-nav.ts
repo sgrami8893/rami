@@ -35,14 +35,6 @@ async function load(url: URL): Promise<Document | null> {
   return new DOMParser().parseFromString(html, 'text/html');
 }
 
-function backButton() {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'soft-back';
-  b.textContent = '이전 화면으로';
-  b.addEventListener('click', () => history.back());
-  return b;
-}
 
 /** 옮겨 온 노드 안의 모듈 스크립트: 처음 보는 것만 새 요소로 만들어 실행(같은 주소는 브라우저가 한 번만 실행) */
 function runScripts(root: ParentNode) {
@@ -61,17 +53,17 @@ function swap(doc: Document, url: URL, push: boolean) {
   if (!main || !next) return false;
   const remount = kindOf(doc) !== 'rent' || kindOf(document) !== 'rent';
   main.replaceChildren(...[...next.childNodes].map((n) => document.importNode(n, true)));
-  if (depth > 0) main.prepend(backButton());
   if (remount) {
     const pane = document.getElementById('map-pane'), np = doc.getElementById('map-pane');
     if (pane && np) { document.dispatchEvent(new CustomEvent('dnkk:unmount')); pane.replaceWith(document.importNode(np, true)); }
   }
   // 머리말 도구 메뉴의 '지금 도구' 표시와 문서 정보
   const tool = url.pathname.split('/')[1] || 'rent';
-  document.querySelectorAll<HTMLAnchorElement>('nav[aria-label="주요 메뉴"] a').forEach((a) => {
+  document.querySelectorAll<HTMLAnchorElement>('.v-tools a').forEach((a) => {
     const on = new URL(a.href).pathname.split('/')[1] === tool;
-    if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
+  document.documentElement.dataset.tool = doc.documentElement.dataset.tool ?? '';
   document.title = doc.title;
   for (const sel of ['meta[name="description"]', 'link[rel="canonical"]', 'meta[name="robots"]']) {
     const a = document.head.querySelector(sel), b = doc.head.querySelector(sel);
