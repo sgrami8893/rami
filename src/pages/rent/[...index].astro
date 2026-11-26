@@ -1,34 +1,42 @@
 ---
-// /rent/ 첫 화면. 실데이터가 있고 공개(TOOLS rent 'live')이거나 미리보기(RENT_PREVIEW=1) 빌드에서만 생성된다.
+// /rent/ 첫 화면(v2): "어느 동네 전월세가 궁금해요?" 두 갈래 [지역으로 보기 | 내 예산으로 찾기].
+// 지역: 위치 줄로 시·도를 고르거나 수도권 시·군·구 목록(거래 많은 순). 예산: RentBudget(결과 먼저, 예산에 가까운 순).
+// PC 지도는 수도권 시·군·구 단계구분도(예산을 넣으면 시·군·구마다 예산 안 동네 수로 칠함).
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import MockBanner from '../../components/rent/MockBanner.astro';
-import RentMap from '../../components/rent/RentMap.astro';
-import RentPick from '../../components/rent/RentPick.astro';
 import RentBudget from '../../components/rent/RentBudget.astro';
-import MapButton from '../../components/MapButton.astro';
-
-import { RENT_MAP, RENT_SOURCES, IS_MOCK, HAS_PAGES, SIDOS, sidoName, sigunguOf, rentPath, periodText, stats } from '../../lib/rent.ts';
+import RentNotes from '../../components/rent/RentNotes.astro';
+import PlaceBar from '../../components/v2/PlaceBar.astro';
+import RentMode from '../../components/v2/RentMode.astro';
+import RentRow from '../../components/v2/RentRow.astro';
+import VList from '../../components/v2/VList.astro';
+import MapPill from '../../components/v2/MapPill.astro';
+import MapView from '../../components/v2/MapView.astro';
+import { RENT_MAP, RENT_SOURCES, IS_MOCK, HAS_PAGES, SIDOS, sidoShort, sigunguOf, rentPath, periodText, stats } from '../../lib/rent.ts';
+import { rentPlace } from '../../lib/rent-view.ts';
 import { sigunguAreas } from '../../../scripts/lib/rent.ts';
 export function getStaticPaths() { return HAS_PAGES ? [{ params: { index: undefined } }] : []; }
 const total = sigunguAreas(stats).reduce((s, a) => s + a.n, 0);
-const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }];
+const all = SIDOS.flatMap((s) => sigunguOf(s));
+const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' }];
 ---
-<BaseLayout title="동네 빌라·오피스텔 전월세 실거래 시세 | 서울·경기·인천" description={`서울·경기·인천 빌라(연립·다세대)·오피스텔 전월세 실거래 ${total.toLocaleString('ko-KR')}건(${periodText()})을 시·군·구와 동네별로 정리했어요. 전세·월세 중위값과 면적대별 시세, 중개보수·전환 계산기를 볼 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title="동네 빌라·오피스텔 전월세 실거래 시세 | 서울·경기·인천" description={`서울·경기·인천 빌라(연립·다세대)·오피스텔 전월세 실거래 ${total.toLocaleString('ko-KR')}건(${periodText()})을 시·군·구와 동네별로 정리했어요. 전세·월세 중위값, 내 예산으로 갈 수 있는 동네, 중개보수·전환 계산기를 볼 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
-  <h1 class="text-title font-bold text-ink">동네 빌라·오피스텔 전월세 실거래</h1>
-  <p class="mt-1 text-body text-ink-2">{periodText()} 신고된 전월세 거래를 동네별로 모았어요. 아파트는 다루지 않아요.</p>
-  <MapButton show={RENT_MAP} label="전월세 지도로 보기" />
-  <RentBudget />
-  <RentPick />
-  <div data-rent-regions>
-  {SIDOS.map((s) => (
-    <section class="mt-6" aria-labelledby={`h-${s}`}>
-      <h2 id={`h-${s}`} class="text-h2 font-bold text-ink"><a href={rentPath(s)} class="relative hover:text-brand after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-['']">{sidoName(s)}</a></h2>
-      <div class="mt-2 flex flex-wrap gap-2">
-        {sigunguOf(s).map((a) => <a href={rentPath(s, a.sigungu)} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{a.sigunguName}<span class="text-ink-3">{a.n}건</span></a>)}
-      </div>
-    </section>
-  ))}
+  <h1 class="v-h1">어느 동네 전월세가 궁금해요?</h1>
+  <p class="mt-1 text-cap text-ink-3">서울·경기·인천 빌라·오피스텔 실거래 {total.toLocaleString('ko-KR')}건 · {periodText()} · 아파트 제외</p>
+  <div class="v-seg mt-4 flex w-full [&>button]:flex-1" role="group" aria-label="찾는 방법" data-entry hidden>
+    <button type="button" data-entry-v="region" aria-pressed="true">지역으로 보기</button>
+    <button type="button" data-entry-v="budget" aria-pressed="false">내 예산으로 찾기</button>
   </div>
-  {RENT_MAP && <RentMap slot="map" />}
+  <div data-rent-regions>
+    <PlaceBar levels={rentPlace()} />
+    <RentMode class="mt-3" />
+    <VList label="수도권 시·군·구별 전월세 중위값" count={`시·군·구 ${all.length}곳`} limit={10} sorts={[{ v: 'n', label: '거래 많은 순' }, { v: 'lo', label: '낮은 순' }, { v: 'hi', label: '높은 순' }, { v: 'nm', label: '이름순' }]}>
+      {all.map((a) => <RentRow a={a} name={a.sigunguName} sub={`${sidoShort(a.sido)} · 거래 ${a.n.toLocaleString('ko-KR')}건`} href={rentPath(a.sido, a.sigungu)} mapKey={`${a.sido}__${a.sigungu}`} />)}
+    </VList>
+  </div>
+  <RentBudget />
+  <div class="v-folds"><RentNotes /></div>
+  <MapPill />
+  {RENT_MAP && <MapView slot="map" kind="rent" title="수도권 전월세 지도" />}
 </BaseLayout>

@@ -3,12 +3,12 @@
 import Icon from '../Icon.astro';
 import { modeVals, modeText, modeNum, modeColor, MODES } from '../../lib/rent-view.ts';
 import type { RentArea } from '../../../scripts/lib/rent.ts';
-interface Props { a: RentArea; name: string; href: string | null; sub?: string }
-const { a, name, href, sub } = Astro.props;
+interface Props { a: RentArea; name: string; href: string | null; sub?: string; mapKey?: string }
+const { a, name, href, sub, mapKey } = Astro.props;
 const x = modeVals(a);
 const KIND_NOTE: Record<string, string> = { vj: '빌라 전세', vw: '빌라 월세', oj: '오피스텔 전세', ow: '오피스텔 월세' };
 ---
-<div class="v-row" data-row data-n={a.n} data-nm={name} data-vvj={modeNum('vj', x)} data-vvw={modeNum('vw', x)} data-voj={modeNum('oj', x)} data-vow={modeNum('ow', x)} data-key={a.dong ?? a.sigungu}>
+<div class="v-row" data-row data-n={a.n} data-nm={name} data-vvj={modeNum('vj', x)} data-vvw={modeNum('vw', x)} data-voj={modeNum('oj', x)} data-vow={modeNum('ow', x)} data-key={mapKey ?? a.dong ?? a.sigungu}>
   <span class="sw-wrap" aria-hidden="true">{MODES.map((m) => <span class={`sw rm-${m}`} style={`background:${modeColor(m, x)}`}></span>)}</span>
   <div class="t">
     {href ? <a class="n" href={href}>{name}</a> : <span class="n">{name}</span>}

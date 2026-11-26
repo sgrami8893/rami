@@ -1,30 +1,33 @@
 ---
-// 시·도 페이지: 시·군·구 목록 + 거래 건수
+// 전월세 시·도(v2): "이 시·도 안에서 어느 시·군·구가 싸고 비싸요?" ① 위치 줄 ② [빌라|오피스텔][전세|월세] ③ 시·군·구 목록(거래 많은 순) ④ 접힘.
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import RentMap from '../../../components/rent/RentMap.astro';
-import RentPick from '../../../components/rent/RentPick.astro';
-import MapButton from '../../../components/MapButton.astro';
-
 import MockBanner from '../../../components/rent/MockBanner.astro';
 import RentNotes from '../../../components/rent/RentNotes.astro';
+import PlaceBar from '../../../components/v2/PlaceBar.astro';
+import RentMode from '../../../components/v2/RentMode.astro';
+import RentRow from '../../../components/v2/RentRow.astro';
+import VList from '../../../components/v2/VList.astro';
+import MapPill from '../../../components/v2/MapPill.astro';
+import MapView from '../../../components/v2/MapView.astro';
 import { RENT_MAP, RENT_SOURCES, IS_MOCK, SIDOS, sidoName, sidoShort, sigunguOf, rentPath, periodText } from '../../../lib/rent.ts';
-import { manwon } from '../../../../scripts/lib/rent.ts';
+import { rentPlace } from '../../../lib/rent-view.ts';
 import type { SidoSlug } from '../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return SIDOS.map((sido) => ({ params: { sido } })); }
 const sido = Astro.params.sido as SidoSlug;
 const list = sigunguOf(sido);
-const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }];
+const total = list.reduce((s, a) => s + a.n, 0);
+const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }];
 ---
-<BaseLayout title={`${sidoName(sido)} 빌라·오피스텔 전월세 실거래 시세 | 시·군·구별`} description={`${sidoName(sido)} ${list.length}개 시·군·구의 빌라·오피스텔 전월세 실거래 ${list.reduce((s, a) => s + a.n, 0).toLocaleString('ko-KR')}건(${periodText()})을 지역별 거래 건수와 전세 중위값으로 정리했어요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title={`${sidoName(sido)} 빌라·오피스텔 전월세 실거래 시세 | 시·군·구별`} description={`${sidoName(sido)} ${list.length}개 시·군·구의 빌라·오피스텔 전월세 실거래 ${total.toLocaleString('ko-KR')}건(${periodText()})을 시·군·구별 전세·월세 중위값으로 비교해요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
-  <h1 class="text-title font-bold text-ink">{sidoName(sido)} 빌라·오피스텔 전월세</h1>
-  <MapButton show={RENT_MAP} label="전월세 지도로 보기" />
-  <RentPick />
-  <table class="mt-4 w-full text-[length:calc(16px*var(--fs,1))]">
-    <caption class="sr-only">시·군·구별 거래 건수와 빌라 전세 중위값</caption>
-    <thead><tr class="border-b border-line text-cap text-ink-3"><th scope="col" class="py-2 text-left font-medium">시·군·구</th><th scope="col" class="py-2 text-right font-medium">거래</th><th scope="col" class="py-2 text-right font-medium">빌라 전세 중위</th></tr></thead>
-    <tbody>{list.map((a) => <tr class="border-b border-line"><th scope="row" class="p-0 text-left"><a href={rentPath(sido, a.sigungu)} class="flex min-h-11 items-center gap-1 font-semibold text-brand hover:underline">{a.sigunguName}<span aria-hidden="true" class="text-ink-3">›</span></a></th><td class="py-2 text-right text-ink-2">{a.n}건</td><td class="py-2 text-right text-ink">{a.byType.villa?.jeonse ? manwon(a.byType.villa.jeonse.median) : '-'}</td></tr>)}</tbody>
-  </table>
-  <RentNotes />
-  {RENT_MAP && <RentMap slot="map" focus={{ sido }} />}
+  <PlaceBar levels={rentPlace(sido)} />
+  <h1 class="v-h1">{sidoName(sido)} 빌라·오피스텔 전월세</h1>
+  <p class="mt-1 text-cap text-ink-3">{periodText()} 신고된 거래 {total.toLocaleString('ko-KR')}건</p>
+  <RentMode class="mt-3" />
+  <VList label={`${sidoName(sido)} 시·군·구별 전월세 중위값`} count={`시·군·구 ${list.length}곳`} limit={15} sorts={[{ v: 'n', label: '거래 많은 순' }, { v: 'lo', label: '낮은 순' }, { v: 'hi', label: '높은 순' }, { v: 'nm', label: '이름순' }]}>
+    {list.map((a) => <RentRow a={a} name={a.sigunguName} href={rentPath(sido, a.sigungu)} />)}
+  </VList>
+  <div class="v-folds"><RentNotes /></div>
+  <MapPill />
+  {RENT_MAP && <MapView slot="map" kind="rent" focus={{ sido }} title={`${sidoShort(sido)} 전월세 지도`} />}
 </BaseLayout>

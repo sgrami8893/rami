@@ -18,6 +18,7 @@ const { tabs, label } = Astro.props;
       const select = (t: HTMLButtonElement, focus = false) => {
         for (const x of tabs) { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; const p = panel(x); if (p) p.hidden = !on; }
         if (focus) t.focus();
+        document.dispatchEvent(new CustomEvent('v:tab', { detail: (t.getAttribute('aria-controls') ?? '').replace(/^tab-/, '') }));
       };
       list.hidden = false;
       for (const x of tabs) { const p = panel(x); if (p) { p.setAttribute('aria-labelledby', x.id); p.tabIndex = 0; } }

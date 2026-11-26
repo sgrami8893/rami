@@ -110,7 +110,7 @@ export function initSoftNav() {
     if (!a || a.target || a.hasAttribute('download') || a.closest('header, footer')) return;
     const url = new URL(a.href, location.href);
     if (url.origin !== location.origin || (url.hash && keyOf(url) === current)) return;
-    if (!PATHS.test(url.pathname) || /\/p\//.test(url.pathname)) return; // 주차장 상세(p/)는 지도가 없어 보통 이동
+    if (!PATHS.test(url.pathname)) return;
     e.preventDefault();
     if (keyOf(url) === current) return;
     depth++;

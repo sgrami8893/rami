@@ -1,0 +1,312 @@
+// 전월세 지도 v2(2026-11-26 '지도도 처음부터, 가장 편하게').
+// 초점(focus)에 따라 무엇을 칠할지 정한다. 확대·축소로 범위가 저절로 바뀌지 않는다.
+// - 처음(/, /rent/): 수도권 시·군·구 전부를 중위값 색 + '마포구 2.1억' 라벨
+// - 시·도(/rent/seoul/): 그 시·도의 시·군·구만 색·라벨, 바깥은 흐린 회색(눌러서 이동 가능)
+// - 시·군·구(/rent/seoul/mapo/): 그 시·군·구의 동만 색·라벨, 이웃 시·군·구는 흐린 회색
+// - 동(/rent/seoul/mapo/망원동/): 위와 같고 그 동만 진한 테두리. '건물별 거래' 탭을 열면 건물 점을 찍는다
+// 색은 따뜻한 한 방향 6단계, 거래 30건 미만·값 없음은 연회색 '거래 적음'. 라벨은 흰 알약(색만으로 정보를 주지 않음), 겹치면 거래 적은 쪽을 숨긴다.
+// '내 예산' 결과가 있으면(rent:budget) 처음 화면의 시·군·구를 예산 안 동네 수로 칠한다.
+// 사실 숫자만(중위값·건수), 위험·안전 판정 없음. 화면에 넣는 글자는 textContent·esc()만.
+import type * as Leaflet from 'leaflet';
+import { createMap, placeLabels, esc, LG } from './base.ts';
+import type { Ctx, Focus, Layer, Pick } from './shell.ts';
+import { rentMode } from '../v2-rent-mode.ts';
+import { announce } from '../copy.ts';
+import { current as currentBudget, judge, loadIndex, countStep, ROOM_COLORS, OVER, type Budget } from '../rent-budget-core.ts';
+
+type M = (number | null)[];
+type SggP = { f: string; nm: string; sd: string; l: [number, number]; n: number; h: string | null; m: M };
+type DongP = { k: string; c: string; l: [number, number]; n: number; h: string | null; m: M };
+type Feat<P> = { type: 'Feature'; properties: P; geometry: GeoJSON.Geometry };
+type SggFC = { features: Feat<SggP>[]; low: number; breaks: Record<string, number[]> };
+
+const COLORS = ['#FDF0C4', '#FBCB7A', '#F59A4E', '#E4634A', '#B23A5B', '#6B1F57'];
+const LOWC = '#E3E6EA';
+const DIM = { fillColor: '#DDE1E6', fillOpacity: 0.28, color: '#FFFFFF', weight: 1, opacity: 0.9 };
+const short = (v: number) => (v >= 10000 ? `${(Math.round(v / 1000) / 10).toString()}억` : `${v.toLocaleString('ko-KR')}만`);
+const fmt = (v: number, k: 'j' | 'w') => (k === 'j' ? short(v) : `월 ${v}만`);
+
+export async function mount(ctx: Ctx): Promise<Layer> {
+  const { canvas, pane } = ctx;
+  const src = canvas.dataset.src || '/geo/rent/';
+  const bsrc = canvas.dataset.bsrc || '';
+  let focus = JSON.parse(canvas.dataset.focus || '{}') as Focus;
+  const [{ L, map }, sgg] = await Promise.all([createMap(canvas), fetch(`${src}sgg.json`).then((r) => r.json() as Promise<SggFC | null>)]);
+  if (!sgg) throw new Error('rent geo missing');
+  const emd = new Map<string, Promise<{ features: Feat<DongP>[] } | null>>();
+  const loadEmd = (file: string) => {
+    if (!emd.has(file)) emd.set(file, fetch(`${src}${encodeURIComponent(file)}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => { emd.delete(file); return null; }));
+    return emd.get(file)!;
+  };
+
+  // ---- 값·색 ----
+  const mode = () => rentMode();
+  const idx = () => { const m = mode(); return (m.t === 'v' ? 0 : 3) + (m.k === 'j' ? 0 : 1); };
+  const metric = () => { const m = mode(); return `${m.t}${m.k}`; };
+  const valueOf = (p: { n: number; m: M }) => (p.n >= sgg.low ? p.m[idx()] : null);
+  const colorOf = (v: number | null) => {
+    if (v === null) return LOWC;
+    const b = sgg.breaks[metric()] ?? [];
+    let i = 0; while (i < b.length && v >= b[i]) i++;
+    return COLORS[Math.min(i, 5)];
+  };
+  const kindLabel = () => { const m = mode(); return `${m.t === 'v' ? '빌라' : '오피스텔'} ${m.k === 'j' ? '전세' : '월세'}`; };
+
+  // ---- 내 예산(처음 화면만) ----
+  let budget: Budget | null = currentBudget();
+  let counts: Map<string, number> | null = null;
+  const loadCounts = async () => {
+    if (!budget) { counts = null; return; }
+    const ix = await loadIndex(src);
+    const c = new Map<string, number>();
+    for (const d of ix.d) if (judge(d, ix.low, budget).s === 'ok') c.set(d.f, (c.get(d.f) ?? 0) + 1);
+    counts = c;
+  };
+
+  // ---- 칸 ----
+  const fill = map.getPane('v2-fill') ? 'v2-fill' : undefined;
+  const sggByF = new Map<string, Leaflet.Path & { feature: Feat<SggP> }>();
+  const dongByK = new Map<string, Leaflet.Path & { feature: Feat<DongP> }>();
+  let dongLayer: Leaflet.GeoJSON | null = null;
+  let dongFile: string | null = null;
+  const fileOf = () => (focus.sido && focus.slug ? `${focus.sido}__${focus.slug}` : null);
+  const level = () => (focus.dong ? 'dong' : focus.slug ? 'sgg' : focus.sido ? 'sido' : 'home');
+  const sidoOf = (f: string) => f.split('__')[0];
+  /** 목록 줄의 data-key와 같은 값: 처음 화면은 '시도__시군구', 시·도 화면은 시·군·구 slug */
+  const sggKey = (f: string) => (level() === 'home' ? f : f.split('__')[1]);
+  /** 이 시·군·구가 지금 색칠 대상인가(아니면 흐린 이웃) */
+  const sggActive = (f: string) => level() === 'home' || (level() === 'sido' && sidoOf(f) === focus.sido);
+
+  const sggStyle = (p: SggP): Leaflet.PathOptions => {
+    if (!sggActive(p.f)) {
+      // 지금 시·군·구(동 단계)는 채우지 않고 바깥 테두리만(동 칸이 위에 깔림)
+      if (p.f === fileOf()) return { fillOpacity: 0, color: '#191F28', weight: 2, opacity: 0.85 };
+      return DIM;
+    }
+    if (budget && level() === 'home') {
+      const c = counts?.get(p.f) ?? 0;
+      return { fillColor: c ? ROOM_COLORS[countStep(c)] : OVER, fillOpacity: c ? 0.72 : 0.5, color: '#FFFFFF', weight: 1.25, opacity: 1 };
+    }
+    const v = valueOf(p);
+    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.5 : 0.72, color: '#FFFFFF', weight: 1.25, opacity: 1 };
+  };
+  const dongStyle = (p: DongP): Leaflet.PathOptions => {
+    const v = valueOf(p);
+    const sel = focus.dong === p.k;
+    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.5 : sel ? 0.85 : 0.7, color: '#FFFFFF', weight: 1, opacity: 1 };
+  };
+
+  // 강조선(마우스·고른 동): 맨 위 칸에 흰 3px + 그림자. 누를 수 없음
+  const lines = L.layerGroup().addTo(map);
+  let ghost: Leaflet.Layer | null = null;
+  let selLine: Leaflet.Layer | null = null;
+  const outline = (g: GeoJSON.Geometry, sel: boolean) => L.geoJSON(g as GeoJSON.GeoJsonObject, { pane: 'v2-line', interactive: false,
+    style: { color: sel ? '#191F28' : '#FFFFFF', weight: sel ? 3 : 3, opacity: 1, fill: false, className: sel ? '' : 'rm-glow' } });
+
+  // ---- 라벨 ----
+  const labels = L.layerGroup().addTo(map);
+  let labelItems: { m: Leaflet.Marker; pri: number; w: number; h: number }[] = [];
+  const addLabel = (ll: [number, number], name: string, val: string | null, pri: number, muted = false) => {
+    const w = Math.max(name.length, (val ?? '').length) * 13 + 20;
+    const m = L.marker([ll[0], ll[1]], { interactive: false, keyboard: false, icon: L.divIcon({ className: 'mv-lbl-wrap', iconSize: [0, 0],
+      html: `<span class="mv-lbl${muted ? ' is-muted' : ''}"><b>${esc(name)}</b>${val ? `<i>${esc(val)}</i>` : ''}</span>` }) });
+    m.addTo(labels);
+    labelItems.push({ m, pri, w, h: val ? 40 : 24 });
+  };
+  const layoutLabels = () => {
+    const sorted = [...labelItems].sort((a, b) => b.pri - a.pri);
+    placeLabels(sorted.map((it) => { const pt = map.latLngToContainerPoint(it.m.getLatLng()); return { el: it.m.getElement()!, x: pt.x, y: pt.y, w: it.w, h: it.h }; }).filter((x) => x.el));
+  };
+  map.on('zoomend moveend', layoutLabels);
+
+  const drawLabels = () => {
+    labels.clearLayers(); labelItems = [];
+    const k = mode().k;
+    if (level() === 'home' || level() === 'sido') {
+      for (const f of sgg.features) {
+        const p = f.properties;
+        if (!sggActive(p.f)) continue;
+        if (budget && level() === 'home') { const c = counts?.get(p.f) ?? 0; addLabel(p.l, p.nm, c ? `${c}곳` : null, c * 1000 + p.n, !c); continue; }
+        const v = valueOf(p);
+        addLabel(p.l, p.nm, v === null ? null : fmt(v, k), p.n, v === null);
+      }
+    } else if (dongLayer) {
+      for (const [, lyr] of dongByK) {
+        const p = lyr.feature.properties;
+        const v = valueOf(p);
+        addLabel(p.l, p.k, v === null ? null : fmt(v, k), (focus.dong === p.k ? 1e9 : 0) + p.n, v === null);
+      }
+    }
+    requestAnimationFrame(layoutLabels);
+  };
+
+  // ---- 고르기·마우스 ----
+  const pickOf = (p: SggP | DongP, isDong: boolean): Pick => {
+    const name = isDong ? (p as DongP).k : `${(p as SggP).sd} ${(p as SggP).nm}`;
+    const key = isDong ? (p as DongP).k : sggKey((p as SggP).f);
+    if (!isDong && budget && level() === 'home') {
+      const c = counts?.get((p as SggP).f) ?? 0;
+      return { key, title: name, value: c ? `예산 안 동네 ${c}곳` : '예산 안 동네 없음', sub: `최근 12개월 거래 ${p.n.toLocaleString('ko-KR')}건`, href: p.h };
+    }
+    const v = valueOf(p);
+    const m = mode();
+    const dep = m.k === 'w' ? p.m[idx() + 1] : null;
+    return {
+      key, title: name, href: p.h,
+      value: v === null ? undefined : m.k === 'j' ? `${kindLabel()} 중위 ${short(v)}` : `${kindLabel()} 중위 ${dep !== null ? `${short(dep)} / ` : ''}월 ${v}만`,
+      sub: `최근 12개월 거래 ${p.n.toLocaleString('ko-KR')}건`,
+      note: v === null ? (p.n ? '거래가 적어 숫자를 비교하지 않아요.' : '최근 12개월 거래가 없어요.') : undefined,
+    };
+  };
+  const tip = (pk: Pick) => {
+    const d = document.createElement('div');
+    const t = document.createElement('strong'); t.className = 'rm-tip-path'; t.textContent = pk.title;
+    const s = document.createElement('span'); s.className = 'rm-tip-val'; s.textContent = pk.value ?? pk.note ?? '';
+    d.append(t, s);
+    return d;
+  };
+  const TIP = { sticky: true, direction: 'top' as const, offset: [0, -14] as [number, number], className: 'rm-tip', opacity: 1 };
+  const showGhost = (g: GeoJSON.Geometry | null) => { if (ghost) lines.removeLayer(ghost); ghost = g ? outline(g, false).addTo(lines) : null; };
+  const bind = (lyr: Leaflet.Path, isDong: boolean) => {
+    const f = (lyr as unknown as { feature: Feat<SggP | DongP> }).feature;
+    if (LG.matches) lyr.bindTooltip(() => tip(pickOf(f.properties, isDong)), TIP); // 모바일은 툴팁 없이 카드 한 장
+    lyr.on('mouseover', () => {
+      const p = f.properties;
+      const active = isDong || sggActive((p as SggP).f);
+      if (!LG.matches) { lyr.closeTooltip(); return; }
+      if (active || (p as SggP).f !== fileOf()) showGhost(f.geometry);
+      ctx.hovered(isDong ? (p as DongP).k : sggKey((p as SggP).f));
+    });
+    lyr.on('mouseout', () => { showGhost(null); ctx.hovered(null); });
+    lyr.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      if (!LG.matches) lyr.closeTooltip(); // 모바일은 카드 한 장만
+      const p = f.properties;
+      if (!isDong && (p as SggP).f === fileOf()) return; // 지금 시·군·구 테두리(속은 동 칸)
+      ctx.pick(pickOf(p, isDong), (e as Leaflet.LeafletMouseEvent).originalEvent instanceof KeyboardEvent);
+    });
+  };
+
+  const sggLayer = L.geoJSON(sgg as unknown as GeoJSON.GeoJsonObject, { pane: fill, style: (f) => sggStyle((f as Feat<SggP>).properties),
+    onEachFeature: (f, lyr) => { sggByF.set((f as Feat<SggP>).properties.f, lyr as never); bind(lyr as Leaflet.Path, false); } }).addTo(map);
+
+  // ---- 동 칸(시·군·구·동 단계) ----
+  const drawDongs = async () => {
+    const file = level() === 'sgg' || level() === 'dong' ? fileOf() : null;
+    if (file === dongFile) { dongLayer?.setStyle((f) => dongStyle((f as Feat<DongP>).properties)); return; }
+    dongLayer?.remove(); dongLayer = null; dongByK.clear(); dongFile = file;
+    if (!file) return;
+    const fc = await loadEmd(file);
+    if (!fc || dongFile !== file) return;
+    dongLayer = L.geoJSON(fc as unknown as GeoJSON.GeoJsonObject, { pane: fill, style: (f) => dongStyle((f as Feat<DongP>).properties),
+      onEachFeature: (f, lyr) => { dongByK.set((f as Feat<DongP>).properties.k, lyr as never); bind(lyr as Leaflet.Path, true); } }).addTo(map);
+  };
+
+  // ---- 범례 ----
+  const legend = pane.querySelector<HTMLElement>('.mv-legend');
+  const drawLegend = () => {
+    if (!legend) return;
+    legend.hidden = false;
+    const title = legend.querySelector('.mv-legend-t')!, bar = legend.querySelector('.mv-legend-bar')!, lo = legend.querySelector('.mv-legend-lo')!, hi = legend.querySelector('.mv-legend-hi')!;
+    const note = legend.querySelector<HTMLElement>('.mv-legend-note')!;
+    if (budget && level() === 'home') {
+      title.textContent = '예산 안 동네 수';
+      bar.innerHTML = ROOM_COLORS.map((c) => `<span style="background:${c}"></span>`).join('');
+      lo.textContent = '적음'; hi.textContent = '많음';
+      note.textContent = '회색: 예산 안 동네 없음';
+      return;
+    }
+    const b = sgg.breaks[metric()] ?? [];
+    const k = mode().k;
+    title.textContent = `${kindLabel()} 중위`;
+    bar.innerHTML = COLORS.map((c) => `<span style="background:${c}"></span>`).join('');
+    lo.textContent = b.length ? `${fmt(b[0], k)} 미만` : '';
+    hi.textContent = b.length ? `${fmt(b[b.length - 1], k)} 이상` : '';
+    note.textContent = '회색: 거래 적음(30건 미만)';
+  };
+
+  // ---- 화면 맞추기 ----
+  const fit = (animate: boolean) => {
+    let b: Leaflet.LatLngBounds | null = null;
+    if (level() === 'dong') {
+      const d = dongByK.get(focus.dong!);
+      if (d) { map.fitBounds((d as unknown as Leaflet.Polygon).getBounds(), { padding: [64, 64], maxZoom: 14, animate }); return; }
+    }
+    if (level() === 'sgg' || level() === 'dong') { const s = sggByF.get(fileOf()!); if (s) b = (s as unknown as Leaflet.Polygon).getBounds(); }
+    else if (level() === 'sido') {
+      for (const [f, lyr] of sggByF) if (sidoOf(f) === focus.sido) { const bb = (lyr as unknown as Leaflet.Polygon).getBounds(); b = b ? b.extend(bb) : L.latLngBounds(bb.getSouthWest(), bb.getNorthEast()); }
+    }
+    if (!b) b = sggLayer.getBounds();
+    map.fitBounds(b, { padding: [24, 24], animate });
+  };
+
+  const drawSel = () => {
+    if (selLine) lines.removeLayer(selLine);
+    selLine = null;
+    const d = focus.dong ? dongByK.get(focus.dong) : null;
+    if (d) selLine = outline(d.feature.geometry, true).addTo(lines);
+  };
+
+  // ---- 건물 점(동 단계 + '건물별 거래' 탭) ----
+  const bldGroup = L.layerGroup().addTo(map);
+  const bldMarkers = new Map<string, Leaflet.CircleMarker>();
+  let bldOn = false;
+  const drawBld = async () => {
+    bldGroup.clearLayers(); bldMarkers.clear();
+    if (!bldOn || level() !== 'dong' || !bsrc) return;
+    const { loadBld } = await import('../rent-bld.ts');
+    const f = await loadBld(bsrc, fileOf()!);
+    if (!f || !bldOn) return;
+    for (const b of f.list) {
+      if (b.dong !== focus.dong || b.lat === null || b.lng === null) continue;
+      const m = L.circleMarker([b.lat, b.lng], { radius: 8, color: '#FFFFFF', weight: 2, fillColor: '#191F28', fillOpacity: 1, className: 'mv-bld' });
+      m.bindTooltip(b.name || b.jibun, { direction: 'top', offset: [0, -8], className: 'rm-tip' });
+      m.on('click', (e) => { L.DomEvent.stopPropagation(e); document.dispatchEvent(new CustomEvent('rent:bld-open', { detail: b.id })); });
+      m.addTo(bldGroup); bldMarkers.set(b.id, m);
+    }
+  };
+  const setBldActive = (id: string | null) => {
+    for (const [k, m] of bldMarkers) m.setStyle(k === id ? { fillColor: '#6B1F57', radius: 11 } : { fillColor: '#191F28', radius: 8 });
+  };
+  const ac = new AbortController();
+  const sig = { signal: ac.signal };
+  document.addEventListener('v:tab', (e) => { bldOn = (e as CustomEvent<string>).detail === 'bld'; void drawBld(); }, sig);
+  document.addEventListener('rent:bld-focus', (e) => {
+    const d = (e as CustomEvent<{ id: string; lat: number | null; lng: number | null } | null>).detail;
+    setBldActive(d?.id ?? null);
+    if (d?.lat != null && d.lng != null) map.setView([d.lat, d.lng], Math.max(map.getZoom(), 16), { animate: true });
+  }, sig);
+  document.addEventListener('rent:bld-hover', (e) => {
+    const id = (e as CustomEvent<string>).detail;
+    bldMarkers.get(id)?.openTooltip();
+  }, sig);
+
+  // ---- 다시 그리기 ----
+  const restyle = () => { sggLayer.setStyle((f) => sggStyle((f as Feat<SggP>).properties)); dongLayer?.setStyle((f) => dongStyle((f as Feat<DongP>).properties)); drawLabels(); drawLegend(); };
+  const apply = async (animate: boolean) => {
+    if (budget && level() === 'home' && !counts) await loadCounts();
+    sggLayer.setStyle((f) => sggStyle((f as Feat<SggP>).properties));
+    await drawDongs();
+    drawSel(); drawLabels(); drawLegend(); fit(animate);
+    bldOn = !!document.querySelector('[role="tab"][aria-controls="tab-bld"][aria-selected="true"]');
+    void drawBld();
+  };
+  document.addEventListener('rent:mode', restyle, sig);
+  document.addEventListener('rent:budget', (e) => {
+    budget = (e as CustomEvent<Budget | null>).detail;
+    void loadCounts().then(() => { restyle(); if (budget) announce('지도를 예산 안 동네 수로 칠했어요.'); });
+  }, sig);
+  map.on('click', () => { /* 빈 곳: 아무것도 안 함 */ });
+  await apply(false);
+
+  return {
+    focus(f) { focus = f; showGhost(null); void apply(true); },
+    hover(key) {
+      if (!key) { showGhost(null); return; }
+      const d = dongByK.get(key) ?? (focus.sido ? sggByF.get(`${focus.sido}__${key}`) : undefined) ?? sggByF.get(key);
+      showGhost(d ? d.feature.geometry : null);
+    },
+    resize() { map.invalidateSize(); },
+    destroy() { ac.abort(); map.remove(); },
+  };
+}

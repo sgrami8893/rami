@@ -2,7 +2,7 @@
 // 전월세 시·군·구(v2): "이 지역 안에서 어디가 싸고 어디가 비싸요?" ① 위치 줄 ② 답 카드 ③ [빌라|오피스텔][전세|월세] + 동 목록(거래 많은 순) ④ 접힘.
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/rent/MockBanner.astro';
-import RentMap from '../../../../components/rent/RentMap.astro';
+import MapView from "../../../../components/v2/MapView.astro";
 import RentNotes from '../../../../components/rent/RentNotes.astro';
 import RentBands from '../../../../components/rent/RentBands.astro';
 import PlaceBar from '../../../../components/v2/PlaceBar.astro';
@@ -45,5 +45,5 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
     <RentNotes />
   </div>
   <MapPill />
-  {RENT_MAP && <RentMap slot="map" focus={{ sido, slug: a.sigungu }} title={`${a.sigunguName} 전월세 지도`} />}
+  {RENT_MAP && <MapView slot="map" kind="rent" focus={{ sido, slug: a.sigungu }} title={`${a.sigunguName} 전월세 지도`} />}
 </BaseLayout>

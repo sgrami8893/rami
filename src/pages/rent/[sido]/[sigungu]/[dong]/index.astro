@@ -3,7 +3,7 @@
 // 동 페이지: 최근 12개월 거래 PAGE_MIN건 이상인 법정동만 생성. 색인은 INDEX_MIN건 이상 + 시·군·구의 90% 이하.
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/rent/MockBanner.astro';
-import RentMap from '../../../../../components/rent/RentMap.astro';
+import MapView from '../../../../../components/v2/MapView.astro';
 import RentCalculator from '../../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../../components/rent/RentNotes.astro';
 import RentBands from '../../../../../components/rent/RentBands.astro';
@@ -76,7 +76,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   </section>
   <div class="v-folds"><RentNotes /></div>
   <MapPill />
-  {RENT_MAP && <RentMap slot="map" focus={{ sido, slug: a.sigungu, dong }} title={`${dong} 주변 전월세 지도`} />}
+  {RENT_MAP && <MapView slot="map" kind="rent" focus={{ sido, slug: a.sigungu, dong }} title={`${dong} 주변 전월세 지도`} />}
 </BaseLayout>
 <script>
   import { initBldTab } from '../../../../../scripts/rent-bld.ts';

@@ -6,8 +6,10 @@ import LotMore from '../../../../components/parking/LotMore.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../components/parking/FreeNote.astro';
-import MapPanel from '../../../../components/MapPanel.astro';
-import MapButton from '../../../../components/MapButton.astro';
+import MapView from '../../../../components/v2/MapView.astro';
+import PlaceBar from '../../../../components/v2/PlaceBar.astro';
+import { parkingPlace } from '../../../../lib/parking-view.ts';
+import MapPill from '../../../../components/v2/MapPill.astro';
 import { mapOn } from '../../../../lib/map.ts';
 import { SIDOS, lots, sidoName, sidoShort, parkingPath, freePath, regionsOf, freeHubIndexable, toPoint, IS_MOCK, type ParkingLot } from '../../../../lib/parking.ts';
 import { SIGUNGU, type SidoSlug } from '../../../../../scripts/lib/regions.ts';
@@ -22,9 +24,10 @@ const LIST_MAX = 300;
 const pts = free.filter((l) => l.lat !== null && l.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }, { name: '무료', href: freePath(sido) }];
 ---
-<BaseLayout tool="parking" title={`${sidoShort(sido)} 무료 공영주차장 ${st.count.toLocaleString("ko-KR")}곳 | 시·군·구별 위치`} description={`${sidoName(sido)} 무료 공영주차장 ${st.count.toLocaleString("ko-KR")}곳을 시·군·구별로 모았어요. 지금 운영시간 내인 곳만 골라 볼 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK || !st.indexable} canvas="white" sidebar={false}>
+<BaseLayout tool="parking" title={`${sidoShort(sido)} 무료 공영주차장 ${st.count.toLocaleString("ko-KR")}곳 | 시·군·구별 위치`} description={`${sidoName(sido)} 무료 공영주차장 ${st.count.toLocaleString("ko-KR")}곳을 시·군·구별로 모았어요. 지금 운영시간 내인 곳만 골라 볼 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK || !st.indexable}>
   <MockBanner />
-  <h1 class="text-title font-bold text-ink">{sidoShort(sido)} 무료 공영주차장 {st.count.toLocaleString("ko-KR")}곳</h1>
+  <PlaceBar levels={parkingPlace(sido)} />
+  <h1 class="v-h1">{sidoShort(sido)} 무료 공영주차장 {st.count.toLocaleString("ko-KR")}곳</h1>
   <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} 전체 {st.total.toLocaleString("ko-KR")}곳 중 {st.count.toLocaleString("ko-KR")}곳 · {st.regions}개 시·군·구</p>
   <FreeNote class="mt-3" />
   {free.length <= LIST_MAX && (
@@ -32,7 +35,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     {groups.map((g) => <a href={`${parkingPath(sido, g.sigungu)}free/`} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">{g.name}<span class="font-medium text-ink-3">{g.items.length}</span></a>)}
   </nav>
   )}
-  <MapButton points={pts} />
+  <MapPill />
   {free.length <= LIST_MAX ? (
     <>
       <LotFilters total={free.length} free={false} sort={false} />
@@ -57,7 +60,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       </ul>
     </section>
   )}
-  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} area={{ sido }} tool="parking" nav={parkingNav(sido)} filters={PF} />}
+  {mapOn(pts) && <MapView slot="map" kind="pins" points={pts.map(toPoint)} title={`${sidoShort(sido)} 무료 주차장 지도`} />}
 </BaseLayout>
 
 <script>
