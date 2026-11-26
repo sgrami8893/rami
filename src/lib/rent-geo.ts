@@ -59,3 +59,16 @@ export async function emdCollection(file: string) {
   });
   return { type: 'FeatureCollection', features };
 }
+
+/** '내 예산으로 갈 수 있는 동네'(rent-budget-core.ts) 목록용: 전체 동의 [파일, 동, 건수, 중위값 6종, 동 페이지] + 시·군·구 이름.
+ *  경계 없이 숫자만이라 작다(약 1,400행). 판정은 브라우저에서 예산과 비교만 한다 */
+export function dongIndex() {
+  const sgg: Record<string, [string, string, string | null]> = {};
+  const d: [string, string, number, ReturnType<typeof metrics>, string | null][] = [];
+  for (const a of stats.areas) {
+    const f = fileOf(a.sido, a.sigungu);
+    if (a.dong === null) { sgg[f] = [sidoShort(a.sido), a.sigunguName, rentPath(a.sido, a.sigungu)]; continue; }
+    d.push([f, a.dong, a.n, metrics(a), hasDongPage(a) ? rentPath(a.sido, a.sigungu, a.dong) : null]);
+  }
+  return { low: LOW_N, sgg, d };
+}

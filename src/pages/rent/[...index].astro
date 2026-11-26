@@ -4,6 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import MockBanner from '../../components/rent/MockBanner.astro';
 import RentMap from '../../components/rent/RentMap.astro';
 import RentPick from '../../components/rent/RentPick.astro';
+import RentBudget from '../../components/rent/RentBudget.astro';
 import MapButton from '../../components/MapButton.astro';
 
 import { RENT_MAP, RENT_SOURCES, IS_MOCK, HAS_PAGES, SIDOS, sidoName, sigunguOf, rentPath, periodText, stats } from '../../lib/rent.ts';
@@ -17,7 +18,9 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
   <h1 class="text-title font-bold text-ink">동네 빌라·오피스텔 전월세 실거래</h1>
   <p class="mt-1 text-body text-ink-2">{periodText()} 신고된 전월세 거래를 동네별로 모았어요. 아파트는 다루지 않아요.</p>
   <MapButton show={RENT_MAP} label="전월세 지도로 보기" />
+  <RentBudget />
   <RentPick />
+  <div data-rent-regions>
   {SIDOS.map((s) => (
     <section class="mt-6" aria-labelledby={`h-${s}`}>
       <h2 id={`h-${s}`} class="text-h2 font-bold text-ink"><a href={rentPath(s)} class="relative hover:text-brand after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-['']">{sidoName(s)}</a></h2>
@@ -26,5 +29,6 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
       </div>
     </section>
   ))}
+  </div>
   {RENT_MAP && <RentMap slot="map" />}
 </BaseLayout>

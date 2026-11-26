@@ -30,7 +30,12 @@ const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom }
       <div class="rm-toolbar pointer-events-none absolute left-3 right-[68px] top-3 z-[1000] flex flex-wrap items-start gap-2" hidden>
         <MapTools current="rent" sido={focus.sido} sgg={focus.slug} />
         <RegionChips />
-        <div class="map-float pointer-events-auto flex items-center gap-1 p-1">
+        <!-- '내 예산 맞춤'(RentBudget)이 켜지면 유형·전월세 전환 대신 지금 예산을 보여 준다. 모바일은 '예산 바꾸기'로 목록(폼)으로 돌아간다 -->
+        <div class="rm-budget map-float pointer-events-auto flex min-h-[44px] max-w-full items-center gap-1 py-1 pl-3 pr-1" hidden>
+          <span class="rm-budget-text min-w-0 truncate text-[length:calc(14px*var(--fs,1))] font-semibold text-ink"></span>
+          <button type="button" class="rm-budget-edit relative flex h-9 shrink-0 items-center rounded-lg bg-bg px-2.5 text-[length:calc(14px*var(--fs,1))] font-semibold text-brand after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] lg:hidden">예산 바꾸기</button>
+        </div>
+        <div class="rm-segs map-float pointer-events-auto flex items-center gap-1 p-1">
           <fieldset class="rm-seg"><legend class="sr-only">주택 유형</legend>
             <label><input type="radio" name="rm-type" value="v" checked class="sr-only" />빌라</label>
             <label><input type="radio" name="rm-type" value="o" class="sr-only" />오피스텔</label>
@@ -45,7 +50,7 @@ const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom }
         <p class="rm-legend-title text-[length:calc(13px*var(--fs,1))] font-semibold text-ink"></p>
         <div class="rm-legend-bar mt-1.5 flex h-3 gap-[2px] overflow-hidden rounded-full [&>span]:flex-1" aria-hidden="true"></div>
         <div class="rm-legend-ticks relative mt-1 h-4 text-[12px] tabular-nums text-ink-2 [&>span]:absolute [&>span]:-translate-x-1/2" aria-hidden="true"></div>
-        <p class="mt-1 flex items-center gap-1.5 text-[12px] text-ink-2"><span class="inline-block size-2.5 rounded-sm bg-[#D5D9DE] ring-1 ring-black/10" aria-hidden="true"></span>회색: 거래 적음 · {periodText()}</p>
+        <p class="mt-1 flex items-center gap-1.5 text-[12px] text-ink-2"><span class="inline-block size-2.5 shrink-0 rounded-sm bg-[#D5D9DE] ring-1 ring-black/10" aria-hidden="true"></span><span class="rm-legend-note" data-default={`회색: 거래 적음 · ${periodText()}`}>회색: 거래 적음 · {periodText()}</span></p>
         <p class="rm-legend-sr sr-only"></p>
       </div>
       <div class="rm-card map-float absolute inset-x-3 bottom-7 z-[1001] max-h-[min(72%,600px)] overflow-y-auto overscroll-contain p-4 lg:inset-x-auto lg:left-3 lg:w-[360px]" role="region" aria-label="고른 동네 요약" tabindex="-1" hidden>
