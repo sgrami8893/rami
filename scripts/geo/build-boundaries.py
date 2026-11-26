@@ -112,3 +112,15 @@ for (s, sl), gs in sorted(merged.items()):
 txt = json.dumps({'type': 'FeatureCollection', 'features': fs}, ensure_ascii=False, separators=(',', ':'))
 open(os.path.join(OUT, 'sgg.json'), 'w', encoding='utf-8').write(txt)
 print(f'동 {len(dong)}개, 시군구 {len(groups)}곳 파일 합계 {total // 1024}KB, sgg.json {len(txt) // 1024}KB')
+
+# 시·도 바깥 테두리(2026-11-26): 시·군·구를 합친 외곽선. 지도에서 '시·도 단계' 틀로만 쓴다(채우지 않음)
+by_sido = {}
+for (s, sl), gs in sorted(merged.items()): by_sido.setdefault(s, []).extend(gs)
+sido_fs = []
+for s, gs in sorted(by_sido.items()):
+    g = polys(unary_union(gs).buffer(0.0002).buffer(-0.0002).simplify(0.0006), 4e-6)
+    gm = mapping(g)
+    sido_fs.append({'type': 'Feature', 'properties': {'sido': s}, 'geometry': {'type': gm['type'], 'coordinates': rnd(gm['coordinates'])}})
+txt = json.dumps({'type': 'FeatureCollection', 'features': sido_fs}, ensure_ascii=False, separators=(',', ':'))
+open(os.path.join(OUT, 'sido.json'), 'w', encoding='utf-8').write(txt)
+print(f'sido.json {len(txt) // 1024}KB')

@@ -50,19 +50,23 @@ const fld = 'mt-1 block min-h-11 w-full rounded-xl border border-line bg-card px
 
 <script>
   import { brokerFee, conversionRate, depositToMonthlyWon, type Property } from '../../../scripts/lib/rent-calc.ts';
-  const root = document.querySelector<HTMLElement>('.rent-calc');
-  if (root) {
-    const val = (n: string) => Math.max(0, Number((root.querySelector<HTMLInputElement>(`[name="${n}"]`)?.value ?? '0')) || 0);
-    const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
-    const rate = conversionRate(Number(root.dataset.baseRate));
-    const run = () => {
-      const prop = (root.querySelector<HTMLInputElement>('[name="prop"]:checked')?.value ?? 'house') as Property;
-      const f = brokerFee(val('deposit'), val('monthly'), prop);
-      out('fee').textContent = `${f.maxFeeWon.toLocaleString('ko-KR')}원${f.negotiable ? ' 이내 협의' : ''}`;
-      out('fee-detail').textContent = `거래금액 ${f.amount.toLocaleString('ko-KR')}만 원 × 상한요율 ${(f.rate * 100).toFixed(1)}%${f.capped ? ` (한도 ${f.capManwon}만 원 적용)` : ''}`;
-      out('conv').textContent = `${depositToMonthlyWon(val('convert'), rate).toLocaleString('ko-KR')}원`;
-    };
-    root.addEventListener('input', run);
-    root.addEventListener('change', run);
-  }
+  import { onPage } from '../../scripts/soft-nav.ts';
+  // 본문이 지도 화면 안 이동(soft-nav)으로 바뀌어도 다시 묶이게 onPage로 감싼다
+  onPage(() => {
+    const root = document.querySelector<HTMLElement>('.rent-calc');
+    if (root) {
+      const val = (n: string) => Math.max(0, Number((root.querySelector<HTMLInputElement>(`[name="${n}"]`)?.value ?? '0')) || 0);
+      const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const rate = conversionRate(Number(root.dataset.baseRate));
+      const run = () => {
+        const prop = (root.querySelector<HTMLInputElement>('[name="prop"]:checked')?.value ?? 'house') as Property;
+        const f = brokerFee(val('deposit'), val('monthly'), prop);
+        out('fee').textContent = `${f.maxFeeWon.toLocaleString('ko-KR')}원${f.negotiable ? ' 이내 협의' : ''}`;
+        out('fee-detail').textContent = `거래금액 ${f.amount.toLocaleString('ko-KR')}만 원 × 상한요율 ${(f.rate * 100).toFixed(1)}%${f.capped ? ` (한도 ${f.capManwon}만 원 적용)` : ''}`;
+        out('conv').textContent = `${depositToMonthlyWon(val('convert'), rate).toLocaleString('ko-KR')}원`;
+      };
+      root.addEventListener('input', run);
+      root.addEventListener('change', run);
+    }
+  });
 </script>

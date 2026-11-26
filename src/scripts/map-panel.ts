@@ -23,6 +23,8 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
   if (canvas.dataset.kind === 'rent') return (await import('./rent-map.ts')).mountRent(pane, canvas);
   const points = JSON.parse(canvas.dataset.points || '[]') as Pt[];
   const { L, map } = await baseMap(canvas);
+  // 지역 틀(경계): 핀보다 늦게 와도 되므로 기다리지 않는다
+  if (canvas.dataset.area) void import('./map-frame.ts').then((m) => m.areaFrame(L, map, JSON.parse(canvas.dataset.area!))).catch(() => {});
   await import('leaflet.markercluster');
 
   // 핀·클러스터 모양은 우리 CSS(global.css .map-pin/.map-cluster)로 그린다(타사 아이콘 이미지 없음).
@@ -177,6 +179,8 @@ export function initMapPanels() {
   document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => b.addEventListener('click', () => show(null, b)));
   pane.querySelector('[data-map-close]')?.addEventListener('click', () => closeSheet());
   addEventListener('popstate', () => closeSheet(true));
+  // 지도 화면 안 이동(soft-nav)으로 본문이 바뀌면 모바일 전체 화면 지도를 닫는다(주소 기록은 soft-nav가 이미 남김)
+  document.addEventListener('dnkk:swap', () => { if (isOpen()) { pane.removeAttribute('data-open'); pane.removeAttribute('role'); pane.removeAttribute('aria-modal'); document.documentElement.classList.remove('map-sheet-open'); opener = null; } document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => { b.hidden = false; b.addEventListener('click', () => show(null, b)); }); });
   pane.addEventListener('keydown', (e) => {
     if (!isOpen()) return;
     if (e.key === 'Escape') { closeSheet(); return; }
