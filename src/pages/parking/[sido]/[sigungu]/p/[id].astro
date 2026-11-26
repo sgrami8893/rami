@@ -12,7 +12,7 @@ const rows: [string, string][] = [
   ['요금 구분', FEE_LABEL[l.fee.type]],
   ['기본', l.fee.baseMin !== null ? `${l.fee.baseMin}분 ${won(l.fee.baseFee)}` : '-'],
   ['추가', l.fee.unitMin !== null ? `${l.fee.unitMin}분마다 ${won(l.fee.unitFee)}` : '-'],
-  ['1일 주차권', won(l.fee.dayPass) + (l.dayPassHours ? ` (${l.dayPassHours})` : '')], ['월 정기권', won(l.fee.monthly)],
+  ['1일 주차권', l.fee.dayPass ? won(l.fee.dayPass) + (l.dayPassHours ? ` (${/^\d+$/.test(l.dayPassHours) ? `${l.dayPassHours}시간 적용` : l.dayPassHours})` : '') : '-'], ['월 정기권', l.fee.monthly ? won(l.fee.monthly) : '-'],
   ['결제 방법', l.payment.join(', ') || '-'],
 ];
 const desc = `${sgName} ${l.name}(${FEE_LABEL[l.fee.type]})의 평일 운영시간 ${dayText(l, 'weekday')}${l.spaces !== null ? `, 주차면 ${l.spaces}면` : ''}과 요금, 1~2시간 주차 요금 계산, 위치를 확인하세요. 공공데이터 기준이에요.`;
@@ -23,7 +23,7 @@ const info: [string, string][] = [
 ---
 <BaseLayout tool="parking" title={`${l.name} 주차장 요금·운영시간 - ${sgName}`} description={desc} crumbs={crumbs} noindex={IS_MOCK || !lotIndexable(l)} sidebar={false}>
   <MockBanner />
-  <p class="text-cap font-semibold text-brand">{FEE_LABEL[l.fee.type]} · {LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
+  <p class="text-cap font-semibold text-brand">{FEE_LABEL[l.fee.type]} · {l.kind === 'private' ? '민영 · ' : ''}{LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
   <h1 class="mt-1 text-title font-bold text-ink">{l.name}</h1>
   <p class="mt-2 text-body text-ink-2">{l.roadAddress || l.jibunAddress}</p>
   {l.flags.includes('feeConflict') && <p class="mt-3 rounded-xl bg-bg px-4 py-3 text-cap text-warn">원천 데이터의 요금 정보가 서로 맞지 않아 요금 구분을 '확인 필요'로 표시했어요. 관리기관에 확인해 주세요.</p>}
@@ -35,7 +35,7 @@ const info: [string, string][] = [
         <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{d}</th><td class="py-2.5 text-right text-ink">{dayText(l, k)}</td></tr>
       ))}
     </tbody></table>
-    {!!l.ambiguousDays?.length && <p class="mt-2 text-cap text-ink-2">'확인 필요'는 원천 자료에 00:00~00:00으로 적혀 있어 24시간 운영인지 미입력인지 알 수 없는 경우예요. '지금 운영시간 내' 판정에서는 빼고 있어요.</p>}
+    {!!l.ambiguousDays?.length && <p class="mt-2 text-cap text-ink-2">'확인 필요'는 원천 자료에 00:00~00:00으로 적혀 있는 날이에요. 24시간 운영인지, 운영(유료 징수)을 하지 않는 날인지 알 수 없어서 '지금 운영시간 내' 판정에서도 빼고 있어요. 관리기관에 확인해 주세요.</p>}
   </section>
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">요금</h2>

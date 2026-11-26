@@ -24,7 +24,7 @@ export function initParkingList() {
       r.dataset.open = open === true ? '1' : open === false ? '0' : '';
       const b = r.querySelector<HTMLElement>('.p-open');
       if (b) {
-        b.textContent = open === true ? '운영시간 내' : open === false ? '운영시간 외' : '시간 정보 없음';
+        b.textContent = open === true ? '운영시간 내' : open === false ? '운영시간 외' : '운영시간 확인 필요';
         b.className = `p-open badge ${open === true ? 'bg-ok-bg text-ok' : 'bg-off-bg text-off'}`;
       }
     }

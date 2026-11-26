@@ -18,7 +18,7 @@ export const SITE_DESC = '서울·경기·인천 무인민원발급기 2,100여 
 export const TOOLS = [
   { slug: 'muin', name: '무인민원발급기 찾기', path: '/muin/', status: 'live', desc: '서울·경기·인천 무인민원발급기 위치, 지금 운영시간인 곳, 24시간·주말 운영, 등기부등본·가족관계증명서 발급 기기.' },
   { slug: 'waste', name: '대형폐기물 수수료', path: '/waste/', status: 'soon', desc: '가구·가전 버릴 때 우리 동네 대형폐기물 배출 수수료 확인.' },
-  { slug: 'parking', name: '공영주차장', path: '/parking/', status: 'soon', desc: '동네 공영주차장 위치와 요금.' },
+  { slug: 'parking', name: '공영주차장 찾기', path: '/parking/', status: 'live', desc: '서울·경기·인천 공영주차장 4,700여 곳의 요금과 운영시간, 무료 주차장, 2시간 주차 요금 비교.' },
   { slug: 'cert', name: '국가기술자격 시험', path: '/cert/', status: 'soon', desc: '국가기술자격 시험 일정과 합격률.' },
 ] as const;
 export type ToolSlug = (typeof TOOLS)[number]['slug'];

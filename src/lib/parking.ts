@@ -35,7 +35,7 @@ export const regionsOf = (s: SidoSlug) => {
 };
 export const FEE_LABEL = { free: '무료', paid: '유료', mixed: '무료·유료 혼합', unknown: '요금 확인 필요' } as const;
 export const LOT_TYPE = { onStreet: '노상', offStreet: '노외', attached: '부설', unknown: '유형 미상' } as const;
-export const hoursText = (h: DayHours, ambiguous = false) => (h === null ? '정보 없음' : h === '24h' ? (ambiguous ? '24시간(확인 필요)' : '24시간') : `${h[0]}~${h[1]}`);
+export const hoursText = (h: DayHours, ambiguous = false) => (h === null ? '정보 없음' : h === '24h' ? (ambiguous ? '확인 필요' : '24시간') : `${h[0]}~${h[1]}`);
 export const dayText = (l: ParkingLot, k: DayKey) => hoursText(l.hours[k], !!l.ambiguousDays?.includes(k));
 export const won = (v: number | null) => (v === null ? '-' : `${v.toLocaleString('ko-KR')}원`);
 export const toPoint = (l: ParkingLot) => ({
