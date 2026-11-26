@@ -82,8 +82,8 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
     ))}
   </div>
   {quick.length > 0 && <>
-    <h2 class="v-cap">자주 찾는 지역 전월세</h2>
-    <ul class="flex flex-wrap gap-2">{quick.map((r) => <li><a class="v-chip" href={r.href.rent ?? defHref(r)}>{r.sigunguName}</a></li>)}</ul>
+    <h2 class="v-cap" data-quick-h>자주 찾는 지역 전월세</h2>
+    <ul class="flex flex-wrap gap-2" data-quick>{quick.map((r) => <li><a class="v-chip" href={r.href.rent ?? defHref(r)}>{r.sigunguName}</a></li>)}</ul>
   </>}
   <div class="v-folds">
     <Fold title="생활 정보 가이드"><GuideList flat inFold limit={4} title="자주 찾는 가이드" /></Fold>
@@ -91,3 +91,17 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
   {rentMap && <MapPill label="전월세 지도" />}
   {rentMap && <MapView slot="map" kind="rent" title="수도권 전월세 지도" />}
 </BaseLayout>
+<script>
+  import { onPage } from '../scripts/soft-nav.ts';
+  // 최근 본 지역(이 기기에만, PlaceBar가 저장)이 있으면 '자주 찾는 지역' 대신 먼저 보여 준다
+  onPage(() => {
+    const ul = document.querySelector<HTMLElement>('[data-quick]'), h = document.querySelector<HTMLElement>('[data-quick-h]');
+    if (!ul || !h || ul.dataset.ready) return;
+    ul.dataset.ready = '1';
+    let rec: { l: string; h: string; t: string }[] = [];
+    try { rec = (JSON.parse(localStorage.getItem('dnkk:recent:v1') || '[]') as typeof rec).filter((r) => r.t === 'rent' || r.t === 'parking').slice(0, 6); } catch { /* 없음 */ }
+    if (!rec.length) return;
+    h.textContent = '최근 본 곳';
+    ul.replaceChildren(...rec.map((r) => { const li = document.createElement('li'); const a = document.createElement('a'); a.className = 'v-chip'; a.href = r.h; a.textContent = `${r.l} ${r.t === 'rent' ? '전월세' : '주차장'}`; li.append(a); return li; }));
+  });
+</script>

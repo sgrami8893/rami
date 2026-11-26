@@ -11,15 +11,16 @@ const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', p
     <h2 id="v-sheet-h" class="sr-only">검색과 글자 크기</h2>
     <div class="v-sheet-top">
       <label class="v-input"><Icon name="search" size={20} class="text-ink-3" /><span class="sr-only">동네·지역 이름</span>
-        <input id="v-q" type="search" autocomplete="off" placeholder="동네·지역 이름 (예: 망원동, 분당)" /></label>
+        <input id="v-q" type="search" autocomplete="off" placeholder="동네·지역 이름 또는 초성 (예: 망원동, ㅁㅇ)" /></label>
       <button type="button" class="v-hbtn" data-sheet-close aria-label="닫기"><Icon name="x" size={22} /></button>
     </div>
-    <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-labelledby="v-fs-h" id="v-fs">
+    <p id="v-s-msg" class="mt-4 text-cap text-ink-3">시·군·구나 동 이름을 넣어 보세요. 초성(ㅁㅇ)도 돼요. 지금은 서울·경기·인천만 있어요.</p>
+    <div id="v-s-recent" class="mt-3" hidden><p class="text-[length:calc(13px*var(--fs,1))] font-bold text-ink-3">최근 본 곳</p><div class="v-s-rchips mt-1.5 flex flex-wrap gap-1.5"></div></div>
+    <div id="v-s-res" class="v-sres mt-1"></div>
+    <div class="mt-5 border-t border-line pt-4 flex flex-wrap items-center gap-2" role="group" aria-labelledby="v-fs-h" id="v-fs">
       <span id="v-fs-h" class="mr-1 text-[length:calc(14px*var(--fs,1))] font-semibold text-ink-3">글자 크기</span>
       {SIZES.map((s) => <button type="button" class="v-chip" data-fs-v={s.v} aria-pressed="false" style={`font-size:${s.px}px`}>{s.label}</button>)}
     </div>
-    <p id="v-s-msg" class="mt-4 text-cap text-ink-3">시·군·구나 동 이름을 두 글자 이상 넣어 보세요. 지금은 서울·경기·인천만 있어요.</p>
-    <div id="v-s-res" class="v-sres mt-1"></div>
   </div>
 </div>
 <script>
@@ -34,6 +35,17 @@ const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', p
   const TOOL_KEY: Record<string, 'r' | 'p' | 'm'> = { rent: 'r', parking: 'p', muin: 'm' };
   const LABEL = { r: '전월세', p: '주차장', m: '발급기' } as const;
   const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+  const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+  const cho = (s: string) => [...s].map((c) => { const k = c.charCodeAt(0) - 0xac00; return k >= 0 && k < 11172 ? CHO[Math.floor(k / 588)] : c; }).join('');
+  const isCho = (s: string) => /^[ㄱ-ㅎ]+$/.test(s);
+  const recBox = document.getElementById('v-s-recent')!;
+  const drawRecent = () => {
+    let rec: { l: string; h: string; t: string }[] = [];
+    try { rec = JSON.parse(localStorage.getItem('dnkk:recent:v1') || '[]'); } catch { /* 없음 */ }
+    rec = rec.filter((r) => ['rent', 'parking', 'muin'].includes(r.t)).slice(0, 8);
+    recBox.hidden = !rec.length || !!q.value;
+    recBox.querySelector('.v-s-rchips')!.replaceChildren(...rec.map((r) => { const a = document.createElement('a'); a.className = 'v-chip'; a.href = r.h; a.textContent = `${r.l} · ${({ rent: '전월세', parking: '주차장', muin: '발급기' } as Record<string, string>)[r.t]}`; return a; }));
+  };
   const fsBtns = [...sheet.querySelectorAll<HTMLButtonElement>('[data-fs-v]')];
   const paintFs = () => { const cur = root.dataset.fs || 'm'; fsBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fsV === cur))); };
   fsBtns.forEach((b) => b.addEventListener('click', () => {
@@ -44,24 +56,30 @@ const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', p
   }));
   const draw = () => {
     const v = norm(q.value);
+    drawRecent();
     if (v.length < 1 || !rows) { res.replaceChildren(); msg.hidden = false; return; }
+    const ch = isCho(v);
     const pref = TOOL_KEY[root.dataset.tool || ''] ?? 'r';
-    const hits = rows.filter(([n, c, k]) => norm(`${n}${c}${k}`).includes(v))
+    const hits = rows.filter(([n, c, k]) => (ch ? cho(norm(n)).includes(v) : norm(`${n}${c}${k}`).includes(v)))
       .sort((a, b) => Number(!norm(a[0]).startsWith(v)) - Number(!norm(b[0]).startsWith(v)) || a[0].length - b[0].length).slice(0, 30);
     msg.hidden = hits.length > 0;
     if (!hits.length) msg.textContent = '찾는 지역이 없어요. 시·군·구 이름(예: 분당 → 성남시)이나 동 이름으로 찾아 보세요.';
     res.replaceChildren(...hits.map(([n, c, , h]) => {
       const key = h[pref] ? pref : (['r', 'p', 'm'] as const).find((x) => h[x])!;
-      const a = document.createElement('a'); a.href = h[key]!;
+      // 한 줄: 이름·지역(지금 도구로 가는 큰 링크) + 다른 도구 작은 링크
+      const row = document.createElement('div'); row.className = 'v-sres-row';
+      const a = document.createElement('a'); a.href = h[key]!; a.className = 'main';
       const t = document.createElement('span'); t.textContent = n;
       const s = document.createElement('small'); s.textContent = `${c} · ${LABEL[key]}`;
-      a.append(t, s); return a;
+      a.append(t, s); row.append(a);
+      for (const o of (['r', 'p', 'm'] as const).filter((x) => x !== key && h[x])) { const b = document.createElement('a'); b.href = h[o]!; b.className = 'alt'; b.textContent = LABEL[o]; b.setAttribute('aria-label', `${n} ${LABEL[o]}`); row.append(b); }
+      return row;
     }));
   };
   const open = (focusFs = false, from?: HTMLElement) => {
     opener = from ?? (document.activeElement as HTMLElement | null);
     sheet.hidden = false; root.classList.add('map-sheet-open');
-    paintFs();
+    paintFs(); drawRecent();
     (focusFs ? fsBtns.find((b) => b.getAttribute('aria-pressed') === 'true') ?? fsBtns[0] : q).focus();
     if (!rows) fetch('/search.json').then((r) => r.json()).then((x: Row[]) => { rows = x; draw(); }).catch(() => { msg.textContent = '검색 목록을 불러오지 못했어요.'; });
   };
@@ -82,6 +100,7 @@ const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', p
     }
   });
   q.addEventListener('input', draw);
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const f = res.querySelector<HTMLAnchorElement>('a'); if (f) { e.preventDefault(); f.click(); } } });
   q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = res.querySelector('a'); if (a) location.href = a.href; } });
   if (location.hash === '#search') open();
 </script>

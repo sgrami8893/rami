@@ -15,16 +15,20 @@ function setup(box: HTMLElement) {
   const list = box.querySelector<HTMLElement>('[data-rows]') ?? box;
   const rows = () => [...list.querySelectorAll<HTMLElement>(':scope > [data-row]')];
   const order = new Map(rows().map((r, i) => [r, i]));
-  const sel = box.querySelector<HTMLSelectElement>('[data-vsort]');
+  // 정렬: 한 줄 칩(눌린 것 하나). 옛 select도 받는다
+  const sel = box.querySelector<HTMLSelectElement>('select[data-vsort]');
+  const chips = [...box.querySelectorAll<HTMLButtonElement>('[data-vsort-v]')];
+  box.querySelector<HTMLElement>('.v-sortchips')?.removeAttribute('hidden');
+  const key = () => chips.find((c) => c.getAttribute('aria-pressed') === 'true')?.dataset.vsortV ?? sel?.value ?? 'as';
   const more = box.querySelector<HTMLButtonElement>('[data-vmore]');
   let shown = limit;
   const clip = () => {
     const rs = rows().filter((r) => !r.hidden);
     rs.forEach((r, i) => { if (i < shown) delete r.dataset.clip; else r.dataset.clip = ''; });
-    if (more) { const left = rs.length - shown; more.hidden = left <= 0; more.textContent = `${Math.min(left, limit)}개 더 보기`; }
+    if (more) { const left = rs.length - shown; more.hidden = left <= 0; more.textContent = `${Math.min(left, limit)}곳 더 보기 (남은 ${left}곳)`; }
   };
   const sort = () => {
-    const k = sel?.value ?? 'as';
+    const k = key();
     const rs = rows();
     rs.sort((a, b) => {
       if (k === 'n') return Number(b.dataset.n) - Number(a.dataset.n);
@@ -40,8 +44,9 @@ function setup(box: HTMLElement) {
     clip();
   };
   sel?.addEventListener('change', () => { shown = limit; sort(); });
+  chips.forEach((c) => c.addEventListener('click', () => { chips.forEach((x) => x.setAttribute('aria-pressed', String(x === c))); shown = limit; sort(); }));
   more?.addEventListener('click', () => { const first = rows().find((r) => r.dataset.clip !== undefined); shown += limit; clip(); first?.querySelector<HTMLElement>('a')?.focus(); });
-  document.addEventListener('rent:mode', () => { if (document.contains(box) && (sel?.value === 'lo' || sel?.value === 'hi')) sort(); });
+  document.addEventListener('rent:mode', () => { if (document.contains(box) && (key() === 'lo' || key() === 'hi')) sort(); });
   sort();
 }
 export function initLists() { document.querySelectorAll<HTMLElement>('[data-vlist]').forEach(setup); }

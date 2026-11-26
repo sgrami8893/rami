@@ -30,6 +30,10 @@ const fld = 'v-input num w-full pr-14';
           <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cap text-ink-3" aria-hidden="true">만 원</span>
         </div>
         <p id="rb-dep-won" class="num mt-1 text-cap text-ink-3">2억 원</p>
+        <div class="rb-qs mt-2 flex flex-wrap gap-1.5" role="group" aria-label="보증금 빠르게 고르기">
+          {[[5000, '5천'], [10000, '1억'], [15000, '1.5억'], [20000, '2억'], [30000, '3억']].map(([v, t]) => <button type="button" class="v-chip rb-q" data-k="j" data-set={`dep:${v}`}>{t}</button>)}
+          {[[500, '500만'], [1000, '1천'], [2000, '2천'], [3000, '3천'], [5000, '5천']].map(([v, t]) => <button type="button" class="v-chip rb-q" data-k="w" data-set={`dep:${v}`} hidden>{t}</button>)}
+        </div>
       </div>
       <div class="rb-mon" hidden>
         <label for="rb-mon" class="text-cap font-semibold text-ink-2">월세 상한</label>
@@ -38,6 +42,9 @@ const fld = 'v-input num w-full pr-14';
           <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cap text-ink-3" aria-hidden="true">만 원</span>
         </div>
         <p id="rb-mon-won" class="num mt-1 text-cap text-ink-3">월 60만 원</p>
+        <div class="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="월세 빠르게 고르기">
+          {[40, 50, 60, 70, 80, 100].map((v) => <button type="button" class="v-chip rb-q" data-set={`mon:${v}`}>{v}만</button>)}
+        </div>
       </div>
     </div>
     <div class="flex flex-wrap gap-2" role="group" aria-label="지역">
@@ -108,6 +115,11 @@ const fld = 'v-input num w-full pr-14';
       $('.rb-dep-label').textContent = kind === 'j' ? '전세 보증금 상한' : '월세 보증금 상한';
       $('#rb-dep-won').textContent = won(b.dep);
       $('#rb-mon-won').textContent = `월 ${b.mon.toLocaleString('ko-KR')}만 원`;
+      root.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((q) => {
+        if (q.dataset.k) q.hidden = q.dataset.k !== kind;
+        const [f, v] = q.dataset.set!.split(':');
+        q.setAttribute('aria-pressed', String((f === 'dep' ? b.dep : b.mon) === Number(v)));
+      });
     };
     const writeUrl = () => {
       const s = sortSel.value;
@@ -147,7 +159,7 @@ const fld = 'v-input num w-full pr-14';
       $<HTMLElement>('.rb-empty').hidden = rows.length > 0;
       const more = $<HTMLButtonElement>('.rb-more');
       more.hidden = rows.length <= shown;
-      more.textContent = `${Math.min(PAGE, rows.length - shown)}곳 더 보기`;
+      more.textContent = `${Math.min(PAGE, rows.length - shown)}곳 더 보기 (남은 ${rows.length - shown}곳)`;
       if (rows.length !== lastCount) {
         lastCount = rows.length;
         clearTimeout(timer);
@@ -188,6 +200,12 @@ const fld = 'v-input num w-full pr-14';
     chips.forEach((c) => c.addEventListener('click', () => { chips.forEach((x) => x.setAttribute('aria-pressed', String(x === c))); apply(); }));
     let inputTimer = 0;
     for (const x of [dep, mon]) x.addEventListener('input', () => { sync(); clearTimeout(inputTimer); inputTimer = window.setTimeout(() => apply(), 250); });
+    root.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((q) => q.addEventListener('click', () => {
+      const [f, v] = q.dataset.set!.split(':');
+      (f === 'dep' ? dep : mon).value = v;
+      apply();
+      announce(f === 'dep' ? `보증금 상한 ${won(Number(v))}` : `월세 상한 월 ${v}만 원`);
+    }));
     $('.rb-more').addEventListener('click', () => { shown += PAGE; render(); (list.children[shown - PAGE] as HTMLElement | undefined)?.querySelector('a')?.focus(); });
     apply();
   });
