@@ -17,7 +17,7 @@ const v = a.byType.villa, o = a.byType.officetel;
 const main = v && (!o || v.n >= o.n) ? v : o;
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }];
 ---
-<BaseLayout title={`${a.sigunguName} 빌라·오피스텔 전월세 실거래 시세 ${a.n}건 | 동별 전세·월세`} description={rentDescription(a.sigunguName, a)} crumbs={crumbs} noindex={IS_MOCK || !sigunguIndexable(a)} sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title={`${a.sigunguName} 빌라·오피스텔 전월세 실거래 시세 ${a.n}건 | 동별 전세·월세`} description={rentDescription(a.sigunguName, a)} crumbs={crumbs} noindex={IS_MOCK || !sigunguIndexable(a)} tool="rent" sidebar={false} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{a.sigunguName}{subGuText(sido, a.sigungu)} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건</p>

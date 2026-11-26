@@ -76,13 +76,15 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
     <a href="#main" class="sr-only z-50 rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
       <div class={`mx-auto flex h-14 items-center gap-2 px-4 ${frame}`}>
-        <a href="/" class="flex items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
+        <!-- 360px 미만(320px 확대 화면 포함)에서는 메뉴가 넘치지 않게 로고 글자를 화면에서만 숨긴다(링크 이름은 남음) -->
+        <a href="/" class="flex min-h-11 items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" /><span class="max-[359px]:sr-only">{SITE_NAME}</span></a>
         <!-- 헤더는 도구 카테고리만(2026-11-25 UI 검수 합의). 시·도 전환은 각 도구 본문의 칩 바에서 -->
         <nav aria-label="주요 메뉴" class="ml-auto flex items-center gap-3 text-[16px] font-medium text-ink-2">
           {TOOLS.filter((t) => t.status === 'live').map((t) => (
-            <a href={t.path} class={tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
+            <a href={t.path} class={`flex min-h-11 min-w-11 items-center justify-center ${tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
           ))}
-          <a href="/#search" class="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
+          <!-- 375px에서 도구 3개 + 검색 + 글자 크기가 넘쳐서(32px) 모바일에서는 검색 아이콘을 뺀다. 검색은 로고(홈) 첫 화면에 있음 -->
+          <a href="/#search" class="hidden h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg sm:flex" aria-label="지역 검색"><Icon name="search" size={22} /></a>
         </nav>
         <FontSizeMenu />
       </div>
@@ -101,7 +103,7 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
           <p>출처: <a href={s.url} class="underline" rel="noopener noreferrer" target="_blank">{s.name}</a>({s.label} {s.date}). 공공데이터를 가공해 제공해요.</p>
         ))}
         {toolInfo?.slug === 'muin' && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있어요. 중요한 방문 전에는 기기 상세의 관리기관 안내 페이지 등에서 다시 확인하세요.</p>}
-        <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-white/85"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
+        <p class="flex flex-wrap gap-x-4 pt-1 text-white/85"><a href="/about/" class="inline-flex min-h-11 items-center hover:underline">소개</a><a href="/privacy/" class="inline-flex min-h-11 items-center font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="inline-flex min-h-11 items-center hover:underline">문의</a><a href="/about/#licenses" class="inline-flex min-h-11 items-center hover:underline">오픈소스 라이선스</a></p>
       </div>
     </footer>
     <slot name="bottom" />

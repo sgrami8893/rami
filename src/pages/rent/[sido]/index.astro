@@ -11,7 +11,7 @@ const sido = Astro.params.sido as SidoSlug;
 const list = sigunguOf(sido);
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }];
 ---
-<BaseLayout title={`${sidoName(sido)} 빌라·오피스텔 전월세 실거래 시세 | 시·군·구별`} description={`${sidoName(sido)} ${list.length}개 시·군·구의 빌라·오피스텔 전월세 실거래 ${list.reduce((s, a) => s + a.n, 0).toLocaleString('ko-KR')}건(${periodText()})을 지역별 거래 건수와 전세 중위값으로 정리했어요.`} crumbs={crumbs} noindex={IS_MOCK} sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title={`${sidoName(sido)} 빌라·오피스텔 전월세 실거래 시세 | 시·군·구별`} description={`${sidoName(sido)} ${list.length}개 시·군·구의 빌라·오피스텔 전월세 실거래 ${list.reduce((s, a) => s + a.n, 0).toLocaleString('ko-KR')}건(${periodText()})을 지역별 거래 건수와 전세 중위값으로 정리했어요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sidebar={false} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{sidoName(sido)} 빌라·오피스텔 전월세</h1>
   <table class="mt-4 w-full text-[length:calc(16px*var(--fs,1))]">

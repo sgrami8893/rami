@@ -19,7 +19,7 @@ const sgMed = sg.byType.villa?.jeonse?.median ?? null;
 const others = dongsOf(sido, a.sigungu).filter((d) => d.dong !== dong && hasDongPage(d));
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }, { name: dong, href: rentPath(sido, a.sigungu, dong) }];
 ---
-<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description={rentDescription(`${a.sigunguName} ${dong}`, a)} crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description={rentDescription(`${a.sigunguName} ${dong}`, a)} crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} tool="rent" sidebar={false} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건 · 법정동 기준</p>
