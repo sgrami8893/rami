@@ -2,12 +2,16 @@
 // 시·군·구 페이지: 유형별 요약 + 동별 표(동 페이지 기준 미달 동도 한 줄로 보여 줌) + 계산기
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/rent/MockBanner.astro';
+import RentMap from '../../../../components/rent/RentMap.astro';
+import RentPick from '../../../../components/rent/RentPick.astro';
+import MapButton from '../../../../components/MapButton.astro';
+
 import RentSummary from '../../../../components/rent/RentSummary.astro';
 import RentCalculator from '../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../components/rent/RentNotes.astro';
 import AdSlot from '../../../../components/AdSlot.astro';
 import ShowMore from '../../../../components/ui/ShowMore.astro';
-import { RENT_SOURCES, stats, sidoShort, dongsOf, hasDongPage, rentPath, subGuText, periodText, sigunguIndexable, IS_MOCK, RENT_RULE, rentDescription, type RentArea } from '../../../../lib/rent.ts';
+import { RENT_MAP, RENT_SOURCES, stats, sidoShort, dongsOf, hasDongPage, rentPath, subGuText, periodText, sigunguIndexable, IS_MOCK, RENT_RULE, rentDescription, type RentArea } from '../../../../lib/rent.ts';
 import { sigunguAreas, manwon } from '../../../../../scripts/lib/rent.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return sigunguAreas(stats).map((a) => ({ params: { sido: a.sido, sigungu: a.sigungu }, props: { a } })); }
@@ -22,6 +26,8 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{a.sigunguName}{subGuText(sido, a.sigungu)} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건</p>
+  <MapButton show={RENT_MAP} label={`${a.sigunguName} 지도로 보기`} />
+  <RentPick />
   <RentSummary a={a} place={a.sigunguName} />
   <section aria-labelledby="dong-h" class="mt-6">
     <h2 id="dong-h" class="text-h2 font-bold text-ink">동별 거래 <span class="text-body font-medium text-ink-3">{dongs.length}개 동</span></h2>
@@ -40,4 +46,5 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
   <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} />
   <AdSlot name="A" />
   <RentNotes />
+  {RENT_MAP && <RentMap slot="map" focus={{ sido, slug: a.sigungu }} />}
 </BaseLayout>

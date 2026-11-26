@@ -1,0 +1,69 @@
+---
+// 전월세 단계구분도 지도 패널(2026-11-26). BaseLayout의 'map' 슬롯에 넣는다: <RentMap slot="map" focus={{ sido, slug, dong }} />
+// 배치·모바일 전체 화면·닫기는 주차장 지도(MapPanel)와 같은 #map-pane 규칙을 쓴다(map-panel.ts). 그리기는 rent-map.ts.
+// 바깥 요청은 배경지도 타일뿐(VWorld, 저장·캐시 없음). 경계·통계는 우리 정적 JSON(/geo/rent/).
+import { MAP } from '../../config.ts';
+import { HAS_PAGES, periodText } from '../../lib/rent.ts';
+import Icon from '../Icon.astro';
+import RentPickBody from './RentPickBody.astro';
+interface Props { focus?: { sido?: string; slug?: string; dong?: string | null } }
+const { focus = {} } = Astro.props;
+const show = MAP.enabled && HAS_PAGES;
+const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom };
+const sel = 'min-h-11 w-full min-w-0 cursor-pointer truncate rounded-[10px] bg-transparent pl-2.5 pr-6 text-[length:calc(15px*var(--fs,1))] font-semibold text-ink hover:bg-bg disabled:cursor-default disabled:text-ink-3 disabled:hover:bg-transparent';
+const seg = 'relative flex min-h-11 min-w-[60px] cursor-pointer items-center justify-center rounded-[10px] px-3 text-[length:calc(15px*var(--fs,1))] font-semibold text-ink-2 has-checked:bg-ink has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-brand';
+---
+{show && (
+  <section id="map-pane" class="map-pane" aria-label="전월세 시세 지도" data-label="전월세 시세 지도">
+    <div class="map-bar flex h-14 shrink-0 items-center gap-2 border-b border-line bg-card px-3 lg:hidden">
+      <h2 class="min-w-0 flex-1 truncate pl-1 text-body font-bold text-ink">전월세 시세 지도</h2>
+      <button type="button" data-map-close class="flex h-11 shrink-0 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink">
+        <Icon name="list" size={18} />목록으로
+      </button>
+    </div>
+    <div class="relative min-h-0 flex-1">
+      <div class="map-canvas rent-map absolute inset-0" data-kind="rent" data-src="/geo/rent/" data-cfg={JSON.stringify(cfg)} data-focus={JSON.stringify({ ...focus, dong: focus.dong ?? undefined })}>
+        <p class="map-loading flex h-full items-center justify-center text-cap text-ink-3">지도 불러오는 중</p>
+      </div>
+      <div class="rm-toggles pointer-events-none absolute left-3 top-3 z-[1000] flex flex-wrap gap-2" hidden>
+        <fieldset class="map-float pointer-events-auto flex gap-0.5 p-1">
+          <legend class="sr-only">주택 유형</legend>
+          <label class={seg}><input type="radio" name="rm-type" value="v" checked class="sr-only" />빌라</label>
+          <label class={seg}><input type="radio" name="rm-type" value="o" class="sr-only" />오피스텔</label>
+        </fieldset>
+        <fieldset class="map-float pointer-events-auto flex gap-0.5 p-1">
+          <legend class="sr-only">전세·월세</legend>
+          <label class={seg}><input type="radio" name="rm-kind" value="j" checked class="sr-only" />전세</label>
+          <label class={seg}><input type="radio" name="rm-kind" value="w" class="sr-only" />월세</label>
+        </fieldset>
+      </div>
+      <div class="rm-select map-float absolute left-3 right-[64px] top-[68px] z-[1000] grid max-w-[440px] grid-cols-[0.8fr_1.1fr_1.1fr] gap-1 p-1" hidden role="group" aria-label="지역 선택">
+        <label class="sr-only" for="rm-sido">시·도</label>
+        <select id="rm-sido" name="rm-sido" class={sel}></select>
+        <label class="sr-only" for="rm-sgg">시·군·구</label>
+        <select id="rm-sgg" name="rm-sgg" class={sel}></select>
+        <label class="sr-only" for="rm-dong">동네</label>
+        <select id="rm-dong" name="rm-dong" class={sel}><option value="">동네</option></select>
+      </div>
+      <div class="rm-legend map-float absolute bottom-3 left-3 z-[999] w-[min(280px,calc(100%-24px))] px-3 pb-2 pt-2.5" hidden>
+        <p class="rm-legend-title text-[length:calc(13px*var(--fs,1))] font-semibold text-ink"></p>
+        <div class="rm-legend-bar mt-1.5 flex h-2.5 overflow-hidden rounded-full [&>span]:flex-1" aria-hidden="true"></div>
+        <div class="rm-legend-ticks relative mt-1 h-4 text-[12px] tabular-nums text-ink-2 [&>span]:absolute [&>span]:-translate-x-1/2" aria-hidden="true"></div>
+        <p class="mt-1 flex items-center gap-1.5 text-[12px] text-ink-2"><span class="inline-block size-2.5 rounded-sm bg-[#E5E8EB] ring-1 ring-black/10" aria-hidden="true"></span>회색: 거래 적음 · {periodText()}</p>
+        <p class="rm-legend-sr sr-only"></p>
+      </div>
+      <div class="rm-card map-float absolute inset-x-3 bottom-3 z-[1001] p-4 lg:inset-x-auto lg:left-3 lg:w-[360px]" role="region" aria-label="고른 동네 요약" tabindex="-1" hidden>
+        <button type="button" class="rp-close absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-ink-3 hover:bg-bg" aria-label="요약 닫기"><Icon name="x" size={20} /></button>
+        <RentPickBody />
+      </div>
+    </div>
+    <p class="map-note shrink-0 border-t border-line bg-card px-4 py-2 text-[length:calc(14px*var(--fs,1))] text-ink-3">
+      최근 12개월 실거래 중위값 · 경계: 행정안전부 도로명주소 법정동 경계{MAP.name && <> · 배경지도 {MAP.policyUrl ? <a href={MAP.policyUrl} class="underline" target="_blank" rel="noopener noreferrer">{MAP.name}</a> : MAP.name} 오픈플랫폼 이용</>}
+    </p>
+  </section>
+)}
+
+<script>
+  import { initMapPanels } from '../../scripts/map-panel.ts';
+  initMapPanels();
+</script>

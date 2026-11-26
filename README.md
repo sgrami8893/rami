@@ -35,6 +35,16 @@ npm test              # 데이터 파이프라인 테스트
 
 CSV 파일은 커밋하지 않는다(.gitignore). `npm run mock-data`는 가상 데이터를 `scripts/fixtures/out/`에 만든다(실데이터 보존).
 
+## 전월세 지도 경계 갱신 (행정구역이 바뀔 때만)
+
+경계 SHP(도로명주소 기반 시·군·구/읍면동/리, WGS84)를 압축 해제한 폴더로 다시 만든다. 통계만 바뀌면 빌드만 하면 된다(/geo/rent/*.json은 빌드 때 합침).
+
+```
+pip install pyshp shapely topojson
+node -e "import('./scripts/lib/rent-lawd.ts').then(m=>{const o={};for(const l of m.LAWD){const r=m.regionOfDeal(l.code,'X');if(r)o[l.code]=[r.sido,r.sigungu]};console.log(JSON.stringify(o))})" > lawd.json
+python3 scripts/geo/build-boundaries.py <경계 폴더> lawd.json   # → src/data/geo/sgg.json, src/data/geo/emd/*.json
+```
+
 ## 코드
 - `scripts/lib/localdata.ts` 실데이터 어댑터(두 파일 조인, 재외공관·미사용 기기 제외, 등기·가족관계는 설치정보 발급구분 기준)
 - `scripts/lib/hours.ts` 운영시간 파서 + KST `isOpenAt`(클라이언트 공용)

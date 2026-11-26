@@ -2,7 +2,7 @@
 import mock from '../data/rent-stats.mock.json';
 // 실데이터(npm run fetch-rent 결과)가 있으면 그것을, 없으면 가짜 데이터를 쓴다(파일이 없어도 빌드되게 glob)
 const real = Object.values(import.meta.glob('../data/rent-stats.json', { eager: true, import: 'default' }))[0] as RentStats | undefined;
-import { RENT_PREVIEW, DATA_SOURCES, TOOLS } from '../config.ts';
+import { RENT_PREVIEW, DATA_SOURCES, TOOLS, MAP } from '../config.ts';
 import { SIDO, SIGUNGU, type SidoSlug } from '../../scripts/lib/regions.ts';
 import { sigunguAreas, dongAreasOf, dongPages, dongIndexable, sigunguIndexable, RENT_RULE, manwon, type RentStats, type RentArea } from '../../scripts/lib/rent.ts';
 
@@ -14,6 +14,8 @@ const EMPTY: RentStats = { from: '', to: '', generatedAt: '', isMock: true, area
 const LIVE = TOOLS.find((t) => t.slug === 'rent')?.status === 'live';
 export const stats: RentStats = RENT_PREVIEW ? (real ?? (mock as unknown as RentStats)) : LIVE && real ? real : EMPTY;
 export const HAS_PAGES = stats.areas.length > 0;
+/** 전월세 지도(단계구분도)를 켤 수 있는지: 배경지도 설정 + 전월세 페이지가 있을 때. 페이지는 이때만 'map' 슬롯을 채운다(빈 2단 방지) */
+export const RENT_MAP = MAP.enabled && HAS_PAGES;
 export const RENT_BASE = '/rent/';
 export const SIDOS: SidoSlug[] = (['seoul', 'gyeonggi', 'incheon'] as SidoSlug[]).filter((s) => stats.areas.some((a) => a.sido === s));
 export const sidoName = (s: SidoSlug) => SIDO[s].name;
