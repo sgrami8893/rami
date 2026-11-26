@@ -26,6 +26,8 @@ interface Props {
   sidebar?: boolean;
   /** 'white': 순백 캔버스(3차 개편 페이지). 섹션은 .band 띠로 나누고, PC 사이드바는 옅은 회색 + 세로 구분선. */
   canvas?: 'gray' | 'white';
+  /** 푸터 출처를 직접 지정(TOOLS에 없는 미리보기 도구용, 예: /rent/) */
+  sources?: { name: string; url: string; label: string; date: string }[];
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
 const sidebar = Astro.props.sidebar ?? Boolean(tool);
@@ -38,6 +40,7 @@ const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? 
 const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t) => t.slug))
   .map((s) => ({ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }))
   .filter((s) => s.name);
+if (Astro.props.sources) sources.splice(0, sources.length, ...Astro.props.sources);
 const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
 const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', waste: '대형폐기물', cert: '자격시험' };
 ---

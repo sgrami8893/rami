@@ -2,7 +2,7 @@
 import mock from '../data/rent-stats.mock.json';
 // 실데이터(npm run fetch-rent 결과)가 있으면 그것을, 없으면 가짜 데이터를 쓴다(파일이 없어도 빌드되게 glob)
 const real = Object.values(import.meta.glob('../data/rent-stats.json', { eager: true, import: 'default' }))[0] as RentStats | undefined;
-import { RENT_PREVIEW } from '../config.ts';
+import { RENT_PREVIEW, DATA_SOURCES } from '../config.ts';
 import { SIDO, SIGUNGU, type SidoSlug } from '../../scripts/lib/regions.ts';
 import { sigunguAreas, dongAreasOf, dongPages, dongIndexable, sigunguIndexable, RENT_RULE, type RentStats, type RentArea } from '../../scripts/lib/rent.ts';
 
@@ -23,3 +23,5 @@ export const rentPath = (s?: string, sg?: string, dong?: string | null) => `${RE
 export const subGuText = (s: SidoSlug, sg: string) => { const x = SIGUNGU[s].find((y) => y.slug === sg); return x?.subGu?.length ? `(${x.subGu.join('·')})` : ''; };
 /** "2025년 11월~2026년 10월" */
 export const periodText = () => { const f = (ym: string) => `${ym.slice(0, 4)}년 ${Number(ym.slice(5, 7))}월`; return stats.from ? `${f(stats.from)}~${f(stats.to)}` : ''; };
+/** 푸터 출처(국토부 실거래가 2종 + 계약 기간) */
+export const RENT_SOURCES = (['rentVilla', 'rentOffi'] as const).map((k) => ({ ...DATA_SOURCES[k], label: '계약 기간', date: periodText() }));

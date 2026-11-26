@@ -44,6 +44,9 @@ export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
   muin: { name: '행정안전부 무인민원발급기 정보', url: 'https://www.localdata.go.kr' },
   // 공공데이터포털 '전국주차장정보표준데이터'(API tn_pubr_prkplce_info_api). 이용허락범위는 포털 화면에서 확인 후 about에 기록
   parking: { name: '공공데이터포털 전국주차장정보표준데이터', url: 'https://www.data.go.kr/data/15012896/standard.do' },
+  // 국토교통부 실거래가 공개 API(이용허락 제한 없음). /rent/ 는 TOOLS에 아직 없어서 페이지가 sources로 직접 넘긴다
+  rentVilla: { name: '국토교통부 연립다세대 전월세 실거래가 자료', url: 'https://www.data.go.kr/data/15126473/openapi.do' },
+  rentOffi: { name: '국토교통부 오피스텔 전월세 실거래가 자료', url: 'https://www.data.go.kr/data/15126475/openapi.do' },
 };
 
 /**
