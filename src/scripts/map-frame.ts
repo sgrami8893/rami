@@ -2,7 +2,7 @@
 // 모든 지도(전월세·주차장·무인민원발급기)가 같은 모양을 쓴다:
 // - 틀 = 지금 보는 지역의 바깥 경계. 중간 회청색 2.25px(80%) + 흰 테(halo). 검은 선은 쓰지 않는다(2026-11-26 사용자 '꼭 시커매야 하나').
 // - 고른 동·마우스 올린 동은 흰 3px + 어두운 부드러운 그림자(CSS .rm-glow)로 어떤 배경 위에서도 보이게.
-// - 틀 바깥은 옅은 막(mask)으로 덮어 '이 지역만' 보이게 한다(배경지도는 살짝 비친다).
+// - 틀 바깥은 덮지 않는다(2026-11-26 사용자 '주변을 굳이 회색으로 칠해야 하나' → 바깥 막 제거). 바깥은 색칠·라벨만 숨긴다.
 // - 핀 지도(주차장 등)는 틀 안에 한 단계 아래 경계(시·군·구 또는 동)를 가는 선으로, 이 페이지의 동은 흰 굵은 선으로 강조.
 // 경계 데이터는 /geo/area/*.json(통계 없음, src/lib/area-geo.ts). 지도 조작을 막지 않게 모두 interactive:false(동 이름 풍선만 예외).
 import type * as Leaflet from 'leaflet';
@@ -23,7 +23,6 @@ export const getGeo = (url: string) => {
 /** 틀 레이어: set(경계)로 바꾸고 set(null)로 지운다 */
 export function createFrame(L: typeof Leaflet, map: Leaflet.Map) {
   const pane = (name: string, z: number) => { const p = map.getPane(name) ?? map.createPane(name); p.style.zIndex = String(z); p.style.pointerEvents = 'none'; return name; };
-  const maskPane = pane('dnkk-mask', 350);  // 배경지도(200) 위, 색칠·경계(400) 아래
   const framePane = pane('dnkk-frame', 450); // 색칠 위, 핀·라벨(600) 아래
   let layers: Leaflet.Layer[] = [];
   let cur: Geom | null = null;
@@ -33,14 +32,9 @@ export function createFrame(L: typeof Leaflet, map: Leaflet.Map) {
       cur = g;
       layers.forEach((l) => map.removeLayer(l)); layers = [];
       if (!g) return;
-      const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
-      const ring = (r: GeoJSON.Position[]) => r.map(([x, y]) => [y, x] as [number, number]);
-      // 바깥 큰 사각형 + 지역 고리들(짝수-홀수 채움이라 지역 안은 비고, 지역 안의 구멍은 다시 덮인다)
-      const outer: [number, number][] = [[30, 118], [30, 136], [44, 136], [44, 118]];
-      const mask = L.polygon([outer, ...polys.flatMap((p) => p.map(ring))], { pane: maskPane, stroke: false, fillColor: '#EEF2F7', fillOpacity: 0.5, interactive: false });
       const halo = L.geoJSON(g, { pane: framePane, interactive: false, style: { color: '#FFFFFF', weight: 5, opacity: 0.5, fill: false, lineJoin: 'round', lineCap: 'round' } });
       const line = L.geoJSON(g, { pane: framePane, interactive: false, style: { color: SLATE, weight: 2, opacity: 0.55, fill: false, lineJoin: 'round', lineCap: 'round', className: 'map-frame-line' } });
-      layers = [mask, halo, line];
+      layers = [halo, line];
       layers.forEach((l) => l.addTo(map));
     },
   };
