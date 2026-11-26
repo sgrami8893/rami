@@ -51,3 +51,7 @@ export function placeLabels(items: { el: HTMLElement; x: number; y: number; w: n
     if (!hit) placed.push(box);
   }
 }
+
+/** 내 위치 표시 = 로고 '콕 핀'(2026-11-27 브랜드 B). 처음 찍힐 때 한 번만 퍼지는 고리(600ms, 움직임 줄이기면 없음). 꼬리 끝이 좌표 */
+export const ME_HTML = '<span class="me-pin" aria-hidden="true"><i class="kok-rip"></i><svg viewBox="0 0 24 24" width="34" height="34"><defs><linearGradient id="megr" x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#6B1F57"/><stop offset="1" stop-color="#B23A5B"/></linearGradient></defs><path d="M12 23.2 8.7 19.4H6.4A4.4 4.4 0 0 1 2 15V6.4A4.4 4.4 0 0 1 6.4 2h11.2A4.4 4.4 0 0 1 22 6.4V15a4.4 4.4 0 0 1-4.4 4.4h-2.3Z" fill="url(#megr)" stroke="#fff" stroke-width="1.4"/><circle cx="12" cy="10.7" r="4" fill="#fff"/><circle cx="12" cy="10.7" r="1.7" fill="#F59A4E"/></svg><span class="sr-only">내 위치</span></span>';
+export const meIcon = (L: typeof import('leaflet')) => L.divIcon({ className: 'me-wrap', html: ME_HTML, iconSize: [34, 34], iconAnchor: [17, 33] });

@@ -34,6 +34,8 @@ export function calcFee(l: Pick<ParkingLot, 'fee' | 'hours'>, minutes: number): 
     // 기본요금 없이 1일권만 있는 경우는 1일권 금액으로 안내할 수 없어(시간 조건 불명) 정보 없음 처리
     return { status: 'none', reason: '요금 정보 없음' };
   }
+  // 유료인데 기본·추가 요금이 모두 0원인 자료는 입력 누락으로 보고 계산하지 않는다(무료로 오인 방지, 2026-11-27)
+  if (f.baseFee === 0 && !f.unitFee) return { status: 'none', reason: '요금 정보 확인 필요' };
   let amount = f.baseFee, extraUnits = 0;
   if (minutes > f.baseMin) {
     if (!f.unitMin || f.unitMin <= 0 || f.unitFee === null) return { status: 'none', reason: `기본 ${f.baseMin}분 ${f.baseFee.toLocaleString('ko-KR')}원 이후 요금 정보 없음` };

@@ -3,7 +3,7 @@
 // 상세 화면(data-focus-id)은 그 핀을 크게 표시하고 그 자리로 맞춘다.
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import type * as Leaflet from 'leaflet';
-import { createMap, esc, LG } from './base.ts';
+import { createMap, esc, LG, meIcon } from './base.ts';
 import type { Ctx, Layer } from './shell.ts';
 
 type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
@@ -58,7 +58,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   fit();
   if (active) { const m = markers.get(active); if (m) cluster.zoomToShowLayer(m, () => paint(active!)); }
 
-  let meMarker: Leaflet.CircleMarker | null = null;
+  let meMarker: Leaflet.Marker | null = null;
   return {
     focus() { /* 핀 화면은 페이지마다 새로 그린다 */ },
     hover(id) {
@@ -89,8 +89,8 @@ export async function mount(ctx: Ctx): Promise<Layer> {
         m.on('click', (e) => { L.DomEvent.stopPropagation(e); ctx.pick({ key: id, title: p.name, value: p.tag, href: p.href }, (e as Leaflet.LeafletMouseEvent).originalEvent instanceof KeyboardEvent); });
         markers.set(id, m); shown.add(id); add.push(m);
       }
-      if (add.length) cluster.addLayers(add);
-      meMarker = L.circleMarker([pt.lat, pt.lng], { radius: 9, color: '#FFFFFF', weight: 3, fillColor: '#191F28', fillOpacity: 1, interactive: false, className: 'rm-glow' }).bindTooltip('내 위치', { direction: 'top', offset: [0, -10], className: 'rm-tip' }).addTo(map);
+      if (add.length) { cluster.addLayers(add); canvas.parentElement?.querySelector('.mv-nopins')?.remove(); }
+      meMarker = L.marker([pt.lat, pt.lng], { icon: meIcon(L), interactive: false, keyboard: false, zIndexOffset: 2000 }).addTo(map);
       const pts: [number, number][] = [[pt.lat, pt.lng], ...(near ?? []).slice(0, 5).map((l) => [l.lat, l.lng] as [number, number])];
       if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [48, 48], maxZoom: 16 }); else map.setView([pt.lat, pt.lng], 15);
     },

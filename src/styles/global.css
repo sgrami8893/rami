@@ -583,3 +583,58 @@ html[data-rt="o"]:not([data-rk="w"]) .v-row .sw-wrap .sw.rm-oj, html[data-rt="o"
 .mv-lbl.is-sel { box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px rgb(107 31 87 / .35), 0 8px 20px rgb(107 31 87 / .3); transform: translate(-50%, -50%) scale(1.06); }
 .v-tool .t .num, .v-tool .t .ft { display: block; }
 .v-tool .t .ft { margin-top: 0; }
+/* '이 가격 위치'(2026-11-27) */
+.v-range .mine { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: #F59A4E; border: 3px solid #fff; box-shadow: 0 2px 6px rgb(245 154 78 / .55); transform: translate(-50%, -50%); transition: left .2s cubic-bezier(.2,.8,.2,1); }
+.v-range .mine b { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: calc(12px * var(--fs, 1)); font-weight: 800; color: #9A4A00; }
+.v-pos { margin-top: 22px; padding: 14px; border-radius: 16px; background: #FFF8F1; box-shadow: inset 0 0 0 1px rgb(245 154 78 / .22); }
+.v-pos-in { display: block; }
+.v-pos-in .t { display: block; font-size: calc(14px * var(--fs, 1)); font-weight: 700; color: var(--color-ink-2); }
+.v-pos-in .f { display: flex; align-items: center; gap: 8px; margin-top: 6px; height: 48px; padding: 0 14px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px rgb(25 31 40 / .1); }
+.v-pos-in .f:focus-within { box-shadow: inset 0 0 0 2px var(--color-brand); }
+.v-pos-in input { min-width: 0; flex: 1; height: 100%; background: transparent; outline: none; font-size: calc(18px * var(--fs, 1)); font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.v-pos-in input::placeholder { font-weight: 500; color: #8B95A1; }
+.v-pos-in .u { flex: none; font-size: calc(14px * var(--fs, 1)); color: var(--color-ink-3); }
+.v-pos-bands { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.v-pos-bands .v-chip { min-height: 36px; padding: 0 11px; font-size: calc(14px * var(--fs, 1)); }
+.v-pos-bands .v-chip::after { inset: -4px 0; }
+.v-pos-out { margin-top: 10px; font-size: calc(16px * var(--fs, 1)); font-weight: 700; color: var(--color-ink); line-height: 1.5; }
+.v-pos-note { margin-top: 8px; font-size: calc(12.5px * var(--fs, 1)); color: var(--color-ink-3); }
+.v-rangebox:has(.mine:not([hidden])) .v-range-ends { margin-top: 24px; }
+/* 주차장 머물 시간(2026-11-27) */
+.v-stay { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 14px; background: var(--color-bg); }
+.v-stay-k { margin: 6px 0 -2px; font-size: calc(14px * var(--fs, 1)); font-weight: 700; color: var(--color-ink-2); } .v-stay-k small { font-weight: 500; color: var(--color-ink-3); font-size: inherit; }
+.v-stay .k { flex: none; padding: 0 8px 0 6px; font-size: calc(13px * var(--fs, 1)); font-weight: 700; color: var(--color-ink-3); white-space: nowrap; }
+.v-stay button { position: relative; flex: 1 1 0; min-width: 0; min-height: 36px; padding: 0 4px; border-radius: 10px; font-size: calc(15px * var(--fs, 1)); font-weight: 600; color: var(--color-ink-2); white-space: nowrap; transition: background-color .2s cubic-bezier(.2,.8,.2,1); }
+.v-stay button::after { content: ''; position: absolute; inset: -4px 0; }
+.v-stay button[aria-pressed="true"] { background: #fff; color: var(--color-brand); font-weight: 800; box-shadow: 0 1px 3px rgb(0 0 0 / .1); }
+.lot-sep { margin: 18px 0 4px; padding: 10px 12px; border-radius: 12px; background: var(--color-off-bg); font-size: calc(14px * var(--fs, 1)); font-weight: 600; color: var(--color-off); }
+.lot-sep[hidden] { display: none; }
+
+/* ===== 브랜드 B '콕 핀'(2026-11-27 사용자 선택) ===== */
+.v-logo .wm { letter-spacing: -0.045em; } .v-logo .wm b { color: var(--color-brand); font-weight: 900; }
+@keyframes kok { from { box-shadow: 0 0 0 0 rgb(107 31 87 / .45), 0 6px 18px rgb(107 31 87 / .35); } to { box-shadow: 0 0 0 18px rgb(107 31 87 / 0), 0 6px 18px rgb(107 31 87 / .35); } }
+@keyframes kok-rip { from { transform: translate(-50%, -50%) scale(.3); opacity: .7; } to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+/* 내 위치 = 로고 핀, 처음 한 번 퍼지는 고리 */
+.me-wrap { background: none; border: 0; }
+.me-pin { position: relative; display: block; width: 34px; height: 34px; filter: drop-shadow(0 4px 8px rgb(107 31 87 / .4)); }
+.me-pin svg { position: relative; display: block; }
+.me-pin .kok-rip { position: absolute; left: 50%; top: 45%; width: 96px; height: 96px; border-radius: 30px; border: 3px solid rgb(107 31 87 / .5); background: rgb(245 154 78 / .12); transform: translate(-50%, -50%) scale(1); opacity: 0; animation: kok-rip .6s cubic-bezier(.2,.8,.2,1) 1; pointer-events: none; }
+/* 주차장 핀·묶음도 같은 네모 핀 언어로 */
+.map-tag { border-radius: 11px; }
+.map-tag::after { width: 10px; height: 10px; bottom: -6px; border-bottom-right-radius: 1px; }
+.map-hit.is-active .map-tag, .map-hit.is-active .map-tag:not(.map-tag-free) { background: linear-gradient(160deg, #6B1F57, #B23A5B); border-radius: 13px; animation: kok .6s cubic-bezier(.2,.8,.2,1) 1; }
+.map-hit.is-active .map-tag::after { background: #B23A5B; }
+.map-cluster { border-radius: 13px; box-shadow: 0 0 0 2px rgb(107 31 87 / .14), 0 3px 10px rgb(15 23 42 / .16); }
+.map-cluster b { color: var(--color-brand); }
+.map-hit.is-hover .map-cluster b { color: #fff; }
+.mv-lbl.is-sel { animation: kok-lbl .6s cubic-bezier(.2,.8,.2,1) 1; }
+@keyframes kok-lbl { from { box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px rgb(107 31 87 / .5), 0 8px 20px rgb(107 31 87 / .3); } 60% { box-shadow: 0 0 0 2.5px #fff, 0 0 0 16px rgb(107 31 87 / 0), 0 8px 20px rgb(107 31 87 / .3); } to { box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px rgb(107 31 87 / .35), 0 8px 20px rgb(107 31 87 / .3); } }
+/* 빈 화면: 점선 빈 네모 핀 + 한 줄(제미나이 합의) */
+.v-empty-pin { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 8px; text-align: center; }
+.v-empty-pin::before { content: ''; width: 48px; height: 48px; background: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 23.2 8.7 19.4H6.4A4.4 4.4 0 0 1 2 15V6.4A4.4 4.4 0 0 1 6.4 2h11.2A4.4 4.4 0 0 1 22 6.4V15a4.4 4.4 0 0 1-4.4 4.4h-2.3Z' fill='none' stroke='%23C4CAD1' stroke-width='1.2' stroke-dasharray='2 1.6'/%3E%3Ccircle cx='12' cy='10.7' r='1.9' fill='%23F59A4E'/%3E%3C/svg%3E"); }
+.v-empty-pin[hidden] { display: none; }
+/* 숫자·단위 위계 */
+.v-ans .v small, .v-row .val small:first-child { color: var(--color-ink-2); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .me-pin .kok-rip { display: none; } .map-hit.is-active .map-tag, .mv-lbl.is-sel { animation: none; } }
+.v-ans .near-place .k, .near-place .k { color: #fff; font-size: calc(13px * var(--fs, 1)); }
+.mv-nopins { position: absolute; left: 50%; top: 72px; z-index: 500; width: min(360px, calc(100% - 32px)); transform: translateX(-50%); padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / .95); box-shadow: var(--sh-2); font-size: calc(14px * var(--fs, 1)); color: var(--color-ink-2); text-align: center; }

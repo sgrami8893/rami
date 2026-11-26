@@ -66,6 +66,10 @@ const crumbLd = crumbs.length > 1 ? [{ '@context': 'https://schema.org', '@type'
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="ko_KR" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:image" content={new URL('/og.png', Astro.site).href} />
+    <meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} 가이드`} href="/rss.xml" />
     {Astro.url.pathname === '/' && SITE_VERIFICATION.google && <meta name="google-site-verification" content={SITE_VERIFICATION.google} />}
     {Astro.url.pathname === '/' && SITE_VERIFICATION.naver && <meta name="naver-site-verification" content={SITE_VERIFICATION.naver} />}
@@ -79,7 +83,7 @@ const crumbLd = crumbs.length > 1 ? [{ '@context': 'https://schema.org', '@type'
   <body class="min-h-screen bg-card text-ink antialiased">
     <a href="#main" class="sr-only z-[90] rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
     <header class="v-hd">
-      <a href="/" class="v-logo" aria-label={`${SITE_NAME} 처음으로`}><Logo size={26} class="text-brand" /><span>{SITE_NAME}</span></a>
+      <a href="/" class="v-logo" aria-label={`${SITE_NAME} 처음으로`}><Logo size={28} /><span class="wm">동네<b>콕콕</b></span></a>
       <nav aria-label="도구" class="v-tools">
         {liveTools.map((t) => <a href={t.path} aria-current={tool === t.slug ? 'page' : undefined}>{SHORT[t.slug] ?? t.name}</a>)}
       </nav>

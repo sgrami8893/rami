@@ -1,37 +1,118 @@
 ---
 // 거래 80% 범위 막대(v2 동 상세 시세 탭): 지금 보는 유형×전세/월세 하나. 중위 점 + 양 끝 값. 숫자는 글자로도 있다.
+// '이 가격 위치'(2026-11-27 제미나이 합의): 막대 바로 아래 금액 칸 → 막대 위 살구 점 + '거래 N건 중 낮은 쪽에서 약 N% 자리' 한 줄.
+//  - 사실만(판정어 없음). 구간 값(최저·P10·P25·중위·P75·P90·최고) 사이를 이어 추정한 대략 위치라고 적는다.
+//  - 면적 구간 칩: 그 구간 거래 30건 이상이고 분포가 있으면 그 구간으로 계산, 없으면 그 구간 중위값만 사실로 보여 준다.
+//  - 입력 금액은 이 화면 안에서만 계산하고 어디에도 보내거나 저장하지 않는다.
 import type { RentArea, Dist } from '../../../scripts/lib/rent.ts';
 import { RENT_RULE } from '../../../scripts/lib/rent.ts';
 import { amt } from '../../lib/rent-view.ts';
 interface Props { a: RentArea }
 const { a } = Astro.props;
-const T = [['v', 'villa'], ['o', 'officetel']] as const;
+const T = [['v', 'villa', '빌라'], ['o', 'officetel', '오피스텔']] as const;
 const span = (d: Dist | null | undefined) => (!d || d.n < RENT_RULE.RANGE_MIN ? null : { lo: d.p10 ?? d.p25, hi: d.p90 ?? d.p75, med: d.median, pct: d.p10 !== undefined ? '80%' : '절반' });
+const knots = (d: Dist) => (d.p10 !== undefined && d.p90 !== undefined ? [d.min, d.p10, d.p25, d.median, d.p75, d.p90, d.max] : null);
 const bar = (d: Dist | null | undefined, fmt: (v: number) => string, label: string) => {
   const s = span(d);
-  if (!s) return { s: null, label };
+  if (!s || !d) return { s: null, label };
   const pad = (s.hi - s.lo) * 0.08 || 1;
-  const pos = Math.min(100, Math.max(0, ((s.med - (s.lo - pad)) / (s.hi + pad - (s.lo - pad))) * 100));
-  return { s, pos, lo: fmt(s.lo), hi: fmt(s.hi), med: fmt(s.med), label };
+  const x0 = s.lo - pad, x1 = s.hi + pad;
+  const pos = Math.min(100, Math.max(0, ((s.med - x0) / (x1 - x0)) * 100));
+  return { s, pos, lo: fmt(s.lo), hi: fmt(s.hi), med: fmt(s.med), label, n: d.n, k: knots(d), x0, x1 };
 };
 ---
-{T.map(([k, key]) => { const t = a.byType[key]; return (
+{T.map(([k, key, kind]) => { const t = a.byType[key]; return (
   <div class={`rt-${k}`}>
-    {[['j', bar(t?.jeonse, amt, '전세 보증금')], ['w', bar(t?.wolse?.monthly, (v) => `월 ${v}만`, '월세')]].map(([kk, b]) => {
-      const x = b as ReturnType<typeof bar>;
+    {([['j', bar(t?.jeonse, amt, '전세 보증금')], ['w', bar(t?.wolse?.monthly, (v) => `월 ${v}만`, '월세')]] as const).map(([kk, x]) => {
+      const bands = (t?.bands ?? []).map((b) => ({ l: b.label, n: b.n, m: kk === 'j' ? b.jeonseMedian : b.wolseMonthlyMedian, q: kk === 'j' ? b.jq : b.wq })).filter((b) => b.m !== null);
       return (
         <div class={`rk-${kk}`}>
           {x.s ? (
-            <>
+            <div class="v-rangebox" data-pos-box data-kind={kk} data-k={JSON.stringify(x.k)} data-n={x.n} data-x0={x.x0} data-x1={x.x1} data-what={`${kind} ${kk === 'j' ? '전세' : '월세'}`} data-bands={JSON.stringify(bands)}>
               <p class="v-cap" style="margin-top:2px">{x.label} 거래 {x.s.pct}가 이 범위예요</p>
               <div class="v-range" role="img" aria-label={`${x.label} 거래 ${x.s.pct}가 ${x.lo}에서 ${x.hi} 사이, 중위 ${x.med}`}>
                 <span class="lab" style={`left:${x.pos}%`}>중위 {x.med}</span><span class="dot" style={`left:${x.pos}%`}></span>
+                <span class="mine" hidden aria-hidden="true"><b></b></span>
               </div>
               <div class="v-range-ends"><span>{x.lo}</span><span>{x.hi}</span></div>
-            </>
+              {x.k && (
+                <div class="v-pos">
+                  <label class="v-pos-in">
+                    <span class="t">{kk === 'j' ? '보고 있는 전세 보증금' : '보고 있는 월세'}</span>
+                    <span class="f"><input type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" data-pos-in placeholder={kk === 'j' ? '예: 2억 3000' : '예: 55'} aria-describedby={`pos-${k}-${kk}`} /><span class="u">{kk === 'j' ? '만 원' : '만 원/월'}</span></span>
+                  </label>
+                  {bands.length > 0 && (
+                    <div class="v-pos-bands" role="group" aria-label="전용면적 구간">
+                      <button type="button" class="v-chip" aria-pressed="true" data-band="">전체 면적</button>
+                      {bands.map((b, i) => <button type="button" class="v-chip" aria-pressed="false" data-band={String(i)}>{b.l}</button>)}
+                    </div>
+                  )}
+                  <p class="v-pos-out" id={`pos-${k}-${kk}`} aria-live="polite" data-pos-out>금액을 넣으면 이 동네 {kind} {kk === 'j' ? '전세' : '월세'} 거래 중 어디쯤인지 보여 드려요.</p>
+                  <p class="v-pos-note">거래 분포의 구간 값 사이를 이어 추정한 대략 위치예요. 층·연식·계약 조건은 반영하지 않고, 입력한 금액은 이 화면에서만 계산해요.</p>
+                </div>
+              )}
+            </div>
           ) : <p class="v-cap">{x.label} 거래가 {RENT_RULE.RANGE_MIN}건 미만이라 범위는 생략해요.</p>}
         </div>
       );
     })}
   </div>
 ); })}
+
+<script>
+  import { onPage } from '../../scripts/soft-nav.ts';
+  const P = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1];
+  const amt = (v: number) => { const e = Math.floor(v / 10000), r = v % 10000; return `${e ? `${e}억` : ''}${e && r ? ' ' : ''}${r || !e ? `${r.toLocaleString('ko-KR')}만` : ''}`; };
+  /** '2억 3000', '2.3억', '23000', '2억' → 만 원 */
+  const parse = (s: string, j: boolean) => {
+    const t = s.replace(/[,\s원]/g, '').replace(/만$/, '');
+    if (!t) return null;
+    const m = t.match(/^(\d+(?:\.\d+)?)억(\d+)?(?:천)?$/);
+    if (j && m) return Math.round(Number(m[1]) * 10000 + (m[2] ? Number(m[2]) * (t.includes('천') && Number(m[2]) < 10 ? 1000 : 1) : 0));
+    const n = Number(t);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  };
+  /** 구간 값 사이 직선 보간 → 0~1 */
+  const rank = (k: number[], v: number) => {
+    if (v <= k[0]) return 0; if (v >= k[6]) return 1;
+    for (let i = 1; i < 7; i++) if (v <= k[i]) return P[i - 1] + ((v - k[i - 1]) / (k[i] - k[i - 1] || 1)) * (P[i] - P[i - 1]);
+    return 1;
+  };
+  type B = { l: string; n: number; m: number; q?: number[] };
+  onPage(() => {
+    document.querySelectorAll<HTMLElement>('#main [data-pos-box]').forEach((box) => {
+      if (box.dataset.ready) return; box.dataset.ready = '1';
+      const inp = box.querySelector<HTMLInputElement>('[data-pos-in]'); if (!inp) return;
+      const out = box.querySelector<HTMLElement>('[data-pos-out]')!;
+      const mine = box.querySelector<HTMLElement>('.mine')!;
+      const j = box.dataset.kind === 'j';
+      const all = { k: JSON.parse(box.dataset.k!) as number[], n: Number(box.dataset.n) };
+      const bands = JSON.parse(box.dataset.bands || '[]') as B[];
+      const x0 = Number(box.dataset.x0), x1 = Number(box.dataset.x1);
+      const what = box.dataset.what!;
+      const fmt = (v: number) => (j ? amt(v) : `월 ${v}만`);
+      let band = -1;
+      const draw = () => {
+        const v = parse(inp.value, j);
+        if (v === null) { mine.hidden = true; out.textContent = inp.value.trim() ? '숫자로 적어 주세요(만 원 단위, 예: 23000 또는 2억 3000).' : `금액을 넣으면 이 동네 ${what} 거래 중 어디쯤인지 보여 드려요.`; return; }
+        mine.hidden = false;
+        mine.style.left = `${Math.min(100, Math.max(0, ((v - x0) / (x1 - x0)) * 100))}%`;
+        mine.querySelector('b')!.textContent = fmt(v);
+        const b = band >= 0 ? bands[band] : null;
+        if (b && !b.q) { out.textContent = `${b.l} 구간은 아직 분포 자료가 없어 위치는 계산하지 않아요(다음 자료 갱신부터 보여 드려요). 지금은 이 구간 ${what} 중위는 ${fmt(b.m)}이에요.`; return; }
+        const k = b?.q ?? all.k, n = b ? b.n : all.n, scope = b ? `${b.l} ` : '';
+        const r = rank(k, v);
+        const pct = Math.round(r * 20) * 5; // 5% 단위
+        out.textContent = r <= 0 ? `${fmt(v)}은 이 동네 ${scope}${what} 거래 ${n.toLocaleString('ko-KR')}건 중 가장 낮은 거래보다 낮거나 같아요.`
+          : r >= 1 ? `${fmt(v)}은 이 동네 ${scope}${what} 거래 ${n.toLocaleString('ko-KR')}건 중 가장 높은 거래보다 높거나 같아요.`
+          : `${fmt(v)}은 이 동네 ${scope}${what} 거래 ${n.toLocaleString('ko-KR')}건 중 낮은 쪽에서 약 ${Math.max(5, Math.min(95, pct))}% 자리예요.`;
+      };
+      inp.addEventListener('input', draw);
+      box.querySelectorAll<HTMLButtonElement>('[data-band]').forEach((c, _, list) => c.addEventListener('click', () => {
+        list.forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+        band = c.dataset.band ? Number(c.dataset.band) : -1;
+        draw();
+      }));
+    });
+  });
+</script>

@@ -31,7 +31,7 @@ const NAME = ['시·도', '시·군·구', '동'];
           <div class="pop-grid" data-pop-grid>
             {lv.items.map((it) => <a href={it.href} data-nm={it.label} aria-current={it.label === (lv.current ?? lv.label) ? 'page' : undefined}><span>{it.label}</span>{it.meta && <small>{it.meta}</small>}</a>)}
           </div>
-          <p class="pop-empty" data-pop-empty hidden>찾는 지역이 없어요. 이름 일부나 초성으로 다시 찾아 보세요.</p>
+          <p class="pop-empty v-empty-pin" data-pop-empty hidden>찾는 지역이 없어요. 이름 일부나 초성으로 다시 찾아 보세요.</p>
         </div>
       </details>
     </>

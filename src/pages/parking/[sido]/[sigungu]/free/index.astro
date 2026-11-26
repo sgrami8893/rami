@@ -12,6 +12,7 @@ import PlaceBar from '../../../../../components/v2/PlaceBar.astro';
 import { parkingPlace } from '../../../../../lib/parking-view.ts';
 import MapPill from '../../../../../components/v2/MapPill.astro';
 import { mapOn } from '../../../../../lib/map.ts';
+import { MAP as MAP_CFG } from '../../../../../config.ts';
 import { SIDOS, sidoShort, parkingPath, freePath, regionsOf, toPoint, IS_MOCK } from '../../../../../lib/parking.ts';
 import { freeSigunguIndexable } from '../../../../../../scripts/lib/parking.ts';
 import type { SidoSlug } from '../../../../../../scripts/lib/regions.ts';
@@ -41,7 +42,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     <a href={base} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{r.name} 공영주차장 전체 {st.total}곳 · 요금 비교</a>
     <a href={freePath(sido)} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{sidoShort(sido)} 무료주차장 전체</a>
   </nav>
-  {mapOn(pts) && <MapView slot="map" kind="pins" points={pts.map(toPoint)} title={`${r.name} 무료주차장 지도`} />}
+  {MAP_CFG.enabled && <MapView slot="map" kind="pins" points={pts.map(toPoint)} emptyNote="이 지역 주차장은 공공데이터에 좌표가 없어 지도에 핀을 찍지 못했어요. 목록의 주소로 확인하거나 '내 주변 보기'로 가까운 곳을 찾아보세요." title={`${r.name} 무료주차장 지도`} />}
 </BaseLayout>
 
 <script>

@@ -8,9 +8,11 @@ import { MAP } from '../../config.ts';
 import Icon from '../Icon.astro';
 import { HAS_BUILDINGS } from '../../lib/rent-buildings.ts';
 type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
-interface Props { kind: 'rent' | 'pins'; title?: string; focus?: Record<string, string | null | undefined>; points?: Pt[]; focusId?: string; note?: string }
-const { kind, title = kind === 'rent' ? '전월세 시세 지도' : '지도', focus = {}, points = [], focusId, note } = Astro.props;
-const show = MAP.enabled && (kind === 'rent' || points.length > 0);
+interface Props { kind: 'rent' | 'pins'; title?: string; focus?: Record<string, string | null | undefined>; points?: Pt[]; focusId?: string; note?: string; emptyNote?: string }
+const { kind, title = kind === 'rent' ? '전월세 시세 지도' : '지도', focus = {}, points = [], focusId, note, emptyNote } = Astro.props;
+// 핀이 하나도 없는 지역(좌표 없는 공공데이터)도 지도 칸은 둔다: PC 오른쪽이 빈 칸으로 남지 않게, '내 주변'으로 가까운 핀을 더할 수 있게(2026-11-27)
+const noPins = kind === 'pins' && points.length === 0 && !!emptyNote;
+const show = MAP.enabled && (kind === 'rent' || points.length > 0 || noPins);
 const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom };
 const cleanFocus = Object.fromEntries(Object.entries(focus).filter(([, v]) => v));
 const src = kind === 'rent' ? '최근 12개월 실거래 중위값 · 경계: 행정안전부 도로명주소 법정동 경계' + (HAS_BUILDINGS ? ' · 건물 위치: 행정안전부 주소정보' : '') : (note ?? '위치: 공공데이터 좌표');
@@ -40,6 +42,7 @@ const src = kind === 'rent' ? '최근 12개월 실거래 중위값 · 경계: �
           <span><i style="background:#0E7C4A"></i>무료</span><span><i style="background:#1F2937"></i>유료</span><span><i style="background:#0F766E"></i>혼합</span><span><i style="background:#8B95A1"></i>확인 필요</span>
         </div>
       )}
+      {noPins && <p class="mv-nopins">{emptyNote}</p>}
       <div class="mv-card" role="region" aria-label="고른 곳 요약" tabindex="-1" hidden>
         <button type="button" class="mv-card-close" aria-label="요약 닫기"><Icon name="x" size={20} /></button>
         <p class="mv-card-title"></p>

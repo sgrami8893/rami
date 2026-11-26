@@ -8,7 +8,7 @@
 // '내 예산' 결과가 있으면(rent:budget) 처음 화면의 시·군·구를 예산 안 동네 수로 칠한다.
 // 사실 숫자만(중위값·건수), 위험·안전 판정 없음. 화면에 넣는 글자는 textContent·esc()만.
 import type * as Leaflet from 'leaflet';
-import { createMap, placeLabels, esc, LG } from './base.ts';
+import { createMap, placeLabels, esc, LG, meIcon } from './base.ts';
 import type { Ctx, Focus, Layer, Pick } from './shell.ts';
 import { rentMode } from '../v2-rent-mode.ts';
 import { announce } from '../copy.ts';
@@ -300,7 +300,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     void loadCounts().then(() => { restyle(); if (budget) announce('지도를 예산 안 동네 수로 칠했어요.'); });
   }, sig);
   map.on('click', () => { /* 빈 곳: 아무것도 안 함 */ });
-  let meMarker: Leaflet.CircleMarker | null = null;
+  let meMarker: Leaflet.Marker | null = null;
   await apply(false);
 
   return {
@@ -312,7 +312,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     },
     me(pt) {
       meMarker?.remove();
-      meMarker = L.circleMarker([pt.lat, pt.lng], { radius: 9, color: '#FFFFFF', weight: 3, fillColor: '#191F28', fillOpacity: 1, interactive: false, pane: 'v2-line', className: 'rm-glow' }).bindTooltip('내 위치', { direction: 'top', offset: [0, -10], className: 'rm-tip' }).addTo(map);
+      meMarker = L.marker([pt.lat, pt.lng], { icon: meIcon(L), interactive: false, keyboard: false, zIndexOffset: 2000 }).addTo(map);
     },
     resize() { map.invalidateSize(); },
     destroy() { ac.abort(); map.remove(); },
