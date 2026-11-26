@@ -60,3 +60,11 @@ test('만원 표기', () => {
   assert.equal(manwon(10000), '1억 원');
   assert.equal(manwon(500), '500만 원');
 });
+
+test('국토부 실거래가 API의 정상 코드 000을 받아들인다', async () => {
+  const { parsePage } = await import('../lib/parking-api.ts');
+  const p = parsePage('<response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items><item><umdNm>역삼동</umdNm></item></items><totalCount>1</totalCount></body></response>');
+  assert.equal(p.totalCount, 1);
+  assert.equal(p.items[0].umdNm, '역삼동');
+  assert.throws(() => parsePage('<response><header><resultCode>030</resultCode><resultMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</resultMsg></header></response>'));
+});
