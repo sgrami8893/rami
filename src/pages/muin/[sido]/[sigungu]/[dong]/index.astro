@@ -1,5 +1,8 @@
 ---
 // 동(읍·면·동) 페이지: 기기 5곳 이상인 동만 만든다(src/lib/dongs.ts DONG_RULE). 미달 동은 시·군·구 페이지의 동 소제목으로 안내.
+import MapPanel from '../../../../../components/MapPanel.astro';
+import MapButton from '../../../../../components/MapButton.astro';
+import { mapOn, validPoints, kioskPoint } from '../../../../../lib/map.ts';
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import KioskRow from '../../../../../components/KioskRow.astro';
 import FilterBar from '../../../../../components/FilterBar.astro';
@@ -41,6 +44,7 @@ const summary = [
   <h1 class="text-title font-bold text-ink">{place} 무인민원발급기 {ks.length}곳</h1>
   <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} · 데이터 기준일 {st.latestBaseDate ?? '미상'} · 주소의 법정동 기준이라 행정동(예: ○○1동)과 범위가 다를 수 있어요</p>
   <StatCards st={st} />
+  <MapButton points={ks} />
   <FilterBar dongs={[]} subGu={[]} />
   <div id="kiosk-list" class="mt-2">
     <section data-group={d.dong}>
@@ -78,6 +82,7 @@ const summary = [
   </nav>
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
   <GuideList flat limit={4} />
+  {mapOn(ks) && <MapPanel slot="map" points={validPoints(ks).map(kioskPoint)} label={`${place} 무인민원발급기`} missing={ks.length - validPoints(ks).length} />}
 </BaseLayout>
 
 <script>

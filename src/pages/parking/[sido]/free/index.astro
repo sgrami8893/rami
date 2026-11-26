@@ -6,6 +6,8 @@ import LotRow from '../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../components/parking/FreeNote.astro';
 import MapPanel from '../../../../components/MapPanel.astro';
+import MapButton from '../../../../components/MapButton.astro';
+import { mapOn } from '../../../../lib/map.ts';
 import { SIDOS, lots, sidoName, sidoShort, parkingPath, freePath, regionsOf, freeHubIndexable, toPoint, IS_MOCK, type ParkingLot } from '../../../../lib/parking.ts';
 import { SIGUNGU, type SidoSlug } from '../../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return SIDOS.map((sido) => ({ params: { sido } })); }
@@ -29,7 +31,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     {groups.map((g) => <a href={`${parkingPath(sido, g.sigungu)}free/`} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">{g.name}<span class="font-medium text-ink-3">{g.items.length}</span></a>)}
   </nav>
   )}
-  <MapPanel points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} />
+  <MapButton points={pts} />
   {free.length <= LIST_MAX ? (
     <>
       <LotFilters total={free.length} free={false} sort={false} />
@@ -54,6 +56,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       </ul>
     </section>
   )}
+  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${sidoShort(sido)} 무료 주차장`} missing={free.length - pts.length} />}
 </BaseLayout>
 
 <script>

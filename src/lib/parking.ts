@@ -41,4 +41,7 @@ export const won = (v: number | null) => (v === null ? '-' : `${v.toLocaleString
 export const toPoint = (l: ParkingLot) => ({
   id: l.id, name: l.name, lat: l.lat as number, lng: l.lng as number, href: lotPath(l), badge: FEE_LABEL[l.fee.type],
   meta: [`평일 ${dayText(l, 'weekday')}`, l.spaces !== null ? `${l.spaces}면` : ''].filter(Boolean).join(' · '),
+  addr: l.roadAddress || l.jibunAddress || undefined,
 });
+/** 세 요일 묶음(평일·토·공휴일)이 모두 24시간으로 확인된 곳('확인 필요'로 바꾼 00:00~00:00은 제외) */
+export const is24hLot = (l: ParkingLot) => (['weekday', 'sat', 'holiday'] as const).every((k) => l.hours[k] === '24h' && !l.ambiguousDays?.includes(k));

@@ -31,9 +31,13 @@ interface Props {
   sources?: { name: string; url: string; label: string; date: string }[];
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
-const sidebar = Astro.props.sidebar ?? Boolean(tool);
+// PC 지도 2단(2026-11-26 사용자·제미나이 합의): 페이지가 'map' 슬롯을 채우면 1024px 이상에서
+// 왼쪽 400px 패널(본문 전부: 요약·필터·목록) + 오른쪽 큰 지도(화면 높이에 고정)로 나눈다. 본문 HTML은 그대로(검색엔진용).
+// 모바일은 기존 한 줄 흐름 그대로이고, 지도는 '지도로 보기' 버튼으로 전체 화면에 연다.
+const split = Astro.slots.has('map');
+const sidebar = split ? false : (Astro.props.sidebar ?? Boolean(tool));
 const white = (Astro.props.canvas ?? 'white') === 'white'; // 3차 개편: 전 페이지 순백 캔버스
-const frame = sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
+const frame = split ? 'max-w-2xl lg:max-w-none' : sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트명을 붙이지 않음
 const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? '미상';
@@ -97,6 +101,15 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
         ))}
       </div>
     </nav>
+    {split ? (
+    <div class="mx-auto max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[400px_minmax(0,1fr)]">
+      <main id="main" tabindex="-1" class="split-main min-w-0 px-5 pb-16 pt-4 tabular-nums focus:outline-none lg:border-r lg:border-line">
+        {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
+        <slot />
+      </main>
+      <slot name="map" />
+    </div>
+    ) : (
     <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
       <main id="main" tabindex="-1" class={`min-w-0 focus:outline-none ${white && sidebar ? 'lg:pr-8' : ''}`}>
         {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
@@ -104,6 +117,7 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
       </main>
       {sidebar && <Sidebar flat={white} />}
     </div>
+    )}
     <footer class="bg-ink">
       <div class={`mx-auto space-y-2 px-4 py-8 text-cap text-white/70 ${frame}`}>
         <p class="font-semibold text-white">동네콕콕은 정부·지자체 공식 사이트가 아닌 민간 정보 서비스예요.</p>

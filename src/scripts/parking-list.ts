@@ -39,7 +39,7 @@ export function initParkingList() {
     const on = new Set(chips.filter((c) => c.getAttribute('aria-pressed') === 'true').map((c) => c.dataset.filter));
     let n = 0;
     for (const r of rows()) {
-      const show = (!on.has('free') || r.dataset.free === '1') && (!on.has('open') || r.dataset.open === '1');
+      const show = (!on.has('free') || r.dataset.free === '1') && (!on.has('open') || r.dataset.open === '1') && (!on.has('24h') || r.dataset.f24 === '1');
       r.hidden = !show;
       r.toggleAttribute('data-clip', show && n >= limit);
       if (show) n++;
@@ -57,6 +57,7 @@ export function initParkingList() {
     if (count) count.textContent = `${n}곳`;
     if (empty) empty.hidden = n > 0;
     if (announce && status) status.textContent = `조건에 맞는 주차장 ${n}곳`;
+    document.dispatchEvent(new CustomEvent('list:filtered')); // 지도 핀도 같은 조건으로(map-panel.ts)
   };
 
   chips.forEach((c) => c.addEventListener('click', () => {

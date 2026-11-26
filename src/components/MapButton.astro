@@ -1,0 +1,14 @@
+---
+// 모바일 '지도로 보기' 버튼(2026-11-26). PC(1024px+)에서는 지도가 늘 오른쪽에 있으므로 숨긴다.
+// 지도는 JS로만 열리므로 JS가 없으면 버튼도 숨어 있다(map-panel.ts가 hidden을 푼다). 목록 HTML은 그대로라 검색엔진에는 영향 없음.
+import Icon from './Icon.astro';
+import { mapOn } from '../lib/map.ts';
+interface Props { points: { lat: number | null; lng: number | null }[]; class?: string }
+const { points, class: cls = 'mt-3' } = Astro.props;
+---
+{mapOn(points) && (
+  <button type="button" data-map-open hidden aria-haspopup="dialog" aria-controls="map-pane"
+    class={`map-open flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-line bg-card text-body font-semibold text-ink hover:text-brand lg:!hidden ${cls}`}>
+    <Icon name="map" size={20} class="text-brand" />지도로 보기
+  </button>
+)}

@@ -68,16 +68,35 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 }
 
 /* MapPanel 핀·클러스터 (우리 토큰으로 그린 도형, 이미지 없음) */
-/* 터치 영역: 투명 44px 래퍼(.map-hit) 안에 보이는 도형(핀 22px, 클러스터 40px) */
+/* 누르는 영역: 투명 래퍼(.map-hit, 핀 32px·클러스터 44px) 안에 보이는 도형(핀 22px, 클러스터 40px) */
 .map-hit { display: flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; }
-.map-pin { width: 22px; height: 22px; border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
-.map-cluster { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; color: #fff; font-weight: 700; font-size: calc(15px * var(--fs, 1)); box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
+.map-pin { width: 22px; height: 22px; border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); transition: transform .12s ease, background-color .12s ease; }
+.map-cluster { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--color-brand); border: 3px solid #fff; color: #fff; font-weight: 700; font-size: calc(15px * var(--fs, 1)); font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); transition: transform .12s ease, background-color .12s ease; }
+/* 목록 행에 마우스를 올린 곳(또는 그곳이 든 묶음) / 지금 고른 곳: 진한 색 + 크게 */
+.map-hit.is-hover .map-pin, .map-hit.is-hover .map-cluster { background: var(--color-ink); transform: scale(1.25); }
+.map-hit.is-active .map-pin { background: var(--color-ink); transform: scale(1.35); box-shadow: 0 0 0 4px rgb(37 99 235 / 0.35), 0 1px 4px rgb(0 0 0 / 0.35); }
 .map-hit:focus-visible { outline: none; }
-.map-hit:focus-visible > span { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.map-hit:focus-visible > span:first-child { outline: 3px solid var(--color-brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .map-pin, .map-cluster { transition: none; } }
 /* 확대·축소 버튼 40px */
-.map-panel .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font-size: 22px; }
-.map-panel .leaflet-container { font-family: inherit; background: var(--color-bg); }
-.map-panel .leaflet-control-attribution { font-size: 12px; }
+.map-pane .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font-size: 22px; }
+.map-pane .leaflet-container { font-family: inherit; background: var(--color-bg); }
+.map-pane .leaflet-control-attribution { font-size: 12px; }
+
+/* ===== 지도 패널 배치(2026-11-26 PC 지도 2단) =====
+   모바일: 숨김 → '지도로 보기'로 열면 전체 화면 대화상자(data-open).
+   PC(1024px+): 오른쪽 칸에서 헤더(56px) 아래 화면 높이에 고정. 왼쪽 패널만 스크롤된다. */
+.map-pane { display: none; isolation: isolate; }
+.map-pane[data-open] { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 60; background: var(--color-card); }
+html.map-sheet-open { overflow: hidden; }
+@media (min-width: 1024px) {
+  .map-pane { display: flex; flex-direction: column; position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
+  /* 지도가 옆에 있을 때 목록 행: 행 전체 링크(stretched link)를 끄고 이름만 상세 링크로. 빈 곳을 누르면 지도에서 그곳을 보여 준다 */
+  html.has-map [data-map-id] a::after { content: none !important; }
+  html.has-map [data-map-id] { cursor: pointer; }
+}
+/* 지도에서 고른 곳의 목록 행(선택 배경 #F0F6FF) */
+[data-map-id][data-active] { background-color: #F0F6FF; }
 
 /* ===== 글자 크기 선택(2026-11-25) =====
    모든 글자 크기는 calc(Npx * var(--fs)) 로 정의돼 있어서 --fs 하나로 함께 커진다.
@@ -88,8 +107,6 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 :root[data-fs="xl"] { --fs: 1.25; }
 body { font-size: calc(16px * var(--fs)); }
 
-/* 지도 핀·클러스터 키보드 포커스 링(44px 터치 영역 바깥선) */
-.map-panel .map-hit:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; border-radius: 9999px; }
 
 /* 주차장 목록 '더 보기'로 아직 펼치지 않은 행(parking-list.ts) */
 .lot[data-clip] { display: none; }

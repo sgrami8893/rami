@@ -5,6 +5,7 @@
 import { hoursLine, kakaoTo, kakaoSearch } from '../lib/format.ts';
 import { kioskPath, type Kiosk } from '../lib/data.ts';
 import Icon from './Icon.astro';
+import { validPoints } from '../lib/map.ts';
 interface Props { k: Kiosk; note?: string }
 const { k, note } = Astro.props;
 const reg = k.docs.includes('registry'), fam = k.docs.includes('family');
@@ -13,11 +14,13 @@ const weekendOrHoliday = k.openSat || k.openSun; // 통계(openWeekend)·조건 
 const kakao = k.lat !== null && k.lng !== null ? kakaoTo(k.name, k.lat, k.lng) : kakaoSearch(k.roadAddress);
 // 도로명주소 괄호에 상세위치가 이미 있으면 다시 붙이지 않는다
 const addr = k.locationDetail && !k.roadAddress.includes(k.locationDetail) ? `${k.roadAddress} · ${k.locationDetail}` : k.roadAddress;
+const mapped = validPoints([k]).length > 0; // 지도에 핀이 있는 곳만 지도 연결(지도가 있는 페이지에서만 JS가 버튼을 보인다)
 const hours = k.hoursConfidence === 'unknown' ? '운영시간 확인 필요' : hoursLine(k.hours);
 ---
 <article
   class="kiosk relative -mx-5 px-5 py-[18px] transition-colors active:bg-subtle lg:-mx-3 lg:rounded-xl lg:px-3 lg:hover:bg-subtle"
   data-id={k.id}
+  data-map-id={mapped ? k.id : undefined}
   data-hours={JSON.stringify(k.hours)}
   data-conf={k.hoursConfidence}
   data-f24h={k.is24h ? '1' : ''}
@@ -39,6 +42,7 @@ const hours = k.hoursConfidence === 'unknown' ? '운영시간 확인 필요' : h
   </p>
   <div class="mt-1 flex items-center gap-3">
     <p class="min-w-0 flex-1 break-words text-[length:calc(16px*var(--fs,1))] leading-snug text-ink-3">{addr}</p>
+    {mapped && <button type="button" data-map-locate={k.id} hidden class="relative z-10 -my-2 flex min-h-11 shrink-0 items-center px-2 text-[length:calc(16px*var(--fs,1))] font-semibold text-brand" aria-label={`${k.name} 지도에서 보기`}><Icon name="map-pin" size={16} class="mr-1" />지도</button>}
     <a href={kakao} target="_blank" rel="noopener noreferrer" class="relative z-10 -my-2 -mr-2 flex min-h-11 shrink-0 items-center px-2 text-[length:calc(16px*var(--fs,1))] font-semibold text-brand" aria-label={`${k.name} 카카오맵 길찾기`}><Icon name="direction-sign" size={16} class="mr-1" />길찾기</a>
   </div>
   {note && <p class="mt-1 text-cap font-medium text-ok">{note}</p>}

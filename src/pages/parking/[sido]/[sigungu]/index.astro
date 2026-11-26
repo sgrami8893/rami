@@ -7,6 +7,8 @@ import FreeNote from '../../../../components/parking/FreeNote.astro';
 import LotMore from '../../../../components/parking/LotMore.astro';
 import StatTiles from '../../../../components/ui/StatTiles.astro';
 import MapPanel from '../../../../components/MapPanel.astro';
+import MapButton from '../../../../components/MapButton.astro';
+import { mapOn } from '../../../../lib/map.ts';
 import { SIDOS, sidoShort, parkingPath, regionsOf, regionIndexable, toPoint, IS_MOCK } from '../../../../lib/parking.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
 import { calcFee } from '../../../../../scripts/lib/parking-fee.ts';
@@ -40,7 +42,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     { label: '2시간 최저', value: twoh.length ? w(Math.min(...twoh)) : '-', sub: twoh.length ? `최고 ${w(Math.max(...twoh))}` : '계산 가능한 곳 없음' },
   ]} />
   <FreeNote class="mt-2" />
-  <MapPanel points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} />
+  <MapButton points={withCoords} />
   <LotFilters total={ls.length} />
   {groups.length > 1 && (
     <details class="mt-2">
@@ -62,6 +64,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     ))}
   </div>
   <LotMore />
+  {mapOn(withCoords) && <MapPanel slot="map" points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} />}
 </BaseLayout>
 
 <script>

@@ -16,7 +16,10 @@ const rentTotal = rentStats.areas.filter((a) => a.dong === null).reduce((s, a) =
 const rentDongs = rentStats.areas.filter((a) => a.dong !== null && a.n >= RENT_RULE.PAGE_MIN).length;
 // 도구 카드 2줄 규격(2026-11-26 제미나이 검수): 1줄 핵심 수치 + 2줄 대표 조건 2개. 세 카드 높이를 같게 맞춘다
 const counts: Record<string, string> = { muin: `수도권 ${n(kiosks.length)}곳`, ...(parkingLots.length ? { parking: `수도권 ${n(parkingLots.length)}곳` } : {}), ...(rentReady && !rentMock ? { rent: `최근 12개월 실거래 ${n(rentTotal)}건` } : {}) };
-const live = TOOLS.filter((t) => t.status === 'live');
+// 2026-11-26 전월세 중심 전환(사용자·제미나이 합의): 홈의 '찾을 정보' 기본값과 도구 카드 순서를 전월세 → 주차장 → 무인발급기로
+const HOME_ORDER = ['rent', 'parking', 'muin'];
+const rank = (s: string) => (HOME_ORDER.indexOf(s) + 1 || 99);
+const live = TOOLS.filter((t) => t.status === 'live').sort((a, b) => rank(a.slug) - rank(b.slug));
 // 검색용: 시·군·구 67곳을 HTML에 내장(JS 없이도 '전체 지역'에서 링크로 이동 가능)
 // 2026-11-26 재배치: 지역 검색이 무인발급기 하나로 고정되지 않게, 시·군·구마다 세 도구 주소를 함께 싣고 위의 '찾을 정보' 선택으로 바꾼다
 type R = { sido: (typeof SIDO_ORDER)[number]; sigungu: string; sigunguName: string; href: Partial<Record<'muin' | 'parking' | 'rent', string>> };
@@ -31,6 +34,8 @@ if (live.some((t) => t.slug === 'parking')) PARKING_SIDOS.forEach((s) => parking
 if (live.some((t) => t.slug === 'rent') && rentReady) RENT_SIDOS.forEach((s) => rentSigunguOf(s).forEach((r) => put(s, r.sigungu, 'rent', rentPath(s, r.sigungu))));
 const allRegions = SIDO_ORDER.flatMap((s) => [...regionMap.values()].filter((r) => r.sido === s).sort((a, b) => a.sigunguName.localeCompare(b.sigunguName, 'ko')));
 const PICK = live.map((t) => ({ slug: t.slug as 'muin' | 'parking' | 'rent', label: ({ muin: '무인발급기', parking: '주차장', rent: '전월세' } as Record<string, string>)[t.slug] ?? t.name }));
+const DEF = PICK[0]?.slug ?? 'muin'; // 처음 선택된 도구(전월세). JS가 없을 때도 링크가 이 도구로 간다
+const defHref = (r: R) => r.href[DEF] ?? r.href.muin ?? Object.values(r.href)[0];
 const hrefAttrs = (r: R) => Object.fromEntries(Object.entries(r.href).map(([k, v]) => [`data-href-${k}`, v]));
 // 모바일 390px 한 줄에 들어가는 5개: 서울·경기·인천 균형
 const QUICK = ['seoul/gangnam-gu', 'gyeonggi/seongnam-si', 'gyeonggi/suwon-si', 'gyeonggi/anyang-si', 'incheon/bupyeong-gu'];
@@ -66,7 +71,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
         </div>
       </fieldset>
     )}
-    <form id="region-search" action="/muin/" class="mt-3" role="search" onsubmit="return false">
+    <form id="region-search" action={live[0]?.path ?? '/muin/'} class="mt-3" role="search" onsubmit="return false">
       <label for="q" class="sr-only">시·군·구 검색</label>
       <div class="flex h-[52px] items-center gap-2 rounded-[14px] bg-bg px-4 focus-within:ring-2 focus-within:ring-brand">
         <input id="q" type="search" autocomplete="off" placeholder="시·군·구 이름 (예: 강남구, 분당)"
@@ -76,14 +81,14 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
       </div>
     </form>
     <div class="scrollbar-none -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0">
-      {quick.map((r) => <a href={r.href.muin ?? Object.values(r.href)[0]} {...hrefAttrs(r)} data-region-link class="flex min-h-10 shrink-0 items-center rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
+      {quick.map((r) => <a href={defHref(r)} {...hrefAttrs(r)} data-region-link class="flex min-h-10 shrink-0 items-center rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
     </div>
     <details id="all-regions" class="mt-3">
-      <summary class="inline-flex min-h-11 cursor-pointer items-center px-1 text-cap font-semibold text-ink-2">전체 지역 보기 (<span id="region-total">{allRegions.filter((r) => r.href.muin).length}</span>)</summary>
+      <summary class="inline-flex min-h-11 cursor-pointer items-center px-1 text-cap font-semibold text-ink-2">전체 지역 보기 (<span id="region-total">{allRegions.filter((r) => r.href[DEF]).length}</span>)</summary>
       <ul id="region-list" class="mt-2 grid rounded-2xl bg-bg grid-cols-2 gap-x-3 gap-y-1 p-4 sm:grid-cols-3">
         {allRegions.map((r) => (
-          <li data-key={`${r.sigunguName} ${sidoShort(r.sido)} ${subGuOf(r.sido, r.sigungu).join(' ')} ${ALIAS[`${r.sido}/${r.sigungu}`] ?? ''}`} hidden={!r.href.muin}>
-            <a href={r.href.muin ?? Object.values(r.href)[0]} {...hrefAttrs(r)} data-region-link class="block rounded-lg px-2 py-1.5 text-body text-ink-2 hover:bg-card hover:text-brand">{r.sigunguName} <span class="text-cap text-ink-3">{sidoShort(r.sido)}</span></a>
+          <li data-key={`${r.sigunguName} ${sidoShort(r.sido)} ${subGuOf(r.sido, r.sigungu).join(' ')} ${ALIAS[`${r.sido}/${r.sigungu}`] ?? ''}`} hidden={!r.href[DEF]}>
+            <a href={defHref(r)} {...hrefAttrs(r)} data-region-link class="block rounded-lg px-2 py-1.5 text-body text-ink-2 hover:bg-card hover:text-brand">{r.sigunguName} <span class="text-cap text-ink-3">{sidoShort(r.sido)}</span></a>
           </li>
         ))}
       </ul>
@@ -127,7 +132,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
   const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
   const clear = document.getElementById('q-clear');
   // 찾을 정보(무인발급기·주차장·전월세) 선택: 지역 링크 주소를 그 도구로 바꾸고, 그 도구에 페이지가 없는 지역은 숨긴다
-  let tool = 'muin';
+  let tool = document.querySelector<HTMLInputElement>('input[name="pick"]')?.value ?? 'muin';
   const total = document.getElementById('region-total');
   const applyTool = () => {
     document.querySelectorAll<HTMLAnchorElement>('[data-region-link]').forEach((a) => {

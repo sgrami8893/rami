@@ -7,6 +7,8 @@ import LotRow from '../../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../../components/parking/FreeNote.astro';
 import MapPanel from '../../../../../components/MapPanel.astro';
+import MapButton from '../../../../../components/MapButton.astro';
+import { mapOn } from '../../../../../lib/map.ts';
 import { SIDOS, sidoShort, parkingPath, freePath, regionsOf, toPoint, IS_MOCK } from '../../../../../lib/parking.ts';
 import { freeSigunguIndexable } from '../../../../../../scripts/lib/parking.ts';
 import type { SidoSlug } from '../../../../../../scripts/lib/regions.ts';
@@ -27,7 +29,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <h1 class="text-title font-bold text-ink">{r.name} 무료주차장 {st.count}곳</h1>
   <p class="mt-1 text-cap text-ink-3">{r.name} 공영주차장 {st.total}곳 중 무료 {st.count}곳</p>
   <FreeNote class="mt-3" />
-  <MapPanel points={pts.map(toPoint)} label={`${r.name} 무료주차장`} missing={free.length - pts.length} />
+  <MapButton points={pts} />
   <LotFilters total={free.length} free={false} sort={false} />
   <div id="lot-list" class="mt-1">{free.map((l) => <LotRow l={l} level={2} />)}</div>
   <LotMore />
@@ -35,6 +37,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     <a href={base} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{r.name} 공영주차장 전체 {st.total}곳 · 요금 비교</a>
     <a href={freePath(sido)} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{sidoShort(sido)} 무료주차장 전체</a>
   </nav>
+  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${r.name} 무료주차장`} missing={free.length - pts.length} />}
 </BaseLayout>
 
 <script>
