@@ -4,15 +4,17 @@
 // - 거래가 LOW건 미만이거나 고른 유형의 값이 없으면 회색 '거래 적음'.
 // - 동을 누르면 테두리를 강조하고, PC는 왼쪽 패널(#rent-pick), 모바일은 지도 위 카드에 요약과 동 페이지 링크를 보여 준다.
 // - 라벨은 키보드로도 고를 수 있는 버튼(마커)이고, 서로 겹치면 거래가 적은 쪽을 숨긴다.
+// - 건물별 실거래(rent-buildings.ts): 동 요약 아래 건물 목록, 줌 15+ 건물 핀, 누르면 이력(그래프·표). 층·계약일 없음.
 // 표시 원칙: 사실 숫자만(중위값·건수). 위험·안전 판정 없음. 보안: 데이터는 빌드 JSON, 화면에는 textContent·esc()만 쓴다.
 import type * as Leaflet from 'leaflet';
 import { baseMap } from './map-base.ts';
 import { announce } from './copy.ts';
 import type { MapApi } from './map-panel.ts';
+import { createBuildings, BUILD_ZOOM } from './rent-buildings.ts';
 
 type M = (number | null)[]; // [빌라 전세, 빌라 월세, 빌라 월세 보증금, 오피 전세, 오피 월세, 오피 월세 보증금]
-type SggP = { f: string; nm: string; sd: string; l: [number, number]; n: number; h: string | null; m: M };
-type DongP = { k: string; c: string; l: [number, number]; n: number; h: string | null; m: M };
+type SggP = { f: string; nm: string; sd: string; l: [number, number]; n: number; h: string | null; m: M; b?: number };
+type DongP = { k: string; c: string; l: [number, number]; n: number; h: string | null; m: M; b?: number };
 type FC<P> = { type: 'FeatureCollection'; features: { type: 'Feature'; properties: P; geometry: GeoJSON.Geometry }[] };
 type SggFC = FC<SggP> & { period: string; low: number; breaks: Record<string, number[]> };
 type Focus = { sido?: string; slug?: string; dong?: string };
@@ -138,6 +140,8 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     return loading.get(f)!;
   };
 
+  let blds: ReturnType<typeof createBuildings> | null = null;
+
   // ---- 라벨(키보드로 고를 수 있는 버튼) ----
   const labels = L.layerGroup().addTo(map);
   type Lab = { id: string; at: [number, number]; name: string; value: string | null; n: number; pick: () => void; active: boolean; layer: Leaflet.Polygon };
@@ -161,6 +165,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
         if (!view.contains(p.l)) continue;
         const v = valueOf(p);
         if (v === null && z < LOW_LABEL_ZOOM) continue;
+        if (blds?.pinsShown && z >= BUILD_ZOOM && key !== selected) continue; // 건물 핀과 겹치지 않게
         // 리 단위(읍·면)는 '봉담읍 와우리' → 라벨은 '와우리'
         list.push({ id: key, at: p.l, name: p.k.split(' ').pop()!, value: v === null ? null : valueText(v, kind), n: p.n + (v === null ? 0 : 1e6), pick: () => pickDong(key), active: key === selected, layer: parts[0].layer });
         void sg;
@@ -216,6 +221,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       Promise.all(need.map(loadFile)).then(() => { restyle(); drawLabels(); });
     }
     restyle(); drawLabels();
+    blds?.refresh().then(() => drawLabels());
     // 시·군·구 경계선은 동 위에서 클릭을 막지 않게
     sggLayer.eachLayer((l) => { const el = (l as Leaflet.Path).getElement() as HTMLElement | undefined; if (el) el.style.pointerEvents = near ? 'none' : ''; });
   };
@@ -240,11 +246,13 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     link.hidden = !o.href;
     if (o.href) { link.href = o.href; link.textContent = o.linkText; }
     el.hidden = false;
+    blds?.reset(el);
     el.querySelector('.rp-empty')?.setAttribute('hidden', '');
     el.querySelector('.rp-body')?.removeAttribute('hidden');
   };
   const closeCard = () => {
     selected = null; selectedSgg = null;
+    blds?.reset(box());
     card.hidden = true;
     restyle(); drawLabels();
   };
@@ -272,8 +280,19 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     selected = key; selectedSgg = null;
     syncSelect(sg.f, p.k);
     show({ badge: `${sg.sd} ${sg.nm}`, name: p.k, n: p.n, m: p.m, href: p.h ?? sg.h, linkText: p.h ? `${p.k.split(' ').pop()} 시세 자세히 보기` : `${sg.nm} 전체 보기` });
+    if (blds && p.b) void blds.listDong(box(), sg.f, p.k).then(() => requestAnimationFrame(() => blds?.hideCovered()));
     restyle(); drawLabels();
   }
+
+  // ---- 건물별 실거래 이력(2026-11-26). 자료가 있을 때만(data-bsrc) ----
+  const bsrc = canvas.dataset.bsrc;
+  blds = bsrc ? createBuildings({
+    L, map, src: bsrc, card,
+    filesInView: () => { const v = map.getBounds(); return [...sggByFile.values()].filter(({ p, layer }) => p.b && layer.getBounds().intersects(v)).map(({ p }) => p.f); },
+    place: (f) => { const p = sggByFile.get(f)?.p; return p ? `${p.sd} ${p.nm}` : ''; },
+    box,
+    pickDong: (f, dong) => loadFile(f).then(() => pickDong(`${f}__${dong}`)),
+  }) : null;
 
   // ---- 지역 선택(시·도 → 시·군·구 → 동). 지도를 옮기고 요약을 띄운다. 지도에서 고르면 선택 상자도 따라 바뀐다 ----
   const selBox = pane.querySelector<HTMLElement>('.rm-select');

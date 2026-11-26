@@ -33,7 +33,7 @@ test('전환율 상한 = min(10%, 기준금리+2%)', () => {
 
 test('API 항목 정규화: 영문·한글 필드명, 쉼표 금액', () => {
   const a = normalizeDeal({ sggCd: '11680', umdNm: '역삼동', dealYear: '2026', dealMonth: '9', deposit: '20,000', monthlyRent: '0', excluUseAr: '33.5', contractType: '갱신', useRRRight: '사용', buildYear: '2015' }, 'villa');
-  assert.deepEqual(a, { type: 'villa', code: '11680', dong: '역삼동', ym: '2026-09', deposit: 20000, monthly: 0, area: 33.5, buildYear: 2015, renewal: 'renew', usedRight: true });
+  assert.deepEqual(a, { type: 'villa', code: '11680', dong: '역삼동', ym: '2026-09', deposit: 20000, monthly: 0, area: 33.5, buildYear: 2015, renewal: 'renew', usedRight: true, jibun: null, bname: '' });
   const b = normalizeDeal({ 지역코드: '11440', 법정동: ' 망원동 ', 년: '2026', 월: '10', 보증금액: '1,000', 월세금액: '60', 전용면적: '19.8' }, 'officetel');
   assert.equal(b?.dong, '망원동');
   assert.equal(b?.monthly, 60);

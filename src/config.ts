@@ -48,6 +48,8 @@ export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
   // 국토교통부 실거래가 공개 API(이용허락 제한 없음). /rent/ 는 출처가 2개라 BaseLayout이 RENT_SOURCES로 펼친다
   rentVilla: { name: '국토교통부 연립다세대 전월세 실거래가 자료', url: 'https://www.data.go.kr/data/15126473/openapi.do' },
   rentOffi: { name: '국토교통부 오피스텔 전월세 실거래가 자료', url: 'https://www.data.go.kr/data/15126475/openapi.do' },
+  /** 건물 위치(지번 → 건물 중심 좌표). 사용자 PC에서 내려받은 파일로만 쓴다(2026-11-26) */
+  juso: { name: '행정안전부 주소정보(내비게이션용DB)', url: 'https://business.juso.go.kr' },
 };
 
 /**
