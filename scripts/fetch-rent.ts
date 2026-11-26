@@ -6,15 +6,21 @@
 //      → 두 API에서 강남구 지난달 5건씩 받아 필드명과 매핑 결과를 보여 주고 scripts/fixtures/out/rent-api-sample.json 저장
 // 2) 지역코드 점검(선택):        npm run fetch-rent -- --codes   (코드별 지난달 건수, 0건이면 코드 확인 필요)
 // 3) 전체 수집:                 npm run fetch-rent
-//      → 최근 13개월 × 수도권 지역코드 × 2종류 호출(약 2,000회, 개발계정 하루 1만 회 안).
+//      → 최근 37개월 × 수도권 지역코드 × 2종류 호출(처음 약 6,000회, API별로 나뉘어 개발계정 하루 1만 회 안).
 //        받은 원본은 .cache/rent/ 에 월별로 저장(커밋 안 함). 다시 실행하면 최근 2개월만 새로 받는다(신고 지연 반영).
-//      → 통계만 src/data/rent-stats.json 에 저장(지번·건물명·층·계약일은 저장하지 않음). 확인 후 커밋.
-// 옵션: --months 13  --delay 200  --refresh(캐시 무시)  --reprobe(개편 지역 새 코드 다시 찾기)  --force(안전장치 무시)
+//      → 동 통계(최근 12개월): src/data/rent-stats.json
+//      → 건물별 이력(최근 36개월, 2026-11-26): src/data/rent-buildings/{seoul,gyeonggi,incheon}.json
+//         지번·건물명·계약 연월·금액·면적만. 층·계약일(일)은 저장하지 않는다.
+//         건물 좌표는 .cache/juso/ 에 풀어 둔 주소정보 '내비게이션용DB'(.txt)에서 찾는다(없으면 좌표 없이 목록만).
+// 4) 주소 파일 점검(선택):       npm run fetch-rent -- --geo-check   (.cache/juso/ 첫 줄들을 어떻게 읽었는지 보여 줌)
+// 옵션: --months 37  --delay 200  --refresh(캐시 무시)  --reprobe(개편 지역 새 코드 다시 찾기)  --force(안전장치 무시)
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { parsePage, redact, type Page } from './lib/parking-api.ts';
 import { LAWD, PROBE_RANGES } from './lib/rent-lawd.ts';
 import { normalizeDeal, missingFields, aggregate, type Deal, type HouseType } from './lib/rent.ts';
+import { buildBuildings, neededPlaces, BUILDING_MONTHS } from './lib/rent-buildings.ts';
+import { loadJusoGeo, parseJusoLine, utmkToWgs84 } from './lib/juso-geo.ts';
 
 /** 엔드포인트. 오피스텔은 포털 15126475 페이지에서 확인(2026-11-25). 연립다세대(RH)는 같은 규칙으로 추정 → --sample로 확인 */
 export const RENT_API: Record<HouseType, string> = {
@@ -25,8 +31,8 @@ export const RENT_API: Record<HouseType, string> = {
 const args = process.argv.slice(2);
 const flag = (n: string) => args.includes(n);
 const opt = (n: string, d: number) => { const i = args.indexOf(n); return i >= 0 ? Number(args[i + 1]) : d; };
-const MONTHS = opt('--months', 13), DELAY = opt('--delay', 200), ROWS = 1000;
-const CACHE = '.cache/rent', OUT = 'src/data/rent-stats.json', REPORT = 'src/data/rent.report.json', DEBUG_DIR = 'scripts/fixtures/out';
+const MONTHS = opt('--months', BUILDING_MONTHS + 1), DELAY = opt('--delay', 200), ROWS = 1000;
+const CACHE = '.cache/rent', JUSO = '.cache/juso', BOUT = 'src/data/rent-buildings', OUT = 'src/data/rent-stats.json', REPORT = 'src/data/rent.report.json', DEBUG_DIR = 'scripts/fixtures/out';
 const KEY = (process.env.DATA_GO_KR_KEY ?? '').trim();
 // process.exit()는 윈도우에서 fetch 연결이 닫히는 중에 libuv 오류(UV_HANDLE_CLOSING)를 낼 수 있어 쓰지 않는다.
 // 중단은 Abort를 던지고 맨 아래 main().catch에서 메시지만 찍은 뒤 exitCode로 끝낸다.
@@ -111,6 +117,22 @@ async function main() {
   const SENSITIVE = /jibun|지번|bonbun|bubun|roadnm|도로명|^(mhouseNm|offiNm|aptNm|연립다세대|단지|단지명)$|floor|층|dealDay|^일$/i;
   const mask = (it: Record<string, unknown>) => Object.fromEntries(Object.entries(it).map(([k, v]) => [k, SENSITIVE.test(k) && v !== '' ? '(가림)' : v]));
 
+  if (flag('--geo-check')) {
+    const { readdir, readFile: rf } = await import('node:fs/promises');
+    const files = (await readdir(JUSO, { recursive: true }).catch(() => [] as string[])).filter((f) => /\.txt$/i.test(String(f)));
+    if (!files.length) fail(`${JUSO} 폴더에 .txt 파일이 없어요. 주소정보 내비게이션용DB 압축을 이 폴더에 풀어 주세요.`);
+    for (const f of files.slice(0, 6)) {
+      const buf = await rf(`${JUSO}/${f}`);
+      let text: string; try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(0, 200_000)); } catch { text = new TextDecoder('euc-kr').decode(buf.subarray(0, 200_000)); }
+      const lines = text.split(/\r?\n/).slice(0, 400);
+      const ok = lines.map(parseJusoLine).filter(Boolean);
+      console.log(`\n[${f}] 앞 ${lines.length}줄 중 읽음 ${ok.length}줄, 좌표 있음 ${ok.filter((r) => r!.xy).length}줄`);
+      for (const r of ok.slice(0, 2)) console.log(`  ${r!.code5} ${r!.dong} ${r!.jibun}${r!.xy ? ` → ${utmkToWgs84(...r!.xy).map((v) => v.toFixed(5)).join(', ')}` : ' (좌표 없음)'}`);
+    }
+    console.log('\n이 화면을 복사해 보내 주면 확인할게요.');
+    return;
+  }
+
   if (flag('--sample')) {
     const ym = ymList(2)[0];
     const out: Record<string, unknown> = {};
@@ -174,8 +196,25 @@ async function main() {
     sigungu: stats.areas.filter((a) => a.dong === null).length, dongs: stats.areas.filter((a) => a.dong !== null).length,
     dongsOver10: stats.areas.filter((a) => a.dong !== null && a.n >= 10).length, dongsOver30: stats.areas.filter((a) => a.dong !== null && a.n >= 30).length,
   };
+  // ---- 건물별 이력 ----
+  const need = neededPlaces(deals);
+  console.log(`\n건물 위치 찾는 중: 지번 ${need.size.toLocaleString('ko-KR')}곳 (${JUSO}/)`);
+  const geo = await loadJusoGeo(JUSO, need, (s) => console.log(s));
+  if (!geo.files.length) console.log(`  ${JUSO}/ 에 주소 파일이 없어 좌표 없이 만들어요(지도 핀 없이 동네별 건물 목록만 보여요).`);
+  const bld = buildBuildings(deals, (c, d, j) => geo.lookup(c, d, j));
+  await mkdir(BOUT, { recursive: true });
+  const bsizes: Record<string, number> = {};
+  for (const f of bld.files) {
+    const text = JSON.stringify(f);
+    bsizes[f.sido] = Math.round(text.length / 1024);
+    if (text.length > 24 * 1024 * 1024) console.log(`  ⚠ ${f.sido}.json 이 24MB를 넘어요(깃허브 웹 업로드 한도 25MB). --months 를 줄여 주세요.`);
+    await writeFile(`${BOUT}/${f.sido}.json`, text);
+  }
+  const bReport = { period: [bld.from, bld.to], buildings: bld.buildings, located: bld.located, deals: bld.deals, noJibun: bld.noJibun, jusoFiles: geo.files.length, jusoRows: geo.rows, fileKB: bsizes };
+
   await writeFile(OUT, JSON.stringify(stats));
-  await writeFile(REPORT, JSON.stringify(report, null, 1));
+  await writeFile(REPORT, JSON.stringify({ ...report, buildings: bReport }, null, 1));
+  console.log(`✓ 건물 ${bld.buildings.toLocaleString('ko-KR')}곳(좌표 ${bld.located.toLocaleString('ko-KR')}곳) · ${bld.from}~${bld.to} 거래 ${bld.deals.toLocaleString('ko-KR')}건 → ${BOUT}/ (${Object.entries(bsizes).map(([k, v]) => `${k} ${Math.round(v / 1024 * 10) / 10}MB`).join(', ')})`);
   console.log(`\n✓ ${stats.from}~${stats.to} 거래 ${deals.length.toLocaleString('ko-KR')}건 → 시·군·구 ${report.sigungu}곳, 동 ${report.dongs}곳(10건+ ${report.dongsOver10}, 30건+ ${report.dongsOver30})`);
   console.log(`  요약: ${REPORT} (이 파일을 전달해 주면 페이지 기준을 확정할게요)`);
 }

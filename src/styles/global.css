@@ -82,6 +82,10 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 .map-pin { position: relative; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: var(--color-brand); border: 2.5px solid #fff;
   box-shadow: 0 0 0 1px rgb(25 31 40 / 0.08), 0 2px 6px rgb(25 31 40 / 0.28); transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease; }
 .map-pin-dot { width: 7px; height: 7px; border-radius: 9999px; background: #fff; }
+/* 전월세 건물 핀(2026-11-26): 파란 단계구분도 위에서 보이게 진한 색 + 작은 크기, 고르면 파랑 */
+.map-pin-bld { width: 20px; height: 20px; background: #191F28; border-width: 2px; }
+.map-pin-bld .map-pin-dot { width: 6px; height: 6px; }
+.map-hit.is-active .map-pin-bld { background: var(--color-brand); }
 /* 묶음: 흰 알약 + 파란 숫자 + 옅은 파란 테(개수에 따라 3단계 크기) */
 .map-cluster { display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: #fff; color: var(--color-brand); font-weight: 800; letter-spacing: -0.01em;
   font-size: calc(14px * var(--fs, 1)); font-variant-numeric: tabular-nums; border: 1px solid rgb(37 99 235 / 0.25);
@@ -160,7 +164,6 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 .leaflet-tooltip.rm-tip::before { display: none; }
 .rm-tip-path { display: block; font-weight: 700; font-size: calc(14px * var(--fs, 1)); }
 .rm-tip-val { display: block; color: #485463; }
-.rm-select select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235F6B78' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6l6 -6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
 /* 동·시군구 도형을 누르면 브라우저가 SVG 경로에 사각형(경계 상자) 포커스 테두리를 그리던 문제(2026-11-26 사용자 제보) → 끈다.
    도형은 Tab으로 오지 않고(키보드는 라벨 버튼·지역 선택으로 고름), 고른 곳은 도형 모양의 굵은 테두리로 이미 보인다. */
 .map-pane path.leaflet-interactive:focus, .map-pane path.leaflet-interactive:focus-visible, .map-pane svg:focus, .map-pane svg *:focus { outline: none; }

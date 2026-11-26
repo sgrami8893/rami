@@ -29,3 +29,39 @@ for (const [code, dong, nv, no, base] of AREAS) {
 const { stats } = aggregate(deals, { isMock: true });
 writeFileSync('src/data/rent-stats.mock.json', JSON.stringify(stats));
 console.log(`가짜 거래 ${deals.length}건 → 지역 ${stats.areas.length}개 (${stats.from}~${stats.to})`);
+
+// ---- 가짜 건물별 이력(2026-11-26): 동마다 건물 몇 곳, 36개월, 좌표는 동 경계 중심 근처(지도 확인용) ----
+import { readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { buildBuildings } from './lib/rent-buildings.ts';
+import { regionOfDeal } from './lib/rent-lawd.ts';
+const m36 = Array.from({ length: 36 }, (_, i) => { const d = new Date(Date.UTC(2023, 10 + i, 1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; });
+const bdeals: Deal[] = [];
+const centers = new Map<string, [number, number]>();
+for (const [code, dong, nv, no, base] of AREAS) {
+  const reg = regionOfDeal(code, dong)!;
+  const gf = `src/data/geo/emd/${reg.sido}__${reg.sigungu}.json`;
+  const feat = existsSync(gf) ? (JSON.parse(readFileSync(gf, 'utf8')).features as { properties: { k: string; l: [number, number] } }[]).find((f) => f.properties.k === dong) : undefined;
+  const c = feat?.properties.l ?? [37.55, 126.95];
+  for (const [type, n] of [['villa', nv], ['officetel', no]] as [HouseType, number][]) {
+    const nb = Math.max(1, Math.round(n / 6));
+    for (let b = 0; b < nb; b++) {
+      const jibun = `${100 + Math.floor(r() * 800)}-${1 + Math.floor(r() * 30)}`;
+      centers.set(`${code}|${dong}|${jibun}`, [Math.round((c[0] + (r() - 0.5) * 0.008) * 1e5) / 1e5, Math.round((c[1] + (r() - 0.5) * 0.01) * 1e5) / 1e5]);
+      const areas = [type === 'villa' ? 30 + Math.floor(r() * 40) : 18 + Math.floor(r() * 20)];
+      if (r() < 0.5) areas.push(areas[0] + 8 + Math.floor(r() * 10));
+      const by = 1995 + Math.floor(r() * 28);
+      const k = 3 + Math.floor(r() * 9);
+      for (let i = 0; i < k; i++) {
+        const area = areas[Math.floor(r() * areas.length)] + 0.37;
+        const jeonse = r() < 0.5;
+        const scale = area / 45;
+        bdeals.push({ type, code, dong, ym: m36[Math.floor(r() * 36)], area, buildYear: by, renewal: null, usedRight: null, jibun, bname: `가짜${type === 'villa' ? '빌라' : '오피스텔'} ${b + 1}`,
+          deposit: jeonse ? Math.round((base * scale * (0.8 + r() * 0.4)) / 500) * 500 : Math.round((500 + r() * 4500) / 100) * 100, monthly: jeonse ? 0 : Math.round(40 + scale * 50 * (0.8 + r() * 0.4)) });
+      }
+    }
+  }
+}
+const bl = buildBuildings(bdeals, (c, d, j) => centers.get(`${c}|${d}|${j}`) ?? null, { isMock: true, now: new Date(Date.UTC(2026, 10, 15)) });
+mkdirSync('src/data/rent-buildings.mock', { recursive: true });
+for (const f of bl.files) writeFileSync(`src/data/rent-buildings.mock/${f.sido}.json`, JSON.stringify(f));
+console.log(`가짜 건물 ${bl.buildings}곳 · 거래 ${bl.deals}건 (${bl.from}~${bl.to})`);

@@ -3,9 +3,10 @@
 //   - 연립다세대 전월세: RTMSDataSvcRHRent (데이터 번호·엔드포인트는 PC에서 확인 필요)
 //   - 오피스텔 전월세:   RTMSDataSvcOffiRent (15126475, 동·호 비공개)
 //   - 15126474는 '아파트' 전월세라 쓰지 않는다(아파트는 이 도구 범위 밖).
-// 개인정보 원칙: 지번·건물명·층·계약일(일)은 집계에만 쓰고 화면·저장 파일(rent-stats.json)에 남기지 않는다.
-//   통계 한 칸은 거래 K_MIN건 이상일 때만 보여 준다(소수 거래로 특정 세대가 드러나는 것 방지).
+// 개인정보 원칙: 층·동·호와 계약일(일)은 읽지도 저장하지도 않는다. 동 통계(rent-stats.json)는 거래 K_MIN건 이상인 칸만 보여 준다.
+//   2026-11-26 사용자 결정: 정부(kgeop 등)처럼 건물별 실거래(지번·건물명·계약 연월·금액·면적)는 공개한다 → rent-buildings.ts. 층은 절대 안 씀.
 import { regionOfDeal } from './rent-lawd.ts';
+import { jibunKey } from './juso-geo.ts';
 import type { SidoSlug } from './regions.ts';
 
 export type HouseType = 'villa' | 'officetel';
@@ -16,6 +17,8 @@ export interface Deal {
   type: HouseType; code: string; dong: string; ym: string; // 계약년월 YYYY-MM
   deposit: number; monthly: number; area: number; // 만원, 만원, ㎡
   buildYear: number | null; renewal: 'new' | 'renew' | null; usedRight: boolean | null;
+  /** 건물별 이력용(2026-11-26). 지번은 jibunKey()로 정규화, 이름은 단지·건물명. 층은 받지 않는다 */
+  jibun?: string | null; bname?: string;
 }
 
 /** 응답 필드 후보: 2024년 개편 영문 필드명(추정) → 옛 한글 필드명. --sample 실제 응답으로 확정한다. */
@@ -25,6 +28,7 @@ export const RENT_FIELD = {
   deposit: ['deposit', '보증금액', '보증금'], monthly: ['monthlyRent', '월세금액', '월세'],
   area: ['excluUseAr', '전용면적'], buildYear: ['buildYear', '건축년도'],
   contractType: ['contractType', '계약구분'], usedRight: ['useRRRight', '갱신요구권사용'],
+  jibun: ['jibun', '지번'], bname: ['mhouseNm', 'offiNm', '연립다세대', '단지', '단지명'],
 } as const;
 export const RENT_REQUIRED: (keyof typeof RENT_FIELD)[] = ['code', 'dong', 'y', 'm', 'deposit', 'monthly', 'area'];
 
@@ -51,6 +55,7 @@ export function normalizeDeal(item: Record<string, unknown>, type: HouseType, fa
     buildYear: by > 1900 ? by : null,
     renewal: ct === '신규' ? 'new' : ct === '갱신' ? 'renew' : null,
     usedRight: ur === '사용' ? true : ur ? false : null,
+    jibun: jibunKey(pick(item, 'jibun')), bname: String(pick(item, 'bname') ?? '').trim().slice(0, 60),
   };
 }
 
