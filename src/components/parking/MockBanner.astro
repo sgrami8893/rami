@@ -1,4 +1,5 @@
 ---
-// 골격 미리보기 표시. 가짜 데이터라는 사실을 화면 맨 위에 항상 보인다.
+// 가짜 데이터(미리보기)일 때만 화면 맨 위에 항상 보인다. 실데이터 빌드에서는 아무것도 출력하지 않는다.
+import { IS_MOCK } from '../../lib/parking.ts';
 ---
-<p class="mb-4 rounded-xl bg-bg px-4 py-3 text-cap font-semibold text-warn">구조 확인용 가짜 데이터예요. 실제 주차장 정보가 아니에요.</p>
+{IS_MOCK && <p class="mb-4 rounded-xl bg-bg px-4 py-3 text-cap font-semibold text-warn">구조 확인용 가짜 데이터예요. 실제 주차장 정보가 아니에요.</p>}

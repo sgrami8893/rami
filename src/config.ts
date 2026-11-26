@@ -42,6 +42,8 @@ export const CONTACT_EMAIL = '[운영자 이메일 주소]';
 /** 도구별 데이터 출처(푸터·소개에 표기). TODO: 실제 내려받은 페이지 URL과 이용허락 유형 확인 후 확정. */
 export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
   muin: { name: '행정안전부 무인민원발급기 정보', url: 'https://www.localdata.go.kr' },
+  // 공공데이터포털 '전국주차장정보표준데이터'(API tn_pubr_prkplce_info_api). 이용허락범위는 포털 화면에서 확인 후 about에 기록
+  parking: { name: '공공데이터포털 전국주차장정보표준데이터', url: 'https://www.data.go.kr/data/15012896/standard.do' },
 };
 
 /**
@@ -68,8 +70,9 @@ export const MAP = env('MAP_TILE_URL')
     : { enabled: false, url: '', attribution: '', maxZoom: 19, name: '', policyUrl: '' };
 
 /**
- * /parking/ 골격 미리보기. PARKING_PREVIEW=1 로 빌드할 때만 주차장 페이지를 만든다(가짜 데이터, 모두 noindex).
- * Cloudflare Pages 환경변수에는 넣지 않는다 → 배포 빌드에는 /parking/ 페이지가 하나도 생기지 않는다.
+ * /parking/ 미리보기. PARKING_PREVIEW=1 로 빌드하면 TOOLS의 parking이 'soon'이어도 페이지를 만든다
+ * (실데이터 parking.json이 있으면 실데이터, 없으면 가짜 데이터+noindex). Cloudflare Pages 환경변수에는 넣지 않는다.
+ * 배포 공개는 TOOLS의 parking status를 'live'로 바꾸는 것으로 한다(src/lib/parking.ts).
  */
 export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';
 

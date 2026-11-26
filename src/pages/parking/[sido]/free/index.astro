@@ -16,10 +16,10 @@ const free = groups.flatMap((g) => g.items);
 const pts = free.filter((l) => l.lat !== null && l.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }, { name: '무료', href: freePath(sido) }];
 ---
-<BaseLayout tool="parking" title={`${sidoShort(sido)} 무료 공영주차장 ${st.count}곳 | 시·군·구별 위치`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !st.indexable} canvas="white" sidebar={false}>
+<BaseLayout tool="parking" title={`${sidoShort(sido)} 무료 공영주차장 ${st.count}곳 | 시·군·구별 위치`} description={`${sidoName(sido)} 무료 공영주차장 ${st.count}곳을 시·군·구별로 모았어요. 지금 운영시간 내인 곳만 골라 볼 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK || !st.indexable} canvas="white" sidebar={false}>
   <MockBanner />
   <h1 class="text-title font-bold text-ink">{sidoShort(sido)} 무료 공영주차장 {st.count}곳</h1>
-  <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} 전체 {st.total}곳 중 {st.count}곳 · {st.regions}개 시·군·구 · 색인 판정: {st.indexable ? '색인 대상' : 'noindex(기준 미달)'}</p>
+  <p class="mt-1 text-cap text-ink-3">{sidoName(sido)} 전체 {st.total}곳 중 {st.count}곳 · {st.regions}개 시·군·구</p>
   <FreeNote class="mt-3" />
   <nav aria-label="시·군·구별 무료주차장" class="mt-4 flex flex-wrap gap-2">
     {groups.map((g) => <a href={`${parkingPath(sido, g.sigungu)}free/`} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand">{g.name}<span class="font-medium text-ink-3">{g.items.length}</span></a>)}

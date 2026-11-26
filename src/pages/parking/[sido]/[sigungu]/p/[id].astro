@@ -3,7 +3,7 @@ import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
 import BottomActionBar from '../../../../../components/BottomActionBar.astro';
 import FeeCalculator from '../../../../../components/parking/FeeCalculator.astro';
-import { lots, sidoShort, parkingPath, sigunguName, lotIndexable, FEE_LABEL, LOT_TYPE, hoursText, won, IS_MOCK, type ParkingLot } from '../../../../../lib/parking.ts';
+import { lots, sidoShort, parkingPath, sigunguName, lotIndexable, FEE_LABEL, LOT_TYPE, dayText, won, IS_MOCK, type ParkingLot } from '../../../../../lib/parking.ts';
 export function getStaticPaths() { return lots.map((l) => ({ params: { sido: l.sido, sigungu: l.sigungu, id: l.id }, props: { l } })); }
 const { l } = Astro.props as { l: ParkingLot };
 const sgName = sigunguName(l.sido, l.sigungu);
@@ -15,12 +15,13 @@ const rows: [string, string][] = [
   ['1일 주차권', won(l.fee.dayPass) + (l.dayPassHours ? ` (${l.dayPassHours})` : '')], ['월 정기권', won(l.fee.monthly)],
   ['결제 방법', l.payment.join(', ') || '-'],
 ];
+const desc = `${sgName} ${l.name}(${FEE_LABEL[l.fee.type]})의 평일 운영시간 ${dayText(l, 'weekday')}${l.spaces !== null ? `, 주차면 ${l.spaces}면` : ''}과 요금, 1~2시간 주차 요금 계산, 위치를 확인하세요. 공공데이터 기준이에요.`;
 const info: [string, string][] = [
   ['운영 요일', l.days || '-'], ['부제 시행', l.oddEven || '-'], ['급지', l.grade ? `${l.grade}급지` : '-'],
   ['장애인 전용 구역', l.disabledSpots === null ? '정보 없음' : l.disabledSpots ? '있음' : '없음'],
 ];
 ---
-<BaseLayout tool="parking" title={`${l.name} 주차장 요금·운영시간 - ${sgName}`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !lotIndexable(l)} sidebar={false}>
+<BaseLayout tool="parking" title={`${l.name} 주차장 요금·운영시간 - ${sgName}`} description={desc} crumbs={crumbs} noindex={IS_MOCK || !lotIndexable(l)} sidebar={false}>
   <MockBanner />
   <p class="text-cap font-semibold text-brand">{FEE_LABEL[l.fee.type]} · {LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
   <h1 class="mt-1 text-title font-bold text-ink">{l.name}</h1>
@@ -30,10 +31,11 @@ const info: [string, string][] = [
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">운영시간</h2>
     <table class="mt-2 w-full text-[length:calc(17px*var(--fs,1))]"><tbody>
-      {([['평일', l.hours.weekday], ['토요일', l.hours.sat], ['공휴일', l.hours.holiday]] as const).map(([d, h]) => (
-        <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{d}</th><td class="py-2.5 text-right text-ink">{hoursText(h)}</td></tr>
+      {([['평일', 'weekday'], ['토요일', 'sat'], ['공휴일', 'holiday']] as const).map(([d, k]) => (
+        <tr class="border-b border-line"><th scope="row" class="py-2.5 text-left font-semibold text-ink-2">{d}</th><td class="py-2.5 text-right text-ink">{dayText(l, k)}</td></tr>
       ))}
     </tbody></table>
+    {!!l.ambiguousDays?.length && <p class="mt-2 text-cap text-ink-2">'확인 필요'는 원천 자료에 00:00~00:00으로 적혀 있어 24시간 운영인지 미입력인지 알 수 없는 경우예요. '지금 운영시간 내' 판정에서는 빼고 있어요.</p>}
   </section>
   <section class="mt-6">
     <h2 class="text-h2 font-bold text-ink">요금</h2>
@@ -50,7 +52,7 @@ const info: [string, string][] = [
   <section class="mt-6 text-body text-ink-2">
     <h2 class="text-h2 font-bold text-ink">관리기관</h2>
     <p class="mt-2">{l.agency || '정보 없음'}{l.phone && ` · ${l.phone}`}</p>
-    <p class="mt-2 text-cap text-ink-3">데이터 기준일 {l.baseDate ?? '미상'} · 색인 판정: {lotIndexable(l) ? '색인 대상' : 'noindex'}</p>
+    <p class="mt-2 text-cap text-ink-3">데이터 기준일 {l.baseDate ?? '미상'}</p>
   </section>
   <BottomActionBar slot="bottom" name={l.name} address={l.roadAddress || l.jibunAddress} lat={l.lat} lng={l.lng} label="길찾기·주소 복사" />
 </BaseLayout>
