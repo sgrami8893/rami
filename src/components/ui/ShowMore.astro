@@ -1,0 +1,27 @@
+---
+// '더 보기' 버튼: target 안의 [data-more-item] 중 limit개만 먼저 보이고 나머지는 버튼으로 펼친다.
+// JS가 없으면 전부 보인다(버튼은 hidden). 숨긴 항목도 HTML에는 있어 검색엔진·스크린리더 탐색에서 빠지지 않는다.
+interface Props { target: string; limit: number; label: string; class?: string }
+const { target, limit, label, class: cls = '' } = Astro.props;
+---
+<button type="button" hidden data-more-btn={target} data-more-limit={limit} data-more-label={label}
+  class={`mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand ${cls}`}>{label}</button>
+<script>
+  // 같은 페이지에 여러 개 있어도 스크립트는 한 번만 번들된다
+  document.querySelectorAll<HTMLButtonElement>('[data-more-btn]').forEach((btn) => {
+    const box = document.getElementById(btn.dataset.moreBtn ?? '');
+    if (!box) return;
+    const limit = Number(btn.dataset.moreLimit) || 10;
+    const items = [...box.querySelectorAll<HTMLElement>('[data-more-item]')];
+    if (items.length <= limit) return;
+    items.slice(limit).forEach((i) => (i.hidden = true));
+    btn.textContent = `${btn.dataset.moreLabel} (${items.length - limit}개 더)`;
+    btn.hidden = false;
+    btn.addEventListener('click', () => {
+      items.forEach((i) => (i.hidden = false));
+      btn.hidden = true;
+      // 펼친 뒤 키보드 위치: 새로 보인 첫 항목의 링크로
+      (items[limit].querySelector('a') ?? items[limit]).focus?.();
+    });
+  });
+</script>

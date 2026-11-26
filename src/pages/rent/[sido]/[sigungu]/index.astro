@@ -6,6 +6,7 @@ import RentSummary from '../../../../components/rent/RentSummary.astro';
 import RentCalculator from '../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../components/rent/RentNotes.astro';
 import AdSlot from '../../../../components/AdSlot.astro';
+import ShowMore from '../../../../components/ui/ShowMore.astro';
 import { RENT_SOURCES, stats, sidoShort, dongsOf, hasDongPage, rentPath, subGuText, periodText, sigunguIndexable, IS_MOCK, RENT_RULE, rentDescription, type RentArea } from '../../../../lib/rent.ts';
 import { sigunguAreas, manwon } from '../../../../../scripts/lib/rent.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
@@ -22,17 +23,19 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
   <h1 class="text-title font-bold text-ink">{a.sigunguName}{subGuText(sido, a.sigungu)} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건</p>
   <RentSummary a={a} place={a.sigunguName} />
-  <section aria-labelledby="dong-h" class="mt-8">
-    <h2 id="dong-h" class="text-h2 font-bold text-ink">동별 거래</h2>
-    <p class="mt-1 text-cap text-ink-3">최근 12개월 거래 {RENT_RULE.PAGE_MIN}건 이상인 동은 따로 자세히 볼 수 있어요.</p>
-    <table class="mt-2 w-full text-[length:calc(16px*var(--fs,1))]">
+  <section aria-labelledby="dong-h" class="mt-6">
+    <h2 id="dong-h" class="text-h2 font-bold text-ink">동별 거래 <span class="text-body font-medium text-ink-3">{dongs.length}개 동</span></h2>
+    <p class="mt-1 text-cap text-ink-3">거래 많은 순이에요. 최근 12개월 거래 {RENT_RULE.PAGE_MIN}건 이상인 동은 눌러서 자세히 볼 수 있어요.</p>
+    <!-- 표 안 링크는 행 높이 전체(44px 이상)를 누를 수 있게: 링크가 칸을 꽉 채운다 -->
+    <table id="rent-dongs" class="mt-2 w-full text-[length:calc(16px*var(--fs,1))]">
       <caption class="sr-only">법정동별 거래 건수와 전세 중위값</caption>
       <thead><tr class="border-b border-line text-cap text-ink-3"><th scope="col" class="py-2 text-left font-medium">동</th><th scope="col" class="py-2 text-right font-medium">빌라</th><th scope="col" class="py-2 text-right font-medium">오피스텔</th><th scope="col" class="py-2 text-right font-medium">빌라 전세 중위</th></tr></thead>
-      <tbody>{dongs.map((d) => <tr class="border-b border-line" id={`d-${d.dong}`}>
-        <th scope="row" class="py-3 text-left">{hasDongPage(d) ? <a href={rentPath(sido, a.sigungu, d.dong)} class="inline-flex min-h-11 items-center font-semibold text-ink underline decoration-line underline-offset-4 hover:text-brand">{d.dong}</a> : <span class="font-semibold text-ink-2">{d.dong}</span>}</th>
-        <td class="py-3 text-right text-ink-2">{d.byType.villa?.n ?? 0}</td><td class="py-3 text-right text-ink-2">{d.byType.officetel?.n ?? 0}</td>
-        <td class="py-3 text-right text-ink">{d.byType.villa?.jeonse ? manwon(d.byType.villa.jeonse.median) : '-'}</td></tr>)}</tbody>
+      <tbody>{dongs.map((d) => <tr class="border-b border-line" id={`d-${d.dong}`} data-more-item>
+        <th scope="row" class="p-0 text-left">{hasDongPage(d) ? <a href={rentPath(sido, a.sigungu, d.dong)} class="flex min-h-11 items-center gap-1 font-semibold text-brand hover:underline">{d.dong}<span aria-hidden="true" class="text-ink-3">›</span></a> : <span class="flex min-h-11 items-center font-semibold text-ink-2">{d.dong}</span>}</th>
+        <td class="py-2 text-right text-ink-2">{d.byType.villa?.n ?? 0}</td><td class="py-2 text-right text-ink-2">{d.byType.officetel?.n ?? 0}</td>
+        <td class="py-2 text-right text-ink">{d.byType.villa?.jeonse ? manwon(d.byType.villa.jeonse.median) : '-'}</td></tr>)}</tbody>
     </table>
+    <ShowMore target="rent-dongs" limit={10} label="나머지 동 보기" />
   </section>
   <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} />
   <AdSlot name="A" />

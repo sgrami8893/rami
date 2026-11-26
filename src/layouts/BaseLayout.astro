@@ -42,6 +42,7 @@ const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t
   .flatMap((s) => s === 'rent' ? (RENT_HAS_PAGES ? RENT_SOURCES : []) : [{ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }])
   .filter((s) => s.name);
 if (Astro.props.sources) sources.splice(0, sources.length, ...Astro.props.sources);
+const liveTools = TOOLS.filter((t) => t.status === 'live');
 const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
 const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', rent: '전월세', waste: '대형폐기물', cert: '자격시험' };
 ---
@@ -74,21 +75,28 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
   </head>
   <body class={`min-h-screen text-ink antialiased ${white ? 'bg-card' : 'bg-bg'}`}>
     <a href="#main" class="sr-only z-50 rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
+    <!-- 헤더(2026-11-26 제미나이 검수 반영): 640px 미만은 2단(1단 로고+검색+글자 크기 고정 / 2단 도구 탭, 스크롤과 함께 올라감).
+         도구가 3개가 되며 1줄 헤더가 375px에서 넘쳤기 때문. 로고 글자는 모든 폭에서 보인다. 640px 이상은 기존 1줄 -->
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
       <div class={`mx-auto flex h-14 items-center gap-2 px-4 ${frame}`}>
-        <!-- 360px 미만(320px 확대 화면 포함)에서는 메뉴가 넘치지 않게 로고 글자를 화면에서만 숨긴다(링크 이름은 남음) -->
-        <a href="/" class="flex min-h-11 items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" /><span class="max-[359px]:sr-only">{SITE_NAME}</span></a>
+        <a href="/" class="flex min-h-11 items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
         <!-- 헤더는 도구 카테고리만(2026-11-25 UI 검수 합의). 시·도 전환은 각 도구 본문의 칩 바에서 -->
-        <nav aria-label="주요 메뉴" class="ml-auto flex items-center gap-3 text-[16px] font-medium text-ink-2">
-          {TOOLS.filter((t) => t.status === 'live').map((t) => (
+        <nav aria-label="주요 메뉴" class="ml-auto hidden items-center gap-3 text-[16px] font-medium text-ink-2 sm:flex">
+          {liveTools.map((t) => (
             <a href={t.path} class={`flex min-h-11 min-w-11 items-center justify-center ${tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
           ))}
-          <!-- 375px에서 도구 3개 + 검색 + 글자 크기가 넘쳐서(32px) 모바일에서는 검색 아이콘을 뺀다. 검색은 로고(홈) 첫 화면에 있음 -->
-          <a href="/#search" class="hidden h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg sm:flex" aria-label="지역 검색"><Icon name="search" size={22} /></a>
         </nav>
+        <a href="/#search" class="ml-auto flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg sm:ml-0" aria-label="지역 검색"><Icon name="search" size={22} /></a>
         <FontSizeMenu />
       </div>
     </header>
+    <nav aria-label="주요 메뉴" class="border-b border-line bg-card sm:hidden">
+      <div class="grid px-2" style={`grid-template-columns: repeat(${liveTools.length}, minmax(0, 1fr))`}>
+        {liveTools.map((t) => (
+          <a href={t.path} class={`flex min-h-11 items-center justify-center border-b-2 text-[16px] font-medium ${tool === t.slug ? 'border-brand text-ink' : 'border-transparent text-ink-2 hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
+        ))}
+      </div>
+    </nav>
     <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
       <main id="main" tabindex="-1" class={`min-w-0 focus:outline-none ${white && sidebar ? 'lg:pr-8' : ''}`}>
         {crumbs.length > 0 && <Breadcrumb items={crumbs} />}

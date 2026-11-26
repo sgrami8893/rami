@@ -2,6 +2,7 @@
 // 주차장 동 페이지: 같은 동 5곳 이상·시·군·구의 85% 이하(scripts/lib/parking.ts parkingDongs)
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
+import LotMore from '../../../../../components/parking/LotMore.astro';
 import LotRow from '../../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../../components/parking/FreeNote.astro';
@@ -32,6 +33,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <MapPanel points={pts.map(toPoint)} label={`${d.dong} 공영주차장`} missing={ls.length - pts.length} />
   <LotFilters total={ls.length} />
   <div id="lot-list" class="mt-1">{ls.map((l) => <LotRow l={l} level={2} />)}</div>
+  <LotMore />
   <nav aria-labelledby="more-h" class="mt-8">
     <h2 id="more-h" class="text-h2 font-bold text-ink">더 찾아보기</h2>
     <a href={base} class="mt-3 flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{d.sigunguName} 공영주차장 전체 보기</a>

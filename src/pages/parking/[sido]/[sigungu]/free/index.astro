@@ -2,6 +2,7 @@
 // 시·군·구 무료주차장 허브. 색인 기준: 무료 5곳 이상 + 무료 비율 85% 이하(scripts/lib/parking.ts freeSigunguIndexable). 기준 미달은 noindex.
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
+import LotMore from '../../../../../components/parking/LotMore.astro';
 import LotRow from '../../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../../components/parking/FreeNote.astro';
@@ -29,6 +30,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <MapPanel points={pts.map(toPoint)} label={`${r.name} 무료주차장`} missing={free.length - pts.length} />
   <LotFilters total={free.length} free={false} sort={false} />
   <div id="lot-list" class="mt-1">{free.map((l) => <LotRow l={l} level={2} />)}</div>
+  <LotMore />
   <nav aria-label="관련 페이지" class="mt-8 flex flex-col gap-2">
     <a href={base} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{r.name} 공영주차장 전체 {st.total}곳 · 요금 비교</a>
     <a href={freePath(sido)} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{sidoShort(sido)} 무료주차장 전체</a>

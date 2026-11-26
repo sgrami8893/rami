@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/parking/MockBanner.astro';
+import LotMore from '../../../../components/parking/LotMore.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../components/parking/FreeNote.astro';
@@ -35,6 +36,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       <div id="lot-list" class="mt-1">
         {groups.map((g) => g.items.map((l) => <LotRow l={l} level={2} />))}
       </div>
+  <LotMore />
     </>
   ) : (
     <section class="mt-5" aria-labelledby="sg-h">
