@@ -1,6 +1,7 @@
 ---
 // 전월세 동 상세(v2): "이 동네 보통 얼마고, 어느 건물이 얼마였어요?" ① 위치 줄 ② 답 카드 ③ 탭 [시세 | 건물별 거래 | 계산] ④ 접힘.
 // 동 페이지: 최근 12개월 거래 PAGE_MIN건 이상인 법정동만 생성. 색인은 INDEX_MIN건 이상 + 시·군·구의 90% 이하.
+import Near from '../../../../../components/v2/Near.astro';
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/rent/MockBanner.astro';
 import MapView from '../../../../../components/v2/MapView.astro';
@@ -43,6 +44,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   {IS_MOCK && <MockBanner />}
   <PlaceBar levels={rentPlace(sido, a.sigungu, dong)} />
   <h1 class="v-h1">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
+  <Near class="mt-2" />
   <RentMode class="mt-3" />
   <RentAnswer a={a} compare={{ v: cmp('villa'), o: cmp('officetel') }} />
   <Tabs tabs={tabs} label={`${dong} 전월세 보기`} />

@@ -1,5 +1,6 @@
 ---
 // 전월세 시·도(v2): "이 시·도 안에서 어느 시·군·구가 싸고 비싸요?" ① 위치 줄 ② [빌라|오피스텔][전세|월세] ③ 시·군·구 목록(거래 많은 순) ④ 접힘.
+import Near from '../../../components/v2/Near.astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../components/rent/MockBanner.astro';
 import RentNotes from '../../../components/rent/RentNotes.astro';
@@ -22,6 +23,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   {IS_MOCK && <MockBanner />}
   <PlaceBar levels={rentPlace(sido)} />
   <h1 class="v-h1">{sidoName(sido)} 빌라·오피스텔 전월세</h1>
+  <Near class="mt-2" />
   <p class="mt-1 text-cap text-ink-3">{periodText()} 신고된 거래 {total.toLocaleString('ko-KR')}건</p>
   <RentMode class="mt-3" />
   <VList label={`${sidoName(sido)} 시·군·구별 전월세 중위값`} count={`시·군·구 ${list.length}곳`} limit={15} sorts={[{ v: 'n', label: '거래 많은 순' }, { v: 'lo', label: '낮은 순' }, { v: 'hi', label: '높은 순' }, { v: 'nm', label: '이름순' }]}>

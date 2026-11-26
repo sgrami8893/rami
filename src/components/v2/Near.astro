@@ -1,0 +1,44 @@
+---
+// '내 주변'(2026-11-26). auto면 화면에 들어올 때 바로 브라우저 위치 권한을 묻는다(홈). 아니면 작은 '내 주변' 버튼(깊은 화면).
+// 좌표는 기기 안에서만 쓴다(src/scripts/near.ts). 거부·실패면 조용히 원래 화면 그대로.
+import Icon from '../Icon.astro';
+interface Props { auto?: boolean; class?: string }
+const { auto = false, class: cls = '' } = Astro.props;
+---
+<div class={`near-wrap ${cls}`} data-near-root data-auto={auto ? '1' : undefined}>
+  <button type="button" class={auto ? 'v-btn sec mt-3 w-full' : 'v-chip'} data-near-btn hidden><Icon name="map-pin" size={18} />내 주변 보기</button>
+  <p class="near-status mt-2 text-cap text-ink-3" role="status" hidden></p>
+  <section class="near-box mt-3" aria-label="내 주변" hidden></section>
+</div>
+<script>
+  import { onPage } from '../../scripts/soft-nav.ts';
+  import { locate, permission, findNear, renderNear, tellMap, type Near } from '../../scripts/near.ts';
+  let last: Near | null = null; // 이 탭 메모리에만
+  onPage(() => {
+    document.querySelectorAll<HTMLElement>('[data-near-root]').forEach((root) => {
+      if (root.dataset.ready) return;
+      root.dataset.ready = '1';
+      const btn = root.querySelector<HTMLButtonElement>('[data-near-btn]')!;
+      const status = root.querySelector<HTMLElement>('.near-status')!;
+      const box = root.querySelector<HTMLElement>('.near-box')!;
+      const say = (t: string) => { status.textContent = t; status.hidden = !t; };
+      const show = (r: Near) => { renderNear(box, r); btn.hidden = true; say(''); if (root.dataset.auto) tellMap(r); };
+      const run = async (fromClick: boolean) => {
+        if (last) { show(last); return; }
+        btn.disabled = true; say('내 위치를 확인하고 있어요.');
+        const pt = await locate();
+        btn.disabled = false;
+        if (!pt) { say(fromClick ? '위치를 확인하지 못했어요. 브라우저 설정에서 이 사이트의 위치 권한을 허용하면 볼 수 있어요.' : ''); btn.hidden = false; return; }
+        say('가까운 동네를 찾고 있어요.');
+        const r = await findNear(pt);
+        if (!r) { say('지금 위치는 서울·경기·인천 밖이라 보여 드릴 동네 정보가 없어요.'); btn.hidden = false; return; }
+        last = r; show(r);
+      };
+      btn.addEventListener('click', () => { void run(true); });
+      document.addEventListener('rent:mode', () => { if (last && document.contains(box) && !box.hidden) renderNear(box, last); });
+      if (last) { show(last); return; }
+      btn.hidden = false;
+      if (root.dataset.auto) void permission().then((p) => { if (p !== 'denied') void run(false); });
+    });
+  });
+</script>

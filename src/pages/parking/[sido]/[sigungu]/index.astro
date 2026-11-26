@@ -1,5 +1,6 @@
 ---
 import { parkingNav, PARKING_MAP_FILTERS as PF } from '../../../../lib/parking.ts';
+import Near from '../../../../components/v2/Near.astro';
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/parking/MockBanner.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
@@ -38,6 +39,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <MockBanner />
   <PlaceBar levels={parkingPlace(sido, r.sigungu)} />
   <h1 class="v-h1">{r.name} 공영주차장 {ls.length}곳</h1>
+  <Near class="mt-2" />
   <div class="v-ans"><div class="v-ans-row">
     <div><p class="k">전체</p><p class="v">{ls.length}<small>곳</small></p></div>
     <div><p class="k">무료</p><p class="v">{freeN}<small>곳</small></p></div>

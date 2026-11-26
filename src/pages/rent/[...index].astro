@@ -2,6 +2,7 @@
 // /rent/ 첫 화면(v2): "어느 동네 전월세가 궁금해요?" 두 갈래 [지역으로 보기 | 내 예산으로 찾기].
 // 지역: 위치 줄로 시·도를 고르거나 수도권 시·군·구 목록(거래 많은 순). 예산: RentBudget(결과 먼저, 예산에 가까운 순).
 // PC 지도는 수도권 시·군·구 단계구분도(예산을 넣으면 시·군·구마다 예산 안 동네 수로 칠함).
+import Near from '../../components/v2/Near.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import MockBanner from '../../components/rent/MockBanner.astro';
 import RentBudget from '../../components/rent/RentBudget.astro';
@@ -23,6 +24,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
 <BaseLayout title="동네 빌라·오피스텔 전월세 실거래 시세 | 서울·경기·인천" description={`서울·경기·인천 빌라(연립·다세대)·오피스텔 전월세 실거래 ${total.toLocaleString('ko-KR')}건(${periodText()})을 시·군·구와 동네별로 정리했어요. 전세·월세 중위값, 내 예산으로 갈 수 있는 동네, 중개보수·전환 계산기를 볼 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="v-h1">어느 동네 전월세가 궁금해요?</h1>
+  <Near class="mt-2" />
   <p class="mt-1 text-cap text-ink-3">서울·경기·인천 빌라·오피스텔 실거래 {total.toLocaleString('ko-KR')}건 · {periodText()} · 아파트 제외</p>
   <div class="v-seg mt-4 flex w-full [&>button]:flex-1" role="group" aria-label="찾는 방법" data-entry hidden>
     <button type="button" data-entry-v="region" aria-pressed="true">지역으로 보기</button>

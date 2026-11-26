@@ -453,3 +453,9 @@ html[data-rt="o"]:not([data-rk="w"]) .v-row .sw-wrap .sw.rm-oj, html[data-rt="o"
 .v-tool .t b { display: block; font-size: calc(17px * var(--fs, 1)); font-weight: 700; color: var(--color-ink); }
 .v-tool .t span { display: block; margin-top: 2px; font-size: calc(14px * var(--fs, 1)); color: var(--color-ink-3); }
 .v-tool .chev { flex: none; color: #B0B8C1; }
+/* '내 주변' 카드 */
+.near-place { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 8px; font-size: calc(17px * var(--fs, 1)); color: var(--color-ink); }
+.near-place .k { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 7px; background: var(--color-ink); color: #fff; font-size: calc(13px * var(--fs, 1)); font-weight: 700; }
+.near-place b { font-weight: 800; }
+.near-box .v-btn.sec { display: flex; }
+.near-wrap .v-chip svg { flex: none; }

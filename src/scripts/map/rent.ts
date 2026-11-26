@@ -297,6 +297,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     void loadCounts().then(() => { restyle(); if (budget) announce('지도를 예산 안 동네 수로 칠했어요.'); });
   }, sig);
   map.on('click', () => { /* 빈 곳: 아무것도 안 함 */ });
+  let meMarker: Leaflet.CircleMarker | null = null;
   await apply(false);
 
   return {
@@ -305,6 +306,10 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       if (!key) { showGhost(null); return; }
       const d = dongByK.get(key) ?? (focus.sido ? sggByF.get(`${focus.sido}__${key}`) : undefined) ?? sggByF.get(key);
       showGhost(d ? d.feature.geometry : null);
+    },
+    me(pt) {
+      meMarker?.remove();
+      meMarker = L.circleMarker([pt.lat, pt.lng], { radius: 9, color: '#FFFFFF', weight: 3, fillColor: '#191F28', fillOpacity: 1, interactive: false, pane: 'v2-line', className: 'rm-glow' }).bindTooltip('내 위치', { direction: 'top', offset: [0, -10], className: 'rm-tip' }).addTo(map);
     },
     resize() { map.invalidateSize(); },
     destroy() { ac.abort(); map.remove(); },

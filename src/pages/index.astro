@@ -11,6 +11,7 @@ import GuideList from '../components/GuideList.astro';
 import MapView from '../components/v2/MapView.astro';
 import MapPill from '../components/v2/MapPill.astro';
 import Fold from '../components/v2/Fold.astro';
+import Near from '../components/v2/Near.astro';
 import { MAP } from '../config.ts';
 
 import Icon from '../components/Icon.astro';
@@ -68,6 +69,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
 <BaseLayout title={`${SITE_NAME} | 전월세·주차장·발급기, 우리 동네 생활 정보 한눈에`} description={`서울·경기·인천 빌라·오피스텔 전월세 실거래 ${n(rentTotal)}건, 공영주차장 ${n(parkingLots.length)}곳, 무인민원발급기 ${n(kiosks.length)}곳을 지역별로 모아 보여 주는 민간 생활 정보 서비스예요.`} jsonld={jsonld} tool={undefined}>
   <h1 class="v-h1 pt-2">우리 동네 생활 정보,<br class="sm:hidden" /> 한눈에 찾아요</h1>
   <button type="button" class="v-search-big mt-4" data-sheet-open aria-haspopup="dialog"><Icon name="search" size={20} />동네·지역 이름으로 찾기</button>
+  <Near auto />
   <h2 class="v-cap">도구</h2>
   <div class="grid gap-2">
     {live.map((t) => (
