@@ -94,3 +94,21 @@ test('개편 후 코드를 표에 고정', async () => {
   assert.equal(regionOfDeal('28290', '당하동')?.sigunguName, '검단구');
   assert.equal(regionOfDeal('28125', '만석동')?.sigunguName, '제물포구');
 });
+
+test('범위는 P10~P90, 10건 미만이면 생략, 옛 파일은 P25~P75', async () => {
+  const { bandText } = await import('../lib/rent.ts');
+  const d = dist(Array.from({ length: 20 }, (_, i) => i + 1))!;
+  assert.equal(bandText(d, String)?.label, '거래 80%가');
+  assert.equal(bandText(dist([1, 2, 3, 4, 5]), String), null);
+  const { p10, p90, ...old } = d;
+  assert.equal(bandText(old as typeof d, String)?.label, '거래 절반이');
+});
+
+test('동 색인: 시·군·구에 10건+ 동이 4곳 이상이어야', async () => {
+  const { dongIndexable } = await import('../lib/rent.ts');
+  const mk = (dong: string | null, n: number) => ({ sido: 'seoul', sigungu: 'x', sigunguName: 'X구', dong, n, byType: {} }) as any;
+  const three = { from: '', to: '', generatedAt: '', isMock: false, areas: [mk(null, 300), mk('가동', 100), mk('나동', 100), mk('다동', 100)] };
+  assert.equal(dongIndexable(three, three.areas[1]), false);
+  const four = { ...three, areas: [...three.areas, mk('라동', 10)] };
+  assert.equal(dongIndexable(four, four.areas[1]), true);
+});

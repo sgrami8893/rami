@@ -6,7 +6,7 @@ import RentSummary from '../../../../components/rent/RentSummary.astro';
 import RentCalculator from '../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../components/rent/RentNotes.astro';
 import AdSlot from '../../../../components/AdSlot.astro';
-import { stats, sidoShort, dongsOf, hasDongPage, rentPath, subGuText, periodText, sigunguIndexable, IS_MOCK, RENT_RULE, type RentArea } from '../../../../lib/rent.ts';
+import { RENT_SOURCES, stats, sidoShort, dongsOf, hasDongPage, rentPath, subGuText, periodText, sigunguIndexable, IS_MOCK, RENT_RULE, type RentArea } from '../../../../lib/rent.ts';
 import { sigunguAreas, manwon } from '../../../../../scripts/lib/rent.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return sigunguAreas(stats).map((a) => ({ params: { sido: a.sido, sigungu: a.sigungu }, props: { a } })); }
@@ -17,12 +17,11 @@ const v = a.byType.villa, o = a.byType.officetel;
 const main = v && (!o || v.n >= o.n) ? v : o;
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }];
 ---
-<BaseLayout title={`${a.sigunguName} 빌라·오피스텔 전월세 실거래 시세 ${a.n}건 | 동별 전세·월세`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !sigunguIndexable(a)} sidebar={false}>
+<BaseLayout title={`${a.sigunguName} 빌라·오피스텔 전월세 실거래 시세 ${a.n}건 | 동별 전세·월세`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !sigunguIndexable(a)} sidebar={false} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{a.sigunguName}{subGuText(sido, a.sigungu)} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건</p>
   <RentSummary a={a} place={a.sigunguName} />
-  <AdSlot name="A" />
   <section aria-labelledby="dong-h" class="mt-8">
     <h2 id="dong-h" class="text-h2 font-bold text-ink">동별 거래</h2>
     <p class="mt-1 text-cap text-ink-3">최근 12개월 거래 {RENT_RULE.PAGE_MIN}건 이상인 동은 따로 자세히 볼 수 있어요.</p>
@@ -36,5 +35,6 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
     </table>
   </section>
   <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} />
+  <AdSlot name="A" />
   <RentNotes />
 </BaseLayout>

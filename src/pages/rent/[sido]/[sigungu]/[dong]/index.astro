@@ -6,7 +6,7 @@ import RentSummary from '../../../../../components/rent/RentSummary.astro';
 import RentCalculator from '../../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../../components/rent/RentNotes.astro';
 import AdSlot from '../../../../../components/AdSlot.astro';
-import { stats, DONG_PAGES, sidoShort, dongsOf, hasDongPage, rentPath, periodText, dongIndexable, IS_MOCK, type RentArea } from '../../../../../lib/rent.ts';
+import { RENT_SOURCES, stats, DONG_PAGES, sidoShort, dongsOf, hasDongPage, rentPath, periodText, dongIndexable, IS_MOCK, type RentArea } from '../../../../../lib/rent.ts';
 import { manwon } from '../../../../../../scripts/lib/rent.ts';
 import type { SidoSlug } from '../../../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return DONG_PAGES.map((a) => ({ params: { sido: a.sido, sigungu: a.sigungu, dong: a.dong! }, props: { a } })); }
@@ -19,14 +19,14 @@ const sgMed = sg.byType.villa?.jeonse?.median ?? null;
 const others = dongsOf(sido, a.sigungu).filter((d) => d.dong !== dong && hasDongPage(d));
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }, { name: dong, href: rentPath(sido, a.sigungu, dong) }];
 ---
-<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} sidebar={false}>
+<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description="골격 미리보기" crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} sidebar={false} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건 · 법정동 기준</p>
   {v?.jeonse && sgMed !== null && <p class="mt-3 rounded-2xl bg-bg px-4 py-3 text-body text-ink-2">빌라 전세 중위값은 {dong} {manwon(v.jeonse.median)}, {a.sigunguName} 전체 {manwon(sgMed)}이에요.</p>}
   <RentSummary a={a} place={dong} />
-  <AdSlot name="A" />
   <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} />
+  <AdSlot name="A" />
   <nav aria-labelledby="more-h" class="mt-8">
     <h2 id="more-h" class="text-h2 font-bold text-ink">더 찾아보기</h2>
     <a href={rentPath(sido, a.sigungu)} class="mt-3 flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{a.sigunguName} 전체 보기</a>

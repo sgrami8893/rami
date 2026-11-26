@@ -59,12 +59,13 @@ export function normalizeDeal(item: Record<string, unknown>, type: HouseType, fa
 export const K_MIN = 3;
 /** 면적대(전용면적 ㎡). 빌라·오피스텔 실거래 분포에 맞춘 구간 */
 export const AREA_BANDS = [
-  { key: 'a20', label: '20㎡ 이하(원룸)', max: 20 }, { key: 'a40', label: '20~40㎡(1.5룸·투룸)', max: 40 },
-  { key: 'a60', label: '40~60㎡(투룸·쓰리룸)', max: 60 }, { key: 'a85', label: '60~85㎡', max: 85 }, { key: 'over', label: '85㎡ 초과', max: Infinity },
+  { key: 'a20', label: '20㎡ 이하', max: 20 }, { key: 'a40', label: '20~40㎡', max: 40 },
+  { key: 'a60', label: '40~60㎡', max: 60 }, { key: 'a85', label: '60~85㎡', max: 85 }, { key: 'over', label: '85㎡ 초과', max: Infinity },
 ] as const;
 const bandOf = (a: number) => AREA_BANDS.find((b) => a <= b.max)!.key;
 
-export interface Dist { n: number; min: number; p25: number; median: number; p75: number; max: number }
+/** p10·p90은 2026-11-26 추가(이전 수집 파일에는 없음 → 화면은 p25·p75로 대체) */
+export interface Dist { n: number; min: number; p10?: number; p25: number; median: number; p75: number; p90?: number; max: number }
 export interface KindStats { jeonse: Dist | null; wolse: { n: number; deposit: Dist | null; monthly: Dist | null } | null }
 export interface TypeStats extends KindStats {
   n: number; newCount: number; renewCount: number; usedRightCount: number;
@@ -82,7 +83,7 @@ const q = (s: number[], p: number) => { const i = (s.length - 1) * p; const lo =
 export function dist(xs: number[]): Dist | null {
   if (xs.length < K_MIN) return null;
   const s = [...xs].sort((a, b) => a - b);
-  return { n: s.length, min: s[0], p25: q(s, 0.25), median: q(s, 0.5), p75: q(s, 0.75), max: s.at(-1)! };
+  return { n: s.length, min: s[0], p10: q(s, 0.1), p25: q(s, 0.25), median: q(s, 0.5), p75: q(s, 0.75), p90: q(s, 0.9), max: s.at(-1)! };
 }
 const med = (xs: number[]) => dist(xs)?.median ?? null;
 const quarterOf = (ym: string) => `${ym.slice(0, 4)}-Q${Math.ceil(Number(ym.slice(5, 7)) / 3)}`;
@@ -151,15 +152,24 @@ export function aggregate(all: Deal[], { months = 12, isMock = false, now = new 
  *   근거: 중위값은 표본 30건 안팎부터 분기마다 크게 흔들리지 않고, 면적대 2~3칸(칸당 K_MIN건)을 채울 수 있다.
  */
 // 2026-11-26 실데이터(수도권 45만 건): 동 1,398곳 중 10건+ 1,028곳, 30건+ 808곳 → 색인 30건 유지(제미나이 합의 범위 20~30의 상한).
-export const RENT_RULE = { PAGE_MIN: 10, INDEX_MIN: 30, MAX_SHARE: 0.9, SIGUNGU_INDEX_MIN: 30 };
+// MIN_DONGS_IN_SIGUNGU(2026-11-26 제미나이 합의): 10건+ 동이 4곳 미만인 시·군·구(예: 관악구 3곳)는 동 페이지가 시·군·구 페이지와 겹쳐서 동 페이지 색인 안 함.
+// 범위 표시는 최저~최고 대신 P10~P90(극단값 1건이 범위를 좌우하지 않게), RANGE_MIN건 미만이면 범위 생략.
+export const RENT_RULE = { PAGE_MIN: 10, INDEX_MIN: 30, MAX_SHARE: 0.9, SIGUNGU_INDEX_MIN: 30, MIN_DONGS_IN_SIGUNGU: 4, RANGE_MIN: 10 };
 export const sigunguAreas = (s: RentStats) => s.areas.filter((a) => a.dong === null);
 export const dongAreasOf = (s: RentStats, sido: string, sigungu: string) => s.areas.filter((a) => a.dong !== null && a.sido === sido && a.sigungu === sigungu);
 export function dongPages(s: RentStats) { return s.areas.filter((a) => a.dong !== null && a.n >= RENT_RULE.PAGE_MIN); }
 export function dongIndexable(s: RentStats, a: RentArea) {
   const total = s.areas.find((x) => x.dong === null && x.sido === a.sido && x.sigungu === a.sigungu)?.n ?? a.n;
-  return a.n >= RENT_RULE.INDEX_MIN && a.n / total <= RENT_RULE.MAX_SHARE;
+  const pagesInSigungu = s.areas.filter((x) => x.dong !== null && x.sido === a.sido && x.sigungu === a.sigungu && x.n >= RENT_RULE.PAGE_MIN).length;
+  return a.n >= RENT_RULE.INDEX_MIN && a.n / total <= RENT_RULE.MAX_SHARE && pagesInSigungu >= RENT_RULE.MIN_DONGS_IN_SIGUNGU;
 }
 export const sigunguIndexable = (a: RentArea) => a.n >= RENT_RULE.SIGUNGU_INDEX_MIN;
+
+/** 중간 80% 구간(P10~P90) 문구. 거래가 적거나 옛 파일(p10 없음)이면 중간 50%(P25~P75)로 */
+export function bandText(d: Dist | null, fmt: (v: number) => string) {
+  if (!d || d.n < RENT_RULE.RANGE_MIN) return null;
+  return d.p10 !== undefined && d.p90 !== undefined ? { label: '거래 80%가', text: `${fmt(d.p10)} ~ ${fmt(d.p90)}` } : { label: '거래 절반이', text: `${fmt(d.p25)} ~ ${fmt(d.p75)}` };
+}
 
 /** 만원 → "2억 3,000만 원" */
 export function manwon(v: number | null | undefined) {
