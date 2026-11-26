@@ -1,13 +1,18 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../components/parking/MockBanner.astro';
-import { SIDOS, sidoName, sidoShort, parkingPath, freePath, regionsOf, freeHubIndexable, lots, IS_MOCK, type ParkingLot } from '../../../lib/parking.ts';
+import MapPanel from '../../../components/MapPanel.astro';
+import MapButton from '../../../components/MapButton.astro';
+import { mapOn } from '../../../lib/map.ts';
+import { SIDOS, sidoName, sidoShort, parkingPath, freePath, regionsOf, freeHubIndexable, lots, IS_MOCK, toPoint, parkingNav, PARKING_MAP_FILTERS, type ParkingLot } from '../../../lib/parking.ts';
 import type { SidoSlug } from '../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return SIDOS.map((sido) => ({ params: { sido } })); }
 const sido = Astro.params.sido as SidoSlug;
 const rs = regionsOf(sido);
 const total = rs.reduce((a, r) => a + r.lots.length, 0);
 const fh = freeHubIndexable(lots as ParkingLot[], sido);
+// 시·도 지도(2026-11-26 '주차장도 전월세 지도와 같은 구성'): 좌표 있는 곳 전부, 묶음으로 보여 준다
+const pts = rs.flatMap((r) => r.lots).filter((l) => l.lat !== null && l.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(sido), href: parkingPath(sido) }];
 ---
 <BaseLayout tool="parking" title={`${sidoShort(sido)} 공영주차장 ${total.toLocaleString("ko-KR")}곳 | 시·군·구별 무료·유료`} description={`${sidoName(sido)} 공영주차장 ${total.toLocaleString("ko-KR")}곳(무료 ${fh.count.toLocaleString("ko-KR")}곳)을 시·군·구별로 찾아보세요. 요금, 운영시간, 2시간 주차 요금을 비교할 수 있어요.`} crumbs={crumbs} noindex={IS_MOCK} sidebar={false}>
@@ -17,6 +22,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <nav aria-label="조건별 모아보기" class="mt-4 flex flex-wrap gap-2">
     <a href={freePath(sido)} class="flex h-9 items-center rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">무료 주차장 <span class="ml-1 text-ink-3">{fh.count}</span></a>
   </nav>
+  {mapOn(pts) && <MapButton show label="주차장 지도로 보기" class="mt-4" />}
   <ul class="mt-4 grid sm:grid-cols-2 sm:gap-x-8">
     {rs.map((r) => (
       <li class="border-b border-line">
@@ -27,4 +33,5 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       </li>
     ))}
   </ul>
+  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${sidoShort(sido)} 공영주차장`} missing={total - pts.length} area={{ sido }} tool="parking" nav={parkingNav(sido)} filters={PARKING_MAP_FILTERS} />}
 </BaseLayout>

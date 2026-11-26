@@ -1,4 +1,5 @@
 ---
+import { parkingNav, PARKING_MAP_FILTERS as PF } from '../../../../lib/parking.ts';
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/parking/MockBanner.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
@@ -64,7 +65,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     ))}
   </div>
   <LotMore />
-  {mapOn(withCoords) && <MapPanel slot="map" points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} area={{ sido, sigungu: r.sigungu }} />}
+  {mapOn(withCoords) && <MapPanel slot="map" points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} area={{ sido, sigungu: r.sigungu }} tool="parking" nav={parkingNav(sido, r.sigungu)} filters={PF} />}
 </BaseLayout>
 
 <script>

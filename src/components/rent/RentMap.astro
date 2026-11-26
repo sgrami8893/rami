@@ -6,6 +6,8 @@ import { MAP } from '../../config.ts';
 import { HAS_PAGES, periodText } from '../../lib/rent.ts';
 import Icon from '../Icon.astro';
 import RentPickBody from './RentPickBody.astro';
+import RegionChips from '../RegionChips.astro';
+import MapTools from '../MapTools.astro';
 import { HAS_BUILDINGS } from '../../lib/rent-buildings.ts';
 interface Props { focus?: { sido?: string; slug?: string; dong?: string | null } }
 const { focus = {} } = Astro.props;
@@ -26,22 +28,8 @@ const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom }
       </div>
       <!-- 지도 도구 v3(2026-11-26 사용자 '투박하다'): 한 줄 떠 있는 도구 막대. 지역은 이동 경로 칩 + 목록 팝업, 유형·전월세는 가벼운 분할 버튼 -->
       <div class="rm-toolbar pointer-events-none absolute left-3 right-[60px] top-3 z-[1000] flex flex-wrap items-start gap-2" hidden>
-        <nav class="rm-crumbs map-float pointer-events-auto relative z-[2] flex items-center p-1" aria-label="지역 선택">
-          {[['sido', '시·도'], ['sgg', '시·군·구'], ['dong', '동네']].map(([k, name], i) => (
-            <div class={`rm-pick relative flex items-center rm-pick-${k}`} hidden={i > 0}>
-              {i > 0 && <Icon name="chevron-right" size={14} class="mx-0.5 text-[#B0B8C1]" />}
-              <button type="button" class="rm-chip" aria-haspopup="listbox" aria-expanded="false">
-                <span class="sr-only">{name}: </span>
-                {i === 0 && <Icon name="map-pin" size={16} class="text-brand" />}
-                <span class="rm-chip-text">{name}</span><Icon name="chevron-down" size={14} class="rm-chip-caret" />
-              </button>
-              <div class="rm-pop" hidden>
-                <div class="rm-pop-search"><Icon name="search" size={16} class="text-ink-3" /><input type="text" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls={`rm-list-${k}`} aria-label={`${name} 이름으로 찾기`} placeholder={`${name} 이름으로 찾기`} autocomplete="off" /></div>
-                <ul id={`rm-list-${k}`} role="listbox" tabindex="-1" aria-label={`${name} 목록`}></ul>
-              </div>
-            </div>
-          ))}
-        </nav>
+        <MapTools current="rent" sido={focus.sido} sgg={focus.slug} />
+        <RegionChips />
         <div class="map-float pointer-events-auto flex items-center gap-1 p-1">
           <fieldset class="rm-seg"><legend class="sr-only">주택 유형</legend>
             <label><input type="radio" name="rm-type" value="v" checked class="sr-only" />빌라</label>
@@ -73,7 +61,5 @@ const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom }
 
 <script>
   import { initMapPanels } from '../../scripts/map-panel.ts';
-  import { initSoftNav } from '../../scripts/soft-nav.ts';
   initMapPanels();
-  initSoftNav('rent');
 </script>

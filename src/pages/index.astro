@@ -68,7 +68,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
   <section id="search" class="scroll-mt-16 pt-2 pb-7">
     <h1 class="text-[length:calc(30px*var(--fs,1))] font-bold leading-[36px] tracking-tight text-ink">발급기·주차장·전월세,<br class="sm:hidden" /> 우리 동네 생활 정보 한눈에</h1>
     {PICK.length > 1 && (
-      <fieldset class="mt-5">
+      <fieldset class={rentMap ? 'mt-5 lg:hidden' : 'mt-5'}>
         <legend class="sr-only">찾을 정보</legend>
         <div class="grid gap-1 rounded-2xl bg-bg p-1" style={`grid-template-columns: repeat(${PICK.length}, minmax(0, 1fr))`}>
           {PICK.map((p, i) => (
@@ -106,8 +106,8 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
     {rentMap && <MapButton show label="전월세 지도로 보기" class="mt-4" />}
   </section>
 
-  <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
-  <section class="grid gap-3 py-7">
+  <div class={`band -mx-5 lg:mx-0 lg:rounded-lg ${rentMap ? 'lg:hidden' : ''}`} aria-hidden="true"></div>
+  <section class={`grid gap-3 py-7 ${rentMap ? 'lg:hidden' : ''}`}>
     <h2 class="text-h2 font-bold text-ink">지금 쓸 수 있는 도구</h2>
     {live.map((t) => (
       <a href={t.path} class="block rounded-2xl bg-bg p-5 hover:brightness-[0.98]">

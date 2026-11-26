@@ -82,7 +82,7 @@ const summary = [
   </nav>
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
   <GuideList flat limit={4} />
-  {mapOn(ks) && <MapPanel slot="map" points={validPoints(ks).map(kioskPoint)} label={`${place} 무인민원발급기`} missing={ks.length - validPoints(ks).length} area={{ sido: d.sido, sigungu: d.sigungu, dong: d.dong }} />}
+  {mapOn(ks) && <MapPanel slot="map" points={validPoints(ks).map(kioskPoint)} label={`${place} 무인민원발급기`} missing={ks.length - validPoints(ks).length} area={{ sido: d.sido, sigungu: d.sigungu, dong: d.dong }} tool="muin" />}
 </BaseLayout>
 
 <script>

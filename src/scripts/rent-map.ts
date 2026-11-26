@@ -13,6 +13,7 @@ import { picker } from './map-picker.ts';
 import type { MapApi } from './map-panel.ts';
 import { createBuildings, BUILD_ZOOM } from './rent-buildings.ts';
 import { createFrame, getGeo, AREA_SRC } from './map-frame.ts';
+import { takeView } from './soft-nav.ts';
 
 type M = (number | null)[]; // [빌라 전세, 빌라 월세, 빌라 월세 보증금, 오피 전세, 오피 월세, 오피 월세 보증금]
 type SggP = { f: string; nm: string; sd: string; l: [number, number]; n: number; h: string | null; m: M; b?: number };
@@ -29,7 +30,8 @@ const LOW_LABEL_ZOOM = 14; // '거래 적음' 라벨은 이만큼 가까이서�
 // 2026-11-26 사용자 '파랑 계열 별로' → 따뜻한 한 방향 색(크림→호박→산호→자두, YlOrRd·magma 계열). 파랑·초록 배경지도와 겹치지 않고,
 // 밝기가 단계마다 크게 달라 색각이상에서도 순서가 보인다
 const COLORS = ['#FDF0C4', '#FBCB7A', '#F59A4E', '#E4634A', '#B23A5B', '#6B1F57'];
-const GREY = '#D5D9DE';
+const GREY = '#DDE1E6';
+const GREY_FILL = 0.35; // 거래 적은 곳은 더 옅게(2026-11-26 사용자 '회색이 너무 진함')
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** 만원 → 라벨용 짧은 금액(2.1억, 9,500만) */
@@ -102,7 +104,19 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // 를 맨 앞으로. 어떤 칸 색 위에서도 보인다. 바깥 틀은 map-frame.ts의 중간 회청색
   const PICK = '#FFFFFF', SLATE = '#475569';
   const HOVER = { color: PICK, weight: 3, opacity: 1, fillOpacity: 0.75 };
-  const lift = (l: Leaflet.Path) => { l.setStyle(HOVER); (l.getElement() as Element | undefined)?.classList.add('rm-glow'); l.bringToFront(); };
+  // 마우스를 올린 곳 테두리는 별도 '유령' 선(맨 위 칸, 누를 수 없음)으로 그린다. 도형 자체를 맨 앞으로 옮기면(bringToFront)
+  // 브라우저가 mouseout을 놓쳐 흰 테두리·풍선이 남던 문제(2026-11-26 사용자 제보)
+  let ghost: Leaflet.GeoJSON | null = null;
+  let hovered: Leaflet.Path | null = null;
+  const unlift = () => { if (ghost) { map.removeLayer(ghost); ghost = null; } hovered?.closeTooltip(); hovered = null; };
+  const lift = (l: Leaflet.Path) => {
+    unlift(); hovered = l;
+    const g = (l as Leaflet.Polygon).feature?.geometry;
+    if (g) ghost = L.geoJSON(g, { pane: 'dnkk-frame', interactive: false, style: { color: PICK, weight: 3, opacity: 1, fill: false, lineJoin: 'round', className: 'rm-glow' } }).addTo(map);
+    const fo = (l.options as Leaflet.PathOptions).fillOpacity ?? FILL;
+    l.setStyle({ fillOpacity: Math.min(0.9, fo + 0.15) });
+  };
+  map.on('mouseout', unlift);
   // 경계 가독성(2026-11-26 사용자 '경계가 잘 안 보여'): 회색 배경지도 위에 진한 채움 + 흰 경계 2px, 시·군·구 경계는 진한 선
   // 2026-11-26 사용자 '너무 진해, 투명도 올려' → 배경지도가 비치게 0.6
   const FILL = 0.6;
@@ -123,13 +137,13 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 도형 ----
   const sggLayer = L.geoJSON(sgg as unknown as GeoJSON.FeatureCollection, {
-    style: (f) => ({ color: '#FFFFFF', weight: 1.5, opacity: 0.75, lineJoin: 'round', lineCap: 'round', fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: FILL }),
+    style: (f) => ({ color: '#FFFFFF', weight: 1.5, opacity: 0.75, lineJoin: 'round', lineCap: 'round', fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: valueOf(f!.properties as SggP) === null ? GREY_FILL : FILL }),
     onEachFeature: (f, layer) => {
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
       layer.bindTooltip(() => tipEl(`${p.sd} ${p.nm}`, p), TIP);
       layer.on('mouseover', () => { if (!isNear() && inScope(p.f)) lift(layer as Leaflet.Path); });
-      layer.on('mouseout', () => restyle());
+      layer.on('mouseout', () => { unlift(); restyle(); });
     },
   }).addTo(map);
   const sggByFile = new Map<string, { p: SggP; layer: Leaflet.Polygon }>();
@@ -149,7 +163,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const loaded = new Map<string, Leaflet.GeoJSON>();
   const loading = new Map<string, Promise<void>>();
   const dongs = new Map<string, { p: DongP; layer: Leaflet.Polygon; sg: SggP }[]>(); // 키: 파일__동이름 (화성 '능동'처럼 같은 이름 조각이 여럿일 수 있음)
-  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1.25, opacity: 0.7, lineJoin: 'round' as const, fillColor: colorOf(valueOf(p)), fillOpacity: FILL });
+  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1.25, opacity: 0.7, lineJoin: 'round' as const, fillColor: colorOf(valueOf(p)), fillOpacity: valueOf(p) === null ? GREY_FILL : FILL });
   const loadFile = (f: string) => {
     if (loaded.has(f)) return Promise.resolve();
     if (!loading.has(f)) loading.set(f, fetch(`${src}${f}.json`).then((r) => r.json() as Promise<FC<DongP> | null>).then((fc) => {
@@ -164,7 +178,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
           l.on('click', (e) => { L.DomEvent.stopPropagation(e); pickDong(key); });
           l.bindTooltip(() => tipEl(`${sg.sd} ${sg.nm} ${p.k}`, p), TIP);
           l.on('mouseover', () => { if (key !== selected) lift(l as Leaflet.Path); });
-          l.on('mouseout', () => { if (key !== selected) (l as Leaflet.Path).setStyle(dongStyle(p)); });
+          l.on('mouseout', () => { unlift(); if (key !== selected) (l as Leaflet.Path).setStyle(dongStyle(p)); });
         },
       });
       loaded.set(f, layer);
@@ -241,7 +255,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       return near
         // 동 단계: 고른 시·군·구 테두리는 틀(map-frame)이 그리므로 여기서는 범위를 안 정했을 때만 옅은 선
         ? (scopeSgg ? { stroke: false, fill: false } : { stroke: true, fill: false, color: SLATE, weight: 1.25, opacity: 0.4, fillOpacity: 0, fillColor: GREY })
-        : { stroke: true, fill: true, color: '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.75, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
+        : { stroke: true, fill: true, color: '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.75, fillColor: colorOf(valueOf(p)), fillOpacity: valueOf(p) === null ? GREY_FILL : FILL };
     });
     if (!near && selectedSgg) sggByFile.get(selectedSgg)?.layer.bringToFront();
     for (const [key, parts] of dongs) for (const { p, layer } of parts) {
@@ -274,6 +288,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     // 시·군·구 경계선은 동 위에서 클릭을 막지 않게
     sggLayer.eachLayer((l) => { const el = (l as Leaflet.Path).getElement() as HTMLElement | undefined; if (el) el.style.pointerEvents = near || !inScope((l as Leaflet.Polygon).feature!.properties.f) ? 'none' : ''; });
   };
+  map.on('unload', () => clearTimeout(timer));
   map.on('moveend', () => { clearTimeout(timer); timer = window.setTimeout(() => { autoScope(); refresh(); }, 180); });
 
   // ---- 요약 ----
@@ -404,6 +419,8 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   };
   function setScope(sido: string | null, f: string | null, fit = true) {
     scopeSido = sido; scopeSgg = f;
+    // 지도 위 도구 전환 링크가 지금 지역의 주차장·발급기 페이지를 가리키게(map-tools.ts)
+    document.dispatchEvent(new CustomEvent('map:area', { detail: { sido, sgg: f } }));
     if (selectedSgg && !inScope(selectedSgg)) selectedSgg = null;
     if (selected && !inScope(fileOfKey(selected))) { selected = null; card.hidden = true; }
     syncSelect(f, selected && f && fileOfKey(selected) === f ? selected.slice(f.length + 2) : null);
@@ -502,8 +519,10 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   if (sgFocus) await loadFile(sgFocus.p.f);
   const focusKey = sgFocus && focus.dong && dongs.has(`${sgFocus.p.f}__${focus.dong}`) ? `${sgFocus.p.f}__${focus.dong}` : null;
   if (focusKey) selected = focusKey;
+  const kept = takeView(); // 지도 위 도구 전환으로 왔으면 보던 위치 그대로
   const firstFit = () => {
-    if (focusKey) {
+    if (kept) map.setView([kept.lat, kept.lng], kept.zoom);
+    else if (focusKey) {
       const b = L.latLngBounds([]); dongs.get(focusKey)!.forEach(({ layer }) => b.extend(layer.getBounds()));
       map.fitBounds(b, { padding: [60, 60], maxZoom: 14.5 });
     } else if (sgFocus) map.fitBounds(sgFocus.layer.getBounds(), { padding: [24, 24] });
@@ -526,6 +545,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // 지도 화면 안 이동(soft-nav): 새 본문의 지도 초점으로 범위·선택만 바꾸고, 지도는 그대로 둔다
   document.addEventListener('dnkk:swap', (e) => {
+    if (!document.contains(canvas)) return; // 지도 칸이 바뀐 뒤(다른 도구)에는 손대지 않음
     const f = (e as CustomEvent<{ focus: Focus | null }>).detail.focus ?? {};
     const s = sideEl(); if (s) s.hidden = false;
     card.hidden = true;
@@ -545,5 +565,6 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     } else if (f.sido) { selected = null; setScope(f.sido, null); }
   });
 
-  return { focus() {}, hover() {}, filter() {}, resize() { map.invalidateSize(); } };
+  return { focus() {}, hover() {}, filter() {}, resize() { map.invalidateSize(); },
+    view() { const c = map.getCenter(); return { lat: c.lat, lng: c.lng, zoom: map.getZoom() }; }, destroy() { map.remove(); } };
 }
