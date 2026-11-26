@@ -52,6 +52,9 @@ export function toRow(item: Record<string, unknown>, map: Record<FieldKey, strin
   return row;
 }
 
+/** 정상 응답 코드: 표준데이터 API는 '00', 국토부 실거래가 API(apis.data.go.kr/1613000)는 '000'(2026-11-26 실제 응답 확인) */
+export const OK_CODES = ['00', '000', '0', 'INFO-000'];
+
 export interface Page { items: Record<string, unknown>[]; totalCount: number }
 
 /** 표준데이터 API 응답 본문 해석. 오류(인증키 오류는 JSON을 요청해도 XML로 올 때가 있음)는 Error로 던진다. */
@@ -61,7 +64,7 @@ export function parsePage(text: string): Page {
   let j: any;
   try { j = JSON.parse(t); } catch { throw new Error(`JSON이 아닌 응답: ${t.slice(0, 120)}`); }
   const header = j?.response?.header ?? j?.header;
-  if (header && !['00', '0', 'INFO-000'].includes(String(header.resultCode))) throw new Error(`API 오류 ${header.resultCode} ${header.resultMsg ?? ''}`.trim());
+  if (header && !OK_CODES.includes(String(header.resultCode))) throw new Error(`API 오류 ${header.resultCode} ${header.resultMsg ?? ''}`.trim());
   const body = j?.response?.body ?? j?.body;
   if (!body) throw new Error('응답에 body가 없어요');
   const raw = body.items?.item ?? body.items ?? [];
@@ -75,7 +78,7 @@ const pickTag = (xml: string, tag: string) => xml.match(new RegExp(`<${tag}>([\\
 /** XML 응답(2026-11-25 실제 응답 확인: <response><header><resultCode>00 … <items><item><prkplceNo>…). 빈 값은 <rdnmadr/> 같은 빈 태그. */
 export function parseXmlPage(t: string): Page {
   const code = pickTag(t, 'resultCode') ?? pickTag(t, 'returnReasonCode');
-  if (code !== '00') {
+  if (!OK_CODES.includes(code ?? '')) {
     const msg = pickTag(t, 'returnAuthMsg') ?? pickTag(t, 'errMsg') ?? pickTag(t, 'resultMsg') ?? 'XML 응답';
     throw new Error(`API 오류 ${code ?? ''} ${msg}`.trim());
   }

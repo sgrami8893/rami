@@ -28,8 +28,10 @@ const opt = (n: string, d: number) => { const i = args.indexOf(n); return i >= 0
 const MONTHS = opt('--months', 13), DELAY = opt('--delay', 200), ROWS = 1000;
 const CACHE = '.cache/rent', OUT = 'src/data/rent-stats.json', REPORT = 'src/data/rent.report.json', DEBUG_DIR = 'scripts/fixtures/out';
 const KEY = (process.env.DATA_GO_KR_KEY ?? '').trim();
-const fail = (msg: string): never => { console.error(`\n✗ 중단: ${redact(msg, KEY)}\n  (기존 ${OUT} 는 그대로예요)`); process.exit(1); };
-if (!KEY) fail('환경변수 DATA_GO_KR_KEY 가 없어요. .env 파일에 DATA_GO_KR_KEY=인증키 를 넣고 다시 실행하세요.');
+// process.exit()는 윈도우에서 fetch 연결이 닫히는 중에 libuv 오류(UV_HANDLE_CLOSING)를 낼 수 있어 쓰지 않는다.
+// 중단은 Abort를 던지고 맨 아래 main().catch에서 메시지만 찍은 뒤 exitCode로 끝낸다.
+class Abort extends Error {}
+const fail = (msg: string): never => { throw new Abort(msg); };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const url = (t: HouseType, code: string, ym: string, page: number, rows: number) => {
@@ -47,6 +49,7 @@ async function getPage(t: HouseType, code: string, ym: string, page: number, row
       if (!res.ok) fail(`HTTP ${res.status} ${text.slice(0, 200)}`);
       try { return parsePage(text); } catch (e) { fail(`${t} ${code} ${ym}: ${(e as Error).message}`); }
     } catch (e) {
+      if (e instanceof Abort) throw e;
       last = (e as Error).message;
       if (attempt < 4) await sleep(2000 * 2 ** (attempt - 1));
     }
@@ -70,68 +73,76 @@ const ymList = (n: number) => {
 };
 const TYPES: HouseType[] = ['villa', 'officetel'];
 
-await mkdir(DEBUG_DIR, { recursive: true });
+async function main() {
+  if (!KEY) fail('환경변수 DATA_GO_KR_KEY 가 없어요. .env 파일에 DATA_GO_KR_KEY=인증키 를 넣고 다시 실행하세요.');
+  await mkdir(DEBUG_DIR, { recursive: true });
 
-/** 예시 파일은 깃허브에 올려도 되게 지번·건물명·층·일자 값을 가린다(필드명은 그대로 남김) */
-const SENSITIVE = /jibun|지번|bonbun|bubun|roadnm|도로명|^(mhouseNm|offiNm|aptNm|연립다세대|단지|단지명)$|floor|층|dealDay|^일$/i;
-const mask = (it: Record<string, unknown>) => Object.fromEntries(Object.entries(it).map(([k, v]) => [k, SENSITIVE.test(k) && v !== '' ? '(가림)' : v]));
+  /** 예시 파일은 깃허브에 올려도 되게 지번·건물명·층·일자 값을 가린다(필드명은 그대로 남김) */
+  const SENSITIVE = /jibun|지번|bonbun|bubun|roadnm|도로명|^(mhouseNm|offiNm|aptNm|연립다세대|단지|단지명)$|floor|층|dealDay|^일$/i;
+  const mask = (it: Record<string, unknown>) => Object.fromEntries(Object.entries(it).map(([k, v]) => [k, SENSITIVE.test(k) && v !== '' ? '(가림)' : v]));
 
-if (flag('--sample')) {
-  const ym = ymList(2)[0];
-  const out: Record<string, unknown> = {};
-  for (const t of TYPES) {
-    const p = await getPage(t, '11680', ym, 1, 5);
-    const keys = p.items[0] ? Object.keys(p.items[0]) : [];
-    console.log(`\n[${t}] 강남구 ${ym} 총 ${p.totalCount}건 · 응답 필드: ${keys.join(', ') || '(항목 없음)'}`);
-    if (p.items[0]) console.log(`  필수 필드 매핑 실패: ${missingFields(p.items[0]).join(', ') || '없음'}`);
-    out[t] = { totalCount: p.totalCount, fields: keys, items: p.items.map(mask) };
+  if (flag('--sample')) {
+    const ym = ymList(2)[0];
+    const out: Record<string, unknown> = {};
+    for (const t of TYPES) {
+      const p = await getPage(t, '11680', ym, 1, 5);
+      const keys = p.items[0] ? Object.keys(p.items[0]) : [];
+      console.log(`\n[${t}] 강남구 ${ym} 총 ${p.totalCount}건 · 응답 필드: ${keys.join(', ') || '(항목 없음)'}`);
+      if (p.items[0]) console.log(`  필수 필드 매핑 실패: ${missingFields(p.items[0]).join(', ') || '없음'}`);
+      out[t] = { totalCount: p.totalCount, fields: keys, items: p.items.map(mask) };
+    }
+    await writeFile(`${DEBUG_DIR}/rent-api-sample.json`, JSON.stringify(out, null, 1));
+    console.log(`\n예시 저장: ${DEBUG_DIR}/rent-api-sample.json (지번·건물명·층·일자는 가려져 있어요. 이 파일을 깃허브에 올려 주면 매핑을 확정할게요)`);
+    return;
   }
-  await writeFile(`${DEBUG_DIR}/rent-api-sample.json`, JSON.stringify(out, null, 1));
-  console.log(`\n예시 저장: ${DEBUG_DIR}/rent-api-sample.json (지번·건물명·층·일자는 가려져 있어요. 이 파일을 깃허브에 올려 주면 매핑을 확정할게요)`);
-  process.exit(0);
-}
 
-if (flag('--codes')) {
-  const ym = ymList(2)[0];
-  for (const l of LAWD) {
-    const n = await Promise.all(TYPES.map(async (t) => (await getPage(t, l.code, ym, 1, 1)).totalCount));
-    console.log(`${l.code} ${l.city}${l.gu ? ` ${l.gu}` : ''}: 빌라 ${n[0]} · 오피스텔 ${n[1]}${n[0] + n[1] === 0 ? '  ← 0건: 코드 확인' : ''}${l.verify ? `  (확인: ${l.verify})` : ''}`);
-    await sleep(DELAY);
+  if (flag('--codes')) {
+    const ym = ymList(2)[0];
+    for (const l of LAWD) {
+      const n = await Promise.all(TYPES.map(async (t) => (await getPage(t, l.code, ym, 1, 1)).totalCount));
+      console.log(`${l.code} ${l.city}${l.gu ? ` ${l.gu}` : ''}: 빌라 ${n[0]} · 오피스텔 ${n[1]}${n[0] + n[1] === 0 ? '  ← 0건: 코드 확인' : ''}${l.verify ? `  (확인: ${l.verify})` : ''}`);
+      await sleep(DELAY);
+    }
+    return;
   }
-  process.exit(0);
+
+  // 전체 수집(월별 캐시)
+  await mkdir(CACHE, { recursive: true });
+  const months = ymList(MONTHS);
+  const fresh = new Set(months.slice(-2));
+  const deals: Deal[] = [];
+  let calls = 0, bad = 0, raw = 0;
+  for (const t of TYPES) for (const l of LAWD) for (const ym of months) {
+    const file = `${CACHE}/${t}-${l.code}-${ym}.json`;
+    let items: Record<string, unknown>[];
+    if (existsSync(file) && !fresh.has(ym) && !flag('--refresh')) items = JSON.parse(await readFile(file, 'utf8'));
+    else { items = await getMonth(t, l.code, ym); calls++; await writeFile(file, JSON.stringify(items)); await sleep(DELAY); }
+    if (items[0] && missingFields(items[0]).length) fail(`필수 필드를 찾지 못했어요(${t}): ${missingFields(items[0]).join(', ')}. --sample 결과를 전달해 주세요.`);
+    for (const it of items) { raw++; const d = normalizeDeal(it, t, l.code); if (d) deals.push(d); else bad++; }
+    process.stdout.write(`\r  ${t} ${l.code} ${ym} · 누적 ${raw.toLocaleString('ko-KR')}건 · 새 호출 ${calls}`);
+  }
+  console.log('');
+  if (bad / Math.max(raw, 1) > 0.05 && !flag('--force')) fail(`정규화 실패 ${bad}건(${((bad / raw) * 100).toFixed(1)}%)`);
+
+  const { stats, unknown } = aggregate(deals, { months: 12 });
+  if (existsSync(OUT) && !flag('--force')) {
+    const prev = JSON.parse(await readFile(OUT, 'utf8'));
+    const n = (s: typeof stats) => s.areas.filter((a) => a.dong === null).reduce((x, a) => x + a.n, 0);
+    if (n(prev) && n(stats) < n(prev) * 0.8) fail(`총 거래가 ${n(prev)} → ${n(stats)}로 20% 넘게 줄었어요. 확인 후 --force`);
+  }
+  const report = {
+    fetchedAt: stats.generatedAt, period: [stats.from, stats.to], rawItems: raw, normalized: deals.length, dropped: bad, unknownRegion: unknown,
+    byType: Object.fromEntries(TYPES.map((t) => [t, deals.filter((d) => d.type === t).length])),
+    sigungu: stats.areas.filter((a) => a.dong === null).length, dongs: stats.areas.filter((a) => a.dong !== null).length,
+    dongsOver10: stats.areas.filter((a) => a.dong !== null && a.n >= 10).length, dongsOver30: stats.areas.filter((a) => a.dong !== null && a.n >= 30).length,
+  };
+  await writeFile(OUT, JSON.stringify(stats));
+  await writeFile(REPORT, JSON.stringify(report, null, 1));
+  console.log(`\n✓ ${stats.from}~${stats.to} 거래 ${deals.length.toLocaleString('ko-KR')}건 → 시·군·구 ${report.sigungu}곳, 동 ${report.dongs}곳(10건+ ${report.dongsOver10}, 30건+ ${report.dongsOver30})`);
+  console.log(`  요약: ${REPORT} (이 파일을 전달해 주면 페이지 기준을 확정할게요)`);
 }
 
-// 전체 수집(월별 캐시)
-await mkdir(CACHE, { recursive: true });
-const months = ymList(MONTHS);
-const fresh = new Set(months.slice(-2));
-const deals: Deal[] = [];
-let calls = 0, bad = 0, raw = 0;
-for (const t of TYPES) for (const l of LAWD) for (const ym of months) {
-  const file = `${CACHE}/${t}-${l.code}-${ym}.json`;
-  let items: Record<string, unknown>[];
-  if (existsSync(file) && !fresh.has(ym) && !flag('--refresh')) items = JSON.parse(await readFile(file, 'utf8'));
-  else { items = await getMonth(t, l.code, ym); calls++; await writeFile(file, JSON.stringify(items)); await sleep(DELAY); }
-  if (items[0] && missingFields(items[0]).length) fail(`필수 필드를 찾지 못했어요(${t}): ${missingFields(items[0]).join(', ')}. --sample 결과를 전달해 주세요.`);
-  for (const it of items) { raw++; const d = normalizeDeal(it, t, l.code); if (d) deals.push(d); else bad++; }
-  process.stdout.write(`\r  ${t} ${l.code} ${ym} · 누적 ${raw.toLocaleString('ko-KR')}건 · 새 호출 ${calls}`);
-}
-console.log('');
-if (bad / Math.max(raw, 1) > 0.05 && !flag('--force')) fail(`정규화 실패 ${bad}건(${((bad / raw) * 100).toFixed(1)}%)`);
-
-const { stats, unknown } = aggregate(deals, { months: 12 });
-if (existsSync(OUT) && !flag('--force')) {
-  const prev = JSON.parse(await readFile(OUT, 'utf8'));
-  const n = (s: typeof stats) => s.areas.filter((a) => a.dong === null).reduce((x, a) => x + a.n, 0);
-  if (n(prev) && n(stats) < n(prev) * 0.8) fail(`총 거래가 ${n(prev)} → ${n(stats)}로 20% 넘게 줄었어요. 확인 후 --force`);
-}
-const report = {
-  fetchedAt: stats.generatedAt, period: [stats.from, stats.to], rawItems: raw, normalized: deals.length, dropped: bad, unknownRegion: unknown,
-  byType: Object.fromEntries(TYPES.map((t) => [t, deals.filter((d) => d.type === t).length])),
-  sigungu: stats.areas.filter((a) => a.dong === null).length, dongs: stats.areas.filter((a) => a.dong !== null).length,
-  dongsOver10: stats.areas.filter((a) => a.dong !== null && a.n >= 10).length, dongsOver30: stats.areas.filter((a) => a.dong !== null && a.n >= 30).length,
-};
-await writeFile(OUT, JSON.stringify(stats));
-await writeFile(REPORT, JSON.stringify(report, null, 1));
-console.log(`\n✓ ${stats.from}~${stats.to} 거래 ${deals.length.toLocaleString('ko-KR')}건 → 시·군·구 ${report.sigungu}곳, 동 ${report.dongs}곳(10건+ ${report.dongsOver10}, 30건+ ${report.dongsOver30})`);
-console.log(`  요약: ${REPORT} (이 파일을 전달해 주면 페이지 기준을 확정할게요)`);
+main().catch((e) => {
+  console.error(e instanceof Abort ? `\n✗ 중단: ${redact(e.message, KEY)}\n  (기존 ${OUT} 는 그대로예요)` : e);
+  process.exitCode = 1;
+});
