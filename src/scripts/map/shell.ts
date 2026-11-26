@@ -9,7 +9,7 @@ import { initSoftNav, type SwapDetail } from '../soft-nav.ts';
 import { LG, reduced } from './base.ts';
 
 export type Focus = Record<string, string | undefined>;
-export type Pick = { key: string; title: string; sub?: string; value?: string; note?: string; href?: string | null };
+export type Pick = { key: string; title: string; sub?: string; value?: string; note?: string; href?: string | null; linkLabel?: string };
 export interface Layer {
   /** 본문이 바뀌어 초점(지역)이 옮겨졌다 */
   focus(f: Focus): void;
@@ -70,7 +70,7 @@ function setup() {
     const set = (sel: string, t?: string | null) => { const el = card.querySelector<HTMLElement>(sel); if (el) { el.textContent = t ?? ''; el.hidden = !t; } };
     set('.mv-card-title', p.title); set('.mv-card-sub', p.sub); set('.mv-card-value', p.value); set('.mv-card-note', p.note);
     const a = card.querySelector<HTMLAnchorElement>('.mv-card-link');
-    if (a) { a.hidden = !p.href; if (p.href) a.href = p.href; a.setAttribute('aria-label', `${p.title} 자세히 보기`); }
+    if (a) { a.hidden = !p.href; if (p.href) a.href = p.href; const lb = p.linkLabel ?? '자세히 보기'; if (a.firstChild?.nodeType === 3) a.firstChild.textContent = lb; a.setAttribute('aria-label', p.linkLabel ? lb : `${p.title} 자세히 보기`); }
     card.hidden = false; cardKey = p.key;
     if (kb) card.focus();
   };
@@ -100,13 +100,14 @@ function setup() {
     const mod = kind === 'rent' ? await import('./rent.ts') : await import('./pins.ts');
     const l = await mod.mount(ctx);
     layer = l;
+    canvas.querySelector('.map-loading')?.remove(); // 경계·핀까지 다 그린 뒤에 치운다
     if (pendingFilter !== undefined) l.filter?.(pendingFilter);
     if (pendingMe) { l.focus(pendingMe.focus); l.me?.(pendingMe.pt); pendingMe = null; }
     return l;
   })().catch((err) => {
     console.error('[map]', err);
     const el = canvas.querySelector('.map-loading');
-    if (el) el.textContent = '지도를 불러오지 못했어요. 목록을 이용해 주세요.';
+    if (el) { el.textContent = '지도를 불러오지 못했어요. 목록을 이용해 주세요.'; el.classList.add('is-err'); }
     throw err;
   }));
   teardown = () => { ac.abort(); layer?.destroy(); document.documentElement.classList.remove('map-sheet-open', 'has-map'); };

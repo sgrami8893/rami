@@ -49,6 +49,11 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   <FreeNote class="mt-2" />
   <MapPill />
   <LotFilters total={ls.length} />
+  {groups.filter(([d]) => d !== '기타').length >= 3 && (
+    <nav id="dong-jump" class="v-dongjump" aria-label="동으로 바로 가기">
+      {groups.filter(([d]) => d !== '기타').map(([d, g]) => <a href={`#${d}`}>{d}<span>{g.length}</span></a>)}
+    </nav>
+  )}
   <div id="lot-list" class="mt-2 space-y-6">
     {groups.map(([d, g]) => (
       <section class="lot-group scroll-mt-20" id={d}>
