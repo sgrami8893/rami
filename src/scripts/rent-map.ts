@@ -9,6 +9,7 @@
 import type * as Leaflet from 'leaflet';
 import { baseMap } from './map-base.ts';
 import { announce } from './copy.ts';
+import { picker } from './map-picker.ts';
 import type { MapApi } from './map-panel.ts';
 import { createBuildings, BUILD_ZOOM } from './rent-buildings.ts';
 
@@ -22,8 +23,9 @@ type Focus = { sido?: string; slug?: string; dong?: string };
 const DONG_ZOOM = 12;      // 이 줌부터 동 단위
 const LOW_LABEL_ZOOM = 14; // '거래 적음' 라벨은 이만큼 가까이서만
 // 파랑 6단계(밝음→진함). 라벨은 흰 바탕 알약이라 칸 색과 상관없이 글자 대비 4.5:1 이상
-const COLORS = ['#DBE7FE', '#B4CEFC', '#84AEF8', '#5A8DF1', '#3069E0', '#1C4BB5'];
-const GREY = '#E5E8EB';
+// 2026-11-26 사용자 '1도 모르겠음' → 단계 사이 밝기 차이를 크게(한 색상 파랑 100→700 중 6단계, 밝은→진한). 색각이상에서도 밝기 차이로 구분된다
+const COLORS = ['#CCE3FD', '#84B9F3', '#338CED', '#2370CD', '#1757AC', '#0E3D7E'];
+const GREY = '#D5D9DE';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** 만원 → 라벨용 짧은 금액(2.1억, 9,500만) */
@@ -47,7 +49,6 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     fetch(`${src}sgg.json`).then((r) => r.json() as Promise<SggFC | null>),
   ]);
   if (!sgg) throw new Error('rent geo missing');
-  const toggles = pane.querySelector<HTMLElement>('.rm-toggles');
   const legend = pane.querySelector<HTMLElement>('.rm-legend');
   const card = pane.querySelector<HTMLElement>('.rm-card')!;
   const side = document.getElementById('rent-pick');
@@ -57,10 +58,17 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     kind = (pane.querySelector<HTMLInputElement>('input[name="rm-kind"]:checked')?.value as Kind) ?? 'j';
   };
   read();
-  if (toggles) toggles.hidden = false;
   if (legend) legend.hidden = false;
   if (side) side.hidden = false;
 
+  // ---- 보는 범위(사용자 요청 2026-11-26): 시·도를 고르면 그 시·도만, 시·군·구를 고르면 그 시·군·구의 동만 보이고
+  // 다른 지역의 색·라벨은 줌과 상관없이 숨긴다. 선택 상자·'위로' 버튼으로 한 단계씩 올라간다 ----
+  let scopeSido: string | null = null;
+  let scopeSgg: string | null = null;
+  const sidoOf = (f: string) => f.split('__')[0];
+  const fileOfKey = (key: string) => key.split('__').slice(0, 2).join('__');
+  const inScope = (f: string) => (scopeSgg ? f === scopeSgg : scopeSido ? sidoOf(f) === scopeSido : true);
+  const isNear = () => Boolean(scopeSgg) || map.getZoom() >= DONG_ZOOM;
   const metric = () => `${type}${kind === 'j' ? 'j' : 'w'}`;
   const valueOf = (p: { n: number; m: M }) => (p.n >= sgg.low ? p.m[idx(type, kind)] : null);
   const colorOf = (v: number | null) => {
@@ -82,7 +90,9 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     return d;
   };
   const TIP = { sticky: true, direction: 'top' as const, offset: [0, -14] as [number, number], className: 'rm-tip', opacity: 1 };
-  const HOVER = { color: '#191F28', weight: 2.5 };
+  const HOVER = { color: '#191F28', weight: 3, opacity: 1 };
+  // 경계 가독성(2026-11-26 사용자 '경계가 잘 안 보여'): 회색 배경지도 위에 진한 채움 + 흰 경계 2px, 시·군·구 경계는 진한 선
+  const FILL = 0.85;
 
   // ---- 범례 ----
   const drawLegend = () => {
@@ -100,12 +110,12 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 도형 ----
   const sggLayer = L.geoJSON(sgg as unknown as GeoJSON.FeatureCollection, {
-    style: (f) => ({ color: '#FFFFFF', weight: 1.5, fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: 0.62 }),
+    style: (f) => ({ color: '#FFFFFF', weight: 2.2, opacity: 1, fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: FILL }),
     onEachFeature: (f, layer) => {
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
       layer.bindTooltip(() => tipEl(`${p.sd} ${p.nm}`, p), TIP);
-      layer.on('mouseover', () => { if (map.getZoom() < DONG_ZOOM) (layer as Leaflet.Path).setStyle(HOVER); });
+      layer.on('mouseover', () => { if (!isNear() && inScope(p.f)) (layer as Leaflet.Path).setStyle(HOVER); });
       layer.on('mouseout', () => restyle());
     },
   }).addTo(map);
@@ -116,7 +126,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const loaded = new Map<string, Leaflet.GeoJSON>();
   const loading = new Map<string, Promise<void>>();
   const dongs = new Map<string, { p: DongP; layer: Leaflet.Polygon; sg: SggP }[]>(); // 키: 파일__동이름 (화성 '능동'처럼 같은 이름 조각이 여럿일 수 있음)
-  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1, fillColor: colorOf(valueOf(p)), fillOpacity: 0.62 });
+  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 2, opacity: 1, fillColor: colorOf(valueOf(p)), fillOpacity: FILL });
   const loadFile = (f: string) => {
     if (loaded.has(f)) return Promise.resolve();
     if (!loading.has(f)) loading.set(f, fetch(`${src}${f}.json`).then((r) => r.json() as Promise<FC<DongP> | null>).then((fc) => {
@@ -135,7 +145,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
         },
       });
       loaded.set(f, layer);
-      dongGroup.addLayer(layer);
+      if (inScope(f)) dongGroup.addLayer(layer);
     }).catch(() => { loading.delete(f); }));
     return loading.get(f)!;
   };
@@ -154,15 +164,16 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     const z = map.getZoom();
     const view = map.getBounds().pad(0.1);
     const list: Lab[] = [];
-    if (z < DONG_ZOOM) {
+    if (!isNear()) {
       for (const { p } of sggByFile.values()) {
+        if (!inScope(p.f)) continue;
         const v = valueOf(p);
         list.push({ id: p.f, at: p.l, name: p.nm, value: v === null ? null : valueText(v, kind), n: p.n, pick: () => pickSgg(p, sggByFile.get(p.f)!.layer), active: false, layer: sggByFile.get(p.f)!.layer });
       }
     } else {
       for (const [key, parts] of dongs) {
         const { p, sg } = parts[0];
-        if (!view.contains(p.l)) continue;
+        if (!inScope(sg.f) || !view.contains(p.l)) continue;
         const v = valueOf(p);
         if (v === null && z < LOW_LABEL_ZOOM) continue;
         if (blds?.pinsShown && z >= BUILD_ZOOM && key !== selected) continue; // 건물 핀과 겹치지 않게
@@ -174,7 +185,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     list.sort((a, b) => Number(b.active) - Number(a.active) || b.n - a.n);
     // 지도 위 떠 있는 상자(전환 버튼·범례·확대 버튼·요약 카드)와 지도 바깥으로 걸치는 라벨은 숨긴다
     const frame = canvas.getBoundingClientRect();
-    const placed: DOMRect[] = [...pane.querySelectorAll<HTMLElement>('.rm-toggles fieldset, .rm-select, .rm-legend, .rm-card, .leaflet-control-zoom')].filter((x) => !x.closest('[hidden]') && x.offsetParent !== null).map((x) => x.getBoundingClientRect());
+    const placed: DOMRect[] = [...pane.querySelectorAll<HTMLElement>('.rm-toolbar > *, .rm-legend, .rm-card, .leaflet-control-zoom')].filter((x) => !x.closest('[hidden]') && x.offsetParent !== null).map((x) => x.getBoundingClientRect());
     for (const b of list) {
       if (!view.contains(b.at)) continue;
       const m = L.marker(b.at, { icon: labelIcon(b), keyboard: true, title: '', riseOnHover: true, zIndexOffset: b.active ? 1000 : 0 });
@@ -188,7 +199,8 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       el.addEventListener('blur', () => b.layer.closeTooltip());
       const r = (el.firstElementChild as HTMLElement).getBoundingClientRect(); // 보이는 알약(래퍼는 크기 0)
       const out = r.left < frame.left + 2 || r.right > frame.right - 2 || r.top < frame.top + 2 || r.bottom > frame.bottom - 2;
-      const hit = out || placed.some((q) => r.left < q.right + 4 && r.right + 4 > q.left && r.top < q.bottom + 3 && r.bottom + 3 > q.top);
+      // 라벨 사이 여백을 넉넉히(가로 10px·세로 8px) 둬서 낮은 줌에서는 라벨 수가 저절로 줄어든다
+      const hit = out || placed.some((q) => r.left < q.right + 10 && r.right + 10 > q.left && r.top < q.bottom + 8 && r.bottom + 8 > q.top);
       if (hit) labels.removeLayer(m); else placed.push(r);
     }
   };
@@ -197,33 +209,41 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   let selected: string | null = null;
   let selectedSgg: string | null = null;
   const restyle = () => {
-    const z = map.getZoom();
-    const near = z >= DONG_ZOOM;
+    const near = isNear();
     sggLayer.setStyle((f) => {
       const p = f!.properties as SggP;
+      if (!inScope(p.f)) return { stroke: false, fill: false };
       return near
-        ? { color: '#191F28', weight: 1.5, opacity: 0.55, fillOpacity: 0, fillColor: GREY }
-        : { color: p.f === selectedSgg ? '#191F28' : '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: 1, fillColor: colorOf(valueOf(p)), fillOpacity: 0.62 };
+        ? { stroke: true, fill: false, color: '#191F28', weight: scopeSgg ? 2.5 : 1.5, opacity: scopeSgg ? 0.9 : 0.45, fillOpacity: 0, fillColor: GREY }
+        : { stroke: true, fill: true, color: p.f === selectedSgg ? '#191F28' : '#FFFFFF', weight: p.f === selectedSgg ? 3.5 : 2.2, opacity: 1, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
     });
     for (const [key, parts] of dongs) for (const { p, layer } of parts) {
-      layer.setStyle(key === selected ? { ...dongStyle(p), color: '#191F28', weight: 3 } : dongStyle(p));
+      layer.setStyle(key === selected ? { ...dongStyle(p), color: '#191F28', weight: 4 } : dongStyle(p));
       if (key === selected) layer.bringToFront();
     }
   };
   let timer = 0;
   const refresh = () => {
-    const near = map.getZoom() >= DONG_ZOOM;
+    const near = isNear();
+    // 범위 밖 시·군·구의 동은 그리지 않는다
+    for (const [f, layer] of loaded) {
+      if (inScope(f) && !dongGroup.hasLayer(layer)) dongGroup.addLayer(layer);
+      if (!inScope(f) && dongGroup.hasLayer(layer)) dongGroup.removeLayer(layer);
+    }
     if (near && !map.hasLayer(dongGroup)) { dongGroup.addTo(map); sggLayer.bringToFront(); }
     if (!near && map.hasLayer(dongGroup)) map.removeLayer(dongGroup);
     if (near) {
       const view = map.getBounds();
-      const need = [...sggByFile.values()].filter(({ layer }) => layer.getBounds().intersects(view)).map(({ p }) => p.f);
-      Promise.all(need.map(loadFile)).then(() => { restyle(); drawLabels(); });
+      const need = [...sggByFile.values()].filter(({ p, layer }) => inScope(p.f) && layer.getBounds().intersects(view)).map(({ p }) => p.f);
+      Promise.all(need.map(loadFile)).then(() => {
+        for (const [f, layer] of loaded) if (!inScope(f) && dongGroup.hasLayer(layer)) dongGroup.removeLayer(layer);
+        restyle(); drawLabels();
+      });
     }
     restyle(); drawLabels();
     blds?.refresh().then(() => drawLabels());
     // 시·군·구 경계선은 동 위에서 클릭을 막지 않게
-    sggLayer.eachLayer((l) => { const el = (l as Leaflet.Path).getElement() as HTMLElement | undefined; if (el) el.style.pointerEvents = near ? 'none' : ''; });
+    sggLayer.eachLayer((l) => { const el = (l as Leaflet.Path).getElement() as HTMLElement | undefined; if (el) el.style.pointerEvents = near || !inScope((l as Leaflet.Polygon).feature!.properties.f) ? 'none' : ''; });
   };
   map.on('moveend', () => { clearTimeout(timer); timer = window.setTimeout(refresh, 180); });
 
@@ -269,15 +289,16 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   };
   function pickSgg(p: SggP, layer: Leaflet.Polygon) {
     selected = null; selectedSgg = p.f;
+    setScope(sidoOf(p.f), p.f, false);
     show({ badge: p.sd, name: p.nm, n: p.n, m: p.m, href: p.h, linkText: `${p.nm} 시세 자세히 보기` });
-    loadFile(p.f).then(() => syncSelect(p.f, null));
-    map.fitBounds(layer.getBounds(), { padding: [24, 24], maxZoom: 13 });
+    map.fitBounds(layer.getBounds(), { padding: [24, 24], maxZoom: 13.5 });
   }
   function pickDong(key: string) {
     const parts = dongs.get(key);
     if (!parts) return;
     const { p, sg } = parts[0];
     selected = key; selectedSgg = null;
+    if (scopeSgg !== sg.f) setScope(sidoOf(sg.f), sg.f, false);
     syncSelect(sg.f, p.k);
     show({ badge: `${sg.sd} ${sg.nm}`, name: p.k, n: p.n, m: p.m, href: p.h ?? sg.h, linkText: p.h ? `${p.k.split(' ').pop()} 시세 자세히 보기` : `${sg.nm} 전체 보기` });
     if (blds && p.b) void blds.listDong(box(), sg.f, p.k).then(() => requestAnimationFrame(() => blds?.hideCovered()));
@@ -288,69 +309,85 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const bsrc = canvas.dataset.bsrc;
   blds = bsrc ? createBuildings({
     L, map, src: bsrc, card,
-    filesInView: () => { const v = map.getBounds(); return [...sggByFile.values()].filter(({ p, layer }) => p.b && layer.getBounds().intersects(v)).map(({ p }) => p.f); },
+    filesInView: () => { const v = map.getBounds(); return [...sggByFile.values()].filter(({ p, layer }) => p.b && inScope(p.f) && layer.getBounds().intersects(v)).map(({ p }) => p.f); },
     place: (f) => { const p = sggByFile.get(f)?.p; return p ? `${p.sd} ${p.nm}` : ''; },
     box,
     pickDong: (f, dong) => loadFile(f).then(() => pickDong(`${f}__${dong}`)),
   }) : null;
 
-  // ---- 지역 선택(시·도 → 시·군·구 → 동). 지도를 옮기고 요약을 띄운다. 지도에서 고르면 선택 상자도 따라 바뀐다 ----
-  const selBox = pane.querySelector<HTMLElement>('.rm-select');
-  const selSido = selBox?.querySelector<HTMLSelectElement>('[name="rm-sido"]');
-  const selSgg = selBox?.querySelector<HTMLSelectElement>('[name="rm-sgg"]');
-  const selDong = selBox?.querySelector<HTMLSelectElement>('[name="rm-dong"]');
-  const opt = (value: string, text: string) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o; };
+  // ---- 지역 선택: 이동 경로 칩(시·도 › 시·군·구 › 동) + 목록 팝업(map-picker.ts). 지도에서 고르면 칩도 따라 바뀐다 ----
   const ko = (a: string, b: string) => a.localeCompare(b, 'ko');
-  const sidoOf = (f: string) => f.split('__')[0];
-  const fillSgg = (sido: string) => {
-    if (!selSgg) return;
-    const list = [...sggByFile.values()].filter(({ p }) => sidoOf(p.f) === sido).map(({ p }) => p).sort((a, b) => ko(a.nm, b.nm));
-    selSgg.replaceChildren(opt('', '시·군·구'), ...list.map((p) => opt(p.f, p.nm)));
-  };
-  const fillDong = (f: string) => {
-    if (!selDong) return;
-    const list = [...dongs.keys()].filter((k) => k.startsWith(`${f}__`)).map((k) => k.slice(f.length + 2)).sort(ko);
-    selDong.replaceChildren(opt('', '동네'), ...list.map((k) => opt(k, k)));
-    selDong.disabled = !list.length;
-  };
-  const syncSelect = (f: string | null, dong: string | null) => {
-    if (!selSido || !selSgg || !selDong) return;
-    if (f) {
-      if (selSido.value !== sidoOf(f)) { selSido.value = sidoOf(f); fillSgg(selSido.value); }
-      if (selSgg.value !== f) { selSgg.value = f; fillDong(f); }
-      selDong.value = dong ?? '';
-    }
-  };
-  if (selBox && selSido && selSgg && selDong) {
-    const sidos = [...new Map([...sggByFile.values()].map(({ p }) => [sidoOf(p.f), p.sd])).entries()];
-    selSido.replaceChildren(...sidos.map(([k, v]) => opt(k, v)));
-    selSido.value = focus.sido ?? 'seoul';
-    fillSgg(selSido.value);
-    selDong.disabled = true;
-    selBox.hidden = false;
-    selSido.addEventListener('change', () => {
-      fillSgg(selSido.value); selDong.replaceChildren(opt('', '동네')); selDong.disabled = true;
-      const b = L.latLngBounds([]);
-      for (const { p, layer } of sggByFile.values()) if (sidoOf(p.f) === selSido.value) b.extend(layer.getBounds());
-      if (b.isValid()) map.fitBounds(b, { padding: [16, 16] });
-    });
-    selSgg.addEventListener('change', async () => {
-      const it = sggByFile.get(selSgg.value);
-      if (!it) return;
+  // 옹진군은 섬이 서해 멀리까지 흩어져 있어 인천 전체에 맞추면 지도가 바다만 보인다 → 화면 맞추기에서만 뺀다(색칠·선택은 그대로)
+  const FIT_SKIP = new Set(['incheon__ongjin-gun']);
+  const boundsOf = (pred: (f: string) => boolean) => { const b = L.latLngBounds([]); for (const { p, layer } of sggByFile.values()) if (pred(p.f) && !FIT_SKIP.has(p.f)) b.extend(layer.getBounds()); return b; };
+  const allBounds = () => boundsOf(() => true);
+  const sidoBounds = (sido: string) => boundsOf((f) => sidoOf(f) === sido);
+  const sidoName = (sido: string) => [...sggByFile.values()].find(({ p }) => sidoOf(p.f) === sido)?.p.sd ?? '';
+  const metaOf = (p: { n: number; m: M }) => { const v = valueOf(p); return v === null ? '거래 적음' : valueText(v, kind); };
+  const SIDO_ORDER = ['seoul', 'gyeonggi', 'incheon'];
+  const pk = (k: string) => pane.querySelector<HTMLElement>(`.rm-pick-${k}`);
+  let curDong: string | null = null;
+  const pSido = pk('sido') && picker(pk('sido')!, {
+    items: () => [{ value: '', label: '전체 지역' }, ...SIDO_ORDER.filter((x) => sidoName(x)).map((x) => ({ value: x, label: sidoName(x) }))],
+    current: () => scopeSido ?? '',
+    onPick: (v) => setScope(v || null, null),
+  });
+  const pSgg = pk('sgg') && picker(pk('sgg')!, {
+    search: 'on',
+    items: () => [{ value: '', label: `${sidoName(scopeSido ?? '')} 전체` }, ...[...sggByFile.values()].filter(({ p }) => sidoOf(p.f) === scopeSido).map(({ p }) => p).sort((a, b) => ko(a.nm, b.nm)).map((p) => ({ value: p.f, label: p.nm, meta: metaOf(p) }))],
+    current: () => scopeSgg ?? '',
+    onPick: async (v) => {
+      const it = sggByFile.get(v);
+      if (!it) { setScope(scopeSido, null); return; }
       await loadFile(it.p.f);
-      fillDong(it.p.f);
       pickSgg(it.p, it.layer);
-    });
-    selDong.addEventListener('change', () => {
-      const key = `${selSgg.value}__${selDong.value}`;
+    },
+  });
+  const pDong = pk('dong') && picker(pk('dong')!, {
+    search: 'on',
+    items: () => {
+      const f = scopeSgg ?? '';
+      const nm = sggByFile.get(f)?.p.nm ?? '';
+      return [{ value: '', label: `${nm} 전체` }, ...[...dongs.entries()].filter(([k]) => fileOfKey(k) === f).map(([k, parts]) => ({ value: k.slice(f.length + 2), label: k.slice(f.length + 2), meta: metaOf(parts[0].p) })).sort((a, b) => ko(a.label, b.label))];
+    },
+    current: () => curDong ?? '',
+    onPick: (v) => {
+      if (!v) { if (scopeSgg) { const it = sggByFile.get(scopeSgg)!; pickSgg(it.p, it.layer); } return; }
+      const key = `${scopeSgg}__${v}`;
       const parts = dongs.get(key);
       if (!parts) return;
       const b = L.latLngBounds([]); parts.forEach(({ layer }) => b.extend(layer.getBounds()));
       map.fitBounds(b, { padding: [60, 60], maxZoom: 14.5 });
       if (map.getZoom() < DONG_ZOOM) map.setZoom(DONG_ZOOM);
       pickDong(key);
-    });
+    },
+  });
+  /** 칩 글자·보이기를 지금 범위에 맞춘다 */
+  const syncSelect = (f: string | null, dong: string | null) => {
+    curDong = dong;
+    const sido = f ? sidoOf(f) : scopeSido;
+    pSido?.set(sido ? sidoName(sido) : '전체 지역', !sido);
+    pSgg?.show(Boolean(sido));
+    pSgg?.set(f ? sggByFile.get(f)?.p.nm ?? '' : '시·군·구', !f);
+    pDong?.show(Boolean(f));
+    pDong?.set(dong ? dong.split(' ').pop()! : '동네', !dong);
+  };
+  function setScope(sido: string | null, f: string | null, fit = true) {
+    scopeSido = sido; scopeSgg = f;
+    if (selectedSgg && !inScope(selectedSgg)) selectedSgg = null;
+    if (selected && !inScope(fileOfKey(selected))) { selected = null; card.hidden = true; }
+    syncSelect(f, selected && f && fileOfKey(selected) === f ? selected.slice(f.length + 2) : null);
+    if (f) loadFile(f).then(refresh);
+    if (fit) {
+      const b = f ? sggByFile.get(f)?.layer.getBounds() : sido ? sidoBounds(sido) : allBounds();
+      if (b && b.isValid()) map.fitBounds(b, { padding: [24, 24], maxZoom: f ? 13.5 : 12 });
+    }
+    refresh();
+    if (fit) announce(f ? `${sggByFile.get(f)?.p.nm ?? ''}만 보여 줘요.` : sido ? `${sidoName(sido)}만 보여 줘요.` : '전체 지역을 보여 줘요.');
   }
+  const toolbar = pane.querySelector<HTMLElement>('.rm-toolbar');
+  if (toolbar) toolbar.hidden = false;
+  syncSelect(null, null);
 
   // ---- 유형·전월세 전환 ----
   pane.querySelectorAll<HTMLInputElement>('input[name="rm-type"], input[name="rm-kind"]').forEach((r) => r.addEventListener('change', () => {
@@ -361,26 +398,29 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // ---- 첫 화면 ----
   drawLegend();
   const sgFocus = focus.slug && focus.sido ? sggByFile.get(`${focus.sido}__${focus.slug}`) : undefined;
-  if (sgFocus && focus.dong) {
-    await loadFile(sgFocus.p.f);
-    const key = `${sgFocus.p.f}__${focus.dong}`;
-    const parts = dongs.get(key);
-    if (parts) {
-      const b = L.latLngBounds([]); parts.forEach(({ layer }) => b.extend(layer.getBounds()));
+  if (sgFocus) await loadFile(sgFocus.p.f);
+  const focusKey = sgFocus && focus.dong && dongs.has(`${sgFocus.p.f}__${focus.dong}`) ? `${sgFocus.p.f}__${focus.dong}` : null;
+  if (focusKey) selected = focusKey;
+  const firstFit = () => {
+    if (focusKey) {
+      const b = L.latLngBounds([]); dongs.get(focusKey)!.forEach(({ layer }) => b.extend(layer.getBounds()));
       map.fitBounds(b, { padding: [60, 60], maxZoom: 14.5 });
-      if (map.getZoom() < DONG_ZOOM) map.setZoom(DONG_ZOOM);
-      selected = key;
-    } else map.fitBounds(sgFocus.layer.getBounds(), { padding: [24, 24] });
-  } else if (sgFocus) {
-    map.fitBounds(sgFocus.layer.getBounds(), { padding: [24, 24] });
-    if (map.getZoom() < DONG_ZOOM) map.setZoom(DONG_ZOOM);
-  } else {
-    // 홈·전월세 첫 화면: 서울이 꽉 차게(시·군·구 단위). 시·도 페이지는 그 시·도 전체
-    const b = L.latLngBounds([]);
-    for (const { p, layer } of sggByFile.values()) if (p.f.startsWith(`${focus.sido ?? 'seoul'}__`)) b.extend(layer.getBounds());
-    map.fitBounds(b.isValid() ? b : L.latLngBounds([[37.43, 126.76], [37.7, 127.18]]), { padding: [16, 16] });
+    } else if (sgFocus) map.fitBounds(sgFocus.layer.getBounds(), { padding: [24, 24] });
+    else {
+      // 홈·전월세 첫 화면: 서울이 꽉 차게(시·군·구 단위). 시·도 페이지는 그 시·도 전체
+      const b = sidoBounds(focus.sido ?? 'seoul');
+      map.fitBounds(b.isValid() ? b : L.latLngBounds([[37.43, 126.76], [37.7, 127.18]]), { padding: [16, 16] });
+    }
+  };
+  firstFit();
+  // 지도 칸 크기가 아직 0이었으면(레이아웃이 늦게 잡힌 경우) 크기가 생길 때 한 번 더 맞춘다 — '서울'인데 북한 해안이 보이던 문제
+  if (canvas.clientWidth < 50 || canvas.clientHeight < 50) {
+    const ro = new ResizeObserver(() => { if (canvas.clientWidth >= 50 && canvas.clientHeight >= 50) { ro.disconnect(); map.invalidateSize(); firstFit(); } });
+    ro.observe(canvas);
   }
-  if (sgFocus) { await loadFile(sgFocus.p.f); syncSelect(sgFocus.p.f, focus.dong && dongs.has(`${sgFocus.p.f}__${focus.dong}`) ? focus.dong : null); }
+  // 시·군·구·동 페이지는 그 시·군·구만, 시·도 페이지는 그 시·도만 보이게 시작(홈·전월세 첫 화면은 전체)
+  if (sgFocus) setScope(sidoOf(sgFocus.p.f), sgFocus.p.f, false);
+  else if (focus.sido) setScope(focus.sido, null, false);
   refresh();
 
   return { focus() {}, hover() {}, filter() {}, resize() { map.invalidateSize(); } };

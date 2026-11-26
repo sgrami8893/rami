@@ -99,7 +99,7 @@ export function createBuildings(ctx: Ctx) {
   /** 지도 위에 떠 있는 상자(전환 버튼·지역 선택·범례·카드·확대 버튼)에 가린 핀·묶음은 숨긴다(가려진 채 눌리거나 포커스되지 않게) */
   function hideCovered() {
     const root = map.getContainer().parentElement!;
-    const boxes = [...root.querySelectorAll<HTMLElement>('.rm-toggles fieldset, .rm-select, .rm-legend, .rm-card, .leaflet-control-zoom')].filter((x) => !x.closest('[hidden]') && x.offsetParent !== null).map((x) => x.getBoundingClientRect());
+    const boxes = [...root.querySelectorAll<HTMLElement>('.rm-toolbar > *, .rm-legend, .rm-card, .leaflet-control-zoom')].filter((x) => !x.closest('[hidden]') && x.offsetParent !== null).map((x) => x.getBoundingClientRect());
     for (const el of root.querySelectorAll<HTMLElement>('.leaflet-marker-pane .map-hit:not(.rm-label-wrap)')) {
       const r = el.getBoundingClientRect();
       const hit = boxes.some((q) => r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top);

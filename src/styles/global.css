@@ -127,13 +127,43 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 .rm-label.is-active .rm-label-name { color: #C9D1DB; }
 .rm-label.is-active .rm-label-val { color: #fff; }
 .rm-label-wrap:focus-visible .rm-label { outline: 3px solid var(--color-brand); outline-offset: 2px; }
+/* ===== 지도 도구 막대 v3(2026-11-26): 이동 경로 칩 + 목록 팝업, 가벼운 분할 버튼 ===== */
+.rm-chip { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 9px 0 10px; border-radius: 10px; color: #191F28; font-weight: 700;
+  font-size: calc(15px * var(--fs, 1)); white-space: nowrap; position: relative; transition: background-color .12s ease; }
+.rm-chip::after { content: ""; position: absolute; inset: -4px 0; } /* 누르는 영역 44px */
+.rm-chip:hover, .rm-chip[aria-expanded="true"] { background: #F2F4F6; }
+.rm-chip.is-muted { color: #5F6B78; font-weight: 600; }
+.rm-chip-caret { color: #8B95A1; transition: transform .15s ease; }
+.rm-chip[aria-expanded="true"] .rm-chip-caret { transform: rotate(180deg); }
+.rm-pop { position: absolute; left: 0; top: calc(100% + 10px); z-index: 1100; width: min(260px, calc(100vw - 40px)); padding: 6px; border-radius: 16px; background: #fff;
+  border: 1px solid #E5E8EB; box-shadow: 0 2px 4px rgb(25 31 40 / 0.04), 0 12px 32px rgb(25 31 40 / 0.16); }
+.rm-pop-search { display: flex; align-items: center; gap: 6px; height: 40px; margin-bottom: 4px; padding: 0 10px; border-radius: 10px; background: #F2F4F6; }
+.rm-pop-search input { min-width: 0; flex: 1; background: transparent; outline: none; font-size: calc(15px * var(--fs, 1)); color: #191F28; }
+.rm-pop-search input::placeholder { color: #6B7684; }
+.rm-pop-search:focus-within { box-shadow: 0 0 0 2px var(--color-brand); }
+.rm-pop ul { max-height: min(320px, 50vh); overflow-y: auto; outline: none; scrollbar-width: thin; }
+.rm-pop ul:focus-visible { box-shadow: inset 0 0 0 2px var(--color-brand); border-radius: 10px; }
+.rm-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 10px; cursor: pointer;
+  font-size: calc(15px * var(--fs, 1)); color: #191F28; }
+.rm-opt.is-active { background: #F2F4F6; }
+.rm-opt[aria-selected="true"] { color: var(--color-brand); font-weight: 700; }
+.rm-opt-meta { color: #5F6B78; font-size: calc(13px * var(--fs, 1)); font-variant-numeric: tabular-nums; font-weight: 600; }
+.rm-opt-empty { padding: 10px; color: #5F6B78; font-size: calc(14px * var(--fs, 1)); }
+.rm-seg { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: #F2F4F6; }
+.rm-seg label { position: relative; display: flex; align-items: center; justify-content: center; height: 32px; min-width: 52px; padding: 0 11px; border-radius: 8px; cursor: pointer;
+  color: #485463; font-weight: 600; font-size: calc(14px * var(--fs, 1)); transition: background-color .12s ease, color .12s ease, box-shadow .12s ease; }
+.rm-seg label::after { content: ""; position: absolute; inset: -6px 0; } /* 누르는 영역 44px */
+.rm-seg label:hover { color: #191F28; }
+.rm-seg label:has(:checked) { background: #fff; color: var(--color-brand); font-weight: 700; box-shadow: 0 1px 2px rgb(25 31 40 / 0.08), 0 2px 6px rgb(25 31 40 / 0.08); }
+.rm-seg label:has(:focus-visible) { outline: 2px solid var(--color-brand); outline-offset: 1px; }
+.rm-seg + .rm-seg { margin-left: 2px; }
+
 /* 마우스를 올린 곳 풍선: 지역 경로(굵게) + 중위값 한 줄 */
 .leaflet-tooltip.rm-tip { padding: 7px 11px; border-radius: 12px; border: 1px solid #E5E8EB; background: #fff; color: #191F28; box-shadow: 0 6px 20px rgb(25 31 40 / 0.14);
   font-family: inherit; font-size: calc(13px * var(--fs, 1)); line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .leaflet-tooltip.rm-tip::before { display: none; }
 .rm-tip-path { display: block; font-weight: 700; font-size: calc(14px * var(--fs, 1)); }
 .rm-tip-val { display: block; color: #485463; }
-.rm-select select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235F6B78' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6l6 -6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
 /* 동·시군구 도형을 누르면 브라우저가 SVG 경로에 사각형(경계 상자) 포커스 테두리를 그리던 문제(2026-11-26 사용자 제보) → 끈다.
    도형은 Tab으로 오지 않고(키보드는 라벨 버튼·지역 선택으로 고름), 고른 곳은 도형 모양의 굵은 테두리로 이미 보인다. */
 .map-pane path.leaflet-interactive:focus, .map-pane path.leaflet-interactive:focus-visible, .map-pane svg:focus, .map-pane svg *:focus { outline: none; }
@@ -148,6 +178,13 @@ footer :focus-visible { outline-color: #93C5FD; outline-offset: 2px; }
 html.map-sheet-open { overflow: hidden; }
 @media (min-width: 1024px) {
   .map-pane { display: flex; flex-direction: column; position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
+  /* 지도 2단 화면은 앱 셸(2026-11-26 사용자 '스크롤바 위치가 이상함'): 창 스크롤바(지도 오른쪽)를 없애고 왼쪽 패널만 스크롤 */
+  html.app-split, html.app-split body { height: 100%; overflow: hidden; }
+  html.app-split .split-shell { height: calc(100vh - 56px); height: calc(100dvh - 56px); }
+  html.app-split .split-main { height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #C9CFD6 transparent; }
+  html.app-split .split-main::-webkit-scrollbar { width: 8px; }
+  html.app-split .split-main::-webkit-scrollbar-thumb { background: #C9CFD6; border-radius: 8px; }
+  html.app-split .split-main::-webkit-scrollbar-thumb:hover { background: #9AA4AF; }
   /* 지도가 옆에 있을 때 목록 행: 행 전체 링크(stretched link)를 끄고 이름만 상세 링크로. 빈 곳을 누르면 지도에서 그곳을 보여 준다 */
   html.has-map [data-map-id] a::after { content: none !important; }
   html.has-map [data-map-id] { cursor: pointer; }
