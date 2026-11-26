@@ -46,14 +46,34 @@ function incheonGu(city: string, dong: string): string {
   return city;
 }
 
+// 개편으로 새 코드가 생긴 곳(2026-11-26 --codes에서 옛 코드 0건 확인: 부천 41190, 화성 41590, 인천 28110·28140·28260).
+// 새 코드를 몰라서 수집 스크립트가 아래 범위를 훑어 거래가 있는 코드를 찾는다(discoverCodes). 옛 코드는 지난달 거래용으로 계속 조회.
+export const PROBE_RANGES: { from: number; to: number; label: string }[] = [
+  { from: 41191, to: 41199, label: '부천시 일반구' },
+  { from: 41591, to: 41599, label: '화성시 일반구' },
+  { from: 28100, to: 28299, label: '인천 개편 구' },
+];
+const SEOHAE = ['가정동', '가좌동', '석남동', '신현동', '원창동', '연희동', '공촌동', '경서동', '백석동', '시천동', '검암동', '청라동'];
+/** 범위 탐색으로 찾은(표에 없는) 코드 → 시·군·구 이름. 부천·화성은 시 단위, 인천은 법정동으로 새 구 판정 */
+function discoveredCity(code: string, dong: string): { sido: SidoSlug; name: string } | null {
+  const n = Number(code);
+  if (n >= 41191 && n <= 41199) return { sido: 'gyeonggi', name: '부천시' };
+  if (n >= 41591 && n <= 41599) return { sido: 'gyeonggi', name: '화성시' };
+  if (n >= 28100 && n <= 28299) {
+    const name = YEONGJONG.includes(dong) ? '영종구' : GEOMDAN.includes(dong) ? '검단구' : SEOHAE.includes(dong) ? '서해구' : '제물포구';
+    return { sido: 'incheon', name };
+  }
+  return null;
+}
+
 const byCode = new Map(LAWD.map((l) => [l.code, l]));
 
 /** API 응답의 지역코드 + 법정동 → 동네콕콕 지역. 모르는 코드면 null(수집 보고서에 남긴다). */
 export function regionOfDeal(code: string, dong: string) {
   const l = byCode.get(code);
-  if (!l) return null;
-  const name = l.sido === 'incheon' ? incheonGu(l.city, dong) : l.city;
-  const sg = SIGUNGU[l.sido].find((x) => x.name === name);
+  const hit = l ? { sido: l.sido, name: l.sido === 'incheon' ? incheonGu(l.city, dong) : l.city } : discoveredCity(code, dong);
+  if (!hit) return null;
+  const sg = SIGUNGU[hit.sido].find((x) => x.name === hit.name);
   if (!sg) return null;
-  return { sido: l.sido, sigungu: sg.slug, sigunguName: sg.name, subGu: l.gu ?? null };
+  return { sido: hit.sido, sigungu: sg.slug, sigunguName: sg.name, subGu: l?.gu ?? null };
 }
