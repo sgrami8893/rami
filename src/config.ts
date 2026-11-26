@@ -104,3 +104,12 @@ export const CHECKLIST_VERIFIED = false;
  */
 const verification = (k: string) => { const v = env(k); return /^[A-Za-z0-9_-]{8,128}$/.test(v) ? v : ''; };
 export const SITE_VERIFICATION = { google: verification('GOOGLE_SITE_VERIFICATION'), naver: verification('NAVER_SITE_VERIFICATION') };
+
+/**
+ * 주소 검색(행정안전부 도로명주소 검색 API, business.juso.go.kr). 2026-11-27 틀만 만들어 둠.
+ * 승인키(PUBLIC_JUSO_KEY, 서비스 URL을 등록해 받는 브라우저용 키)가 빌드 환경변수에 있을 때만 켜진다. 없으면 화면에 아무것도 안 보인다.
+ * - 입력한 검색어만 브라우저가 juso.go.kr로 직접 보낸다(우리 서버·분석·저장 없음). 켜지면 개인정보처리방침에 항목이 자동으로 생긴다.
+ * - 결과는 주소 → 법정동 이름으로 우리 동 페이지에 연결만 한다(좌표 변환 없음, 결과 저장·재배포 없음).
+ * - 켜기 전 확인: 이용약관(출처 표기 문구), 브라우저 직접 호출 허용(CORS) 여부, 일일 호출 한도.
+ */
+export const JUSO = { key: env('PUBLIC_JUSO_KEY'), enabled: !!env('PUBLIC_JUSO_KEY'), url: 'https://business.juso.go.kr/addrlink/addrLinkApi.do', name: '행정안전부 도로명주소 검색 API', policyUrl: 'https://business.juso.go.kr' } as const;

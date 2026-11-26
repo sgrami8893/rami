@@ -154,11 +154,15 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     const v = valueOf(p);
     const m = mode();
     const dep = m.k === 'w' ? p.m[idx() + 1] : null;
+    // 거래가 적어 동 페이지가 없거나 숫자가 없는 동: 막다른 카드 대신 그 시·군·구 시세로 보낸다
+    const up = isDong && (v === null || !p.h) ? sggByF.get(fileOf() ?? '')?.feature.properties : undefined;
+    const upHref = up?.h && up.h !== location.pathname ? up.h : null;
     return {
-      key, title: name, href: p.h,
+      key, title: name, href: upHref ?? p.h,
+      linkLabel: upHref ? `${up!.nm} 전체 시세 보기` : undefined,
       value: v === null ? undefined : m.k === 'j' ? `${kindLabel()} 중위 ${short(v)}` : `${kindLabel()} 중위 ${dep !== null ? `${short(dep)} / ` : ''}월 ${v}만`,
       sub: `최근 12개월 거래 ${p.n.toLocaleString('ko-KR')}건`,
-      note: v === null ? (p.n ? '거래가 적어 숫자를 비교하지 않아요.' : '최근 12개월 거래가 없어요.') : undefined,
+      note: v === null ? `${p.n ? '거래가 적어 숫자를 비교하지 않아요.' : '최근 12개월 거래가 없어요.'}${upHref ? ' 시·군·구 전체 시세는 볼 수 있어요.' : ''}` : undefined,
     };
   };
   const tip = (pk: Pick) => {
@@ -262,14 +266,14 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     if (!f || !bldOn) return;
     for (const b of f.list) {
       if (b.dong !== focus.dong || b.lat === null || b.lng === null) continue;
-      const m = L.circleMarker([b.lat, b.lng], { radius: 8, color: '#FFFFFF', weight: 2, fillColor: '#191F28', fillOpacity: 1, className: 'mv-bld' });
+      const m = L.circleMarker([b.lat, b.lng], { radius: 8, color: '#FFFFFF', weight: 2, fillColor: '#B23A5B', fillOpacity: 1, className: 'mv-bld' });
       m.bindTooltip(b.name || b.jibun, { direction: 'top', offset: [0, -8], className: 'rm-tip' });
       m.on('click', (e) => { L.DomEvent.stopPropagation(e); document.dispatchEvent(new CustomEvent('rent:bld-open', { detail: b.id })); });
       m.addTo(bldGroup); bldMarkers.set(b.id, m);
     }
   };
   const setBldActive = (id: string | null) => {
-    for (const [k, m] of bldMarkers) m.setStyle(k === id ? { fillColor: '#6B1F57', radius: 11 } : { fillColor: '#191F28', radius: 8 });
+    for (const [k, m] of bldMarkers) m.setStyle(k === id ? { fillColor: '#6B1F57', radius: 11, weight: 3 } : { fillColor: '#B23A5B', radius: 8, weight: 2 });
   };
   const ac = new AbortController();
   const sig = { signal: ac.signal };

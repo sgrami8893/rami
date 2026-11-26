@@ -40,6 +40,11 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       L.DomEvent.stopPropagation(e);
       const prev = active; active = p.id; if (prev) paint(prev); paint(p.id);
       ctx.pick({ key: p.id, title: p.name, sub: p.addr, value: p.meta, note: p.badge, href: p.href }, (e as Leaflet.LeafletMouseEvent).originalEvent instanceof KeyboardEvent);
+      // 모바일: 아래 요약 카드에 가리거나 화면 끝에 잘리지 않게 고른 핀을 보이는 곳으로 살짝 옮긴다
+      if (!LG.matches) requestAnimationFrame(() => {
+        const c = document.querySelector<HTMLElement>('.mv-card:not([hidden])');
+        map.panInside(m.getLatLng(), { paddingTopLeft: [70, 110], paddingBottomRight: [70, (c?.offsetHeight ?? 0) + 110] });
+      });
     });
     markers.set(p.id, m);
   }

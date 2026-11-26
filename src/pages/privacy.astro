@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { SITE_NAME, CONTACT_EMAIL, MAP, REPORT_FORM } from '../config.ts';
+import { SITE_NAME, CONTACT_EMAIL, MAP, REPORT_FORM, JUSO } from '../config.ts';
 // 항목 번호는 실제로 켜진 기능만 세어 매긴다(방침과 실제 동작 일치)
 const hasReport = Boolean(REPORT_FORM.formId);
 let no = 2;
 const nStore = ++no;
-const nReport = hasReport ? ++no : 0, nMap = MAP.enabled ? ++no : 0, nContact = ++no;
+const nReport = hasReport ? ++no : 0, nMap = MAP.enabled ? ++no : 0, nJuso = JUSO.enabled ? ++no : 0, nContact = ++no;
 const effective = '2026-12-01'; // TODO: 공개일로 교체
 ---
 <BaseLayout title={`개인정보처리방침 | ${SITE_NAME}`} description={`${SITE_NAME} 개인정보처리방침`}>
@@ -34,6 +34,10 @@ const effective = '2026-12-01'; // TODO: 공개일로 교체
         <p>일부 페이지의 지도는 {MAP.name}이 제공하는 배경지도 이미지를 불러와 표시해요. 이때 이용자의 브라우저가 해당 기관의 서버에 직접 접속하므로, IP 주소·브라우저 정보 같은 접속 정보가 그 기관에 전달될 수 있어요. 사이트는 지도를 위해 쿠키를 저장하지 않아요. '내 주변'을 허용해 지도가 내 위치 근처로 옮겨지면, 그 근처의 배경지도 이미지를 브라우저가 해당 기관에서 받아요.{MAP.policyUrl && <> 제공기관의 정책은 <a href={MAP.policyUrl} class="underline" rel="noopener noreferrer" target="_blank">{MAP.policyUrl}</a>에서 확인할 수 있어요.</>}</p>
       </section>
     )}
+    {JUSO.enabled && (<section>
+      <h2 class="font-bold text-ink">{nJuso}. 주소 검색</h2>
+      <p>검색 창에 도로명·지번 주소를 넣으면, 이용자의 브라우저가 입력한 검색어를 {JUSO.name}(행정안전부)로 직접 보내 주소를 찾아요. 이때 검색어와 IP 주소·브라우저 정보 같은 접속 정보가 해당 기관에 전달될 수 있어요. 사이트는 검색어와 결과를 서버로 보내거나 저장하지 않고, 찾은 주소의 동네 페이지로 연결만 해요. 제공기관의 정책은 <a href={JUSO.policyUrl} class="underline" rel="noopener noreferrer" target="_blank">{JUSO.policyUrl}</a>에서 확인할 수 있어요.</p>
+    </section>)}
     <section>
       <h2 class="font-bold text-ink">{nContact}. 문의처</h2>
       <p>서비스 이용 및 개인정보 관련 문의: {CONTACT_EMAIL}</p>

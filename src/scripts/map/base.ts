@@ -13,7 +13,6 @@ export async function createMap(canvas: HTMLElement) {
   const cfg = JSON.parse(canvas.dataset.cfg || '{}') as Cfg;
   const { default: L } = await import('leaflet');
   (window as unknown as { L: typeof L }).L = L; // markercluster 1.x는 전역 L에 붙는다
-  canvas.querySelector('.map-loading')?.remove();
   const area = L.latLngBounds(AREA);
   const map = L.map(canvas, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, maxBounds: area, maxBoundsViscosity: 1,
     minZoom: 9, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 100 });

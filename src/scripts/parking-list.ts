@@ -73,6 +73,9 @@ function bind() {
       const lots = [...g.querySelectorAll<HTMLElement>('.lot')].filter((r) => !r.hidden);
       g.hidden = lots.every((r) => r.hasAttribute('data-clip'));
       const gc = g.querySelector('.g-count'); if (gc) gc.textContent = `${lots.length}곳`;
+      // 동 바로가기 칩: 조건에 맞는 곳이 없는 동은 숨기고 개수도 맞춘다
+      const j = [...document.querySelectorAll<HTMLAnchorElement>('#dong-jump a')].find((a) => decodeURIComponent(a.hash.slice(1)) === g.id);
+      if (j) { j.hidden = !lots.length; const c = j.querySelector('span'); if (c) c.textContent = String(lots.length); }
     });
     if (more) {
       const rest = n - limit;
@@ -160,9 +163,11 @@ function bind() {
       if (by === 'fee2') {
         rows().sort((a, c) => v(a) - v(c) || byName(a, c)).forEach((r) => flat.appendChild(r));
         flat.hidden = false;
+        const jump = document.getElementById('dong-jump'); if (jump) jump.hidden = true; // 한 줄 비교일 때는 동 묶음이 없다
       } else {
         rows().sort(byName).forEach((r) => boxes[Number(r.dataset.home)].appendChild(r));
         flat.hidden = true;
+        const jump = document.getElementById('dong-jump'); if (jump) jump.hidden = false;
       }
     } else {
       rows().sort((a, c) => (by === 'fee2' ? v(a) - v(c) : 0) || byName(a, c)).forEach((r) => list.appendChild(r));
