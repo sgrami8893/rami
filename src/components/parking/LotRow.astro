@@ -9,7 +9,7 @@ const { l, level = 3 } = Astro.props;
 const H = `h${level}`;
 const two = calcFee(l, 120);
 // 머물 시간별 예상 요금(30분·1시간·2시간·3시간·종일). 계산 불가 = null(목록 맨 뒤 '요금 확인 필요' 묶음)
-const fees = DURATIONS.map((d) => { const r = calcFee(l, d.minutes ?? dayMinutes(l)); return r.status === 'free' ? 0 : r.status === 'ok' ? r.amount : null; });
+const fees = DURATIONS.map((d) => { const r = calcFee(l, d.minutes ?? 600); /* 목록의 '종일' = 10시간 기준 */ return r.status === 'free' ? 0 : r.status === 'ok' ? r.amount : null; });
 const mapped = validPoints([l]).length > 0; // 지도에 핀이 있는 곳만 지도 연결(data-map-id·'지도' 버튼)
 ---
 <!-- v2(2026-11-26 'UX 처음부터'): 이름 · 한 줄 사실(운영 배지 · 평일 시간 · 종류) · 오른쪽 2시간 요금. 주소는 작은 글자 한 줄. 지도 연결은 줄 전체(마우스 올리면 지도 핀 강조) -->

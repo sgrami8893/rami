@@ -12,7 +12,7 @@ const chip = 'v-chip';
     <button type="button" data-filter="stay" aria-pressed="false" class={chip}>나올 때까지 운영</button>
   </div>
   {sort && (
-    <p class="v-stay-k w-full" aria-hidden="true">머물 시간 <small>· 이 시간 기준 예상 요금</small></p>
+    <p class="v-stay-k w-full" aria-hidden="true">머물 시간 <small>· 이 시간 기준 예상 요금(종일은 10시간 기준)</small></p>
     <div class="v-stay w-full" role="group" aria-label="머물 시간(예상 요금 기준)">
       {[['0', '30분'], ['1', '1시간'], ['2', '2시간'], ['3', '3시간'], ['4', '종일']].map(([i, t]) => <button type="button" data-stay={i} aria-pressed={i === '2' ? 'true' : 'false'}>{t}</button>)}
     </div>

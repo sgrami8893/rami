@@ -638,3 +638,13 @@ html[data-rt="o"]:not([data-rk="w"]) .v-row .sw-wrap .sw.rm-oj, html[data-rt="o"
 @media (prefers-reduced-motion: reduce) { .me-pin .kok-rip { display: none; } .map-hit.is-active .map-tag, .mv-lbl.is-sel { animation: none; } }
 .v-ans .near-place .k, .near-place .k { color: #fff; font-size: calc(13px * var(--fs, 1)); }
 .mv-nopins { position: absolute; left: 50%; top: 72px; z-index: 500; width: min(360px, calc(100% - 32px)); transform: translateX(-50%); padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / .95); box-shadow: var(--sh-2); font-size: calc(14px * var(--fs, 1)); color: var(--color-ink-2); text-align: center; }
+
+/* 2026-11-27 사용자 폰 캡처: 묶음 배지가 44px 칸에 갇혀 '무료 N'이 밖으로 삐져나옴 → 배지는 칸 가운데에 제 너비로 선다 */
+.map-cluster { position: absolute; left: 50%; top: 50%; width: max-content; transform: translate(-50%, -50%); }
+.map-hit:hover .map-cluster { transform: translate(-50%, -50%) scale(1.06); }
+.map-hit.is-hover .map-cluster { transform: translate(-50%, -50%) scale(1.1); }
+.map-hit { position: relative; }
+/* 하단 고정 바(길찾기·주소 복사)가 있는 상세 화면: '지도' 알약을 바 위로 올린다 */
+body:has([data-bottom-bar]) .v-pill { bottom: calc(92px + env(safe-area-inset-bottom)); }
+@media (max-width: 359px) { .v-ans .v { font-size: calc(22px * var(--fs, 1)); } .v-ans .v small { font-size: calc(14px * var(--fs, 1)); } }
+.v-ans .v.num { white-space: normal; word-break: keep-all; }
