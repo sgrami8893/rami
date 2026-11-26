@@ -2,12 +2,16 @@
 // 동 페이지: 최근 12개월 거래 PAGE_MIN건 이상인 법정동만 생성. 색인은 INDEX_MIN건 이상 + 시·군·구의 90% 이하(scripts/lib/rent.ts RENT_RULE)
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/rent/MockBanner.astro';
+import RentMap from '../../../../../components/rent/RentMap.astro';
+import RentPick from '../../../../../components/rent/RentPick.astro';
+import MapButton from '../../../../../components/MapButton.astro';
+
 import RentSummary from '../../../../../components/rent/RentSummary.astro';
 import RentCalculator from '../../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../../components/rent/RentNotes.astro';
 import AdSlot from '../../../../../components/AdSlot.astro';
 import ShowMore from '../../../../../components/ui/ShowMore.astro';
-import { RENT_SOURCES, stats, DONG_PAGES, sidoShort, dongsOf, hasDongPage, rentPath, periodText, dongIndexable, IS_MOCK, rentDescription, type RentArea } from '../../../../../lib/rent.ts';
+import { RENT_MAP, RENT_SOURCES, stats, DONG_PAGES, sidoShort, dongsOf, hasDongPage, rentPath, periodText, dongIndexable, IS_MOCK, rentDescription, type RentArea } from '../../../../../lib/rent.ts';
 import { manwon } from '../../../../../../scripts/lib/rent.ts';
 import type { SidoSlug } from '../../../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return DONG_PAGES.map((a) => ({ params: { sido: a.sido, sigungu: a.sigungu, dong: a.dong! }, props: { a } })); }
@@ -24,6 +28,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
   <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건 · 법정동 기준</p>
+  <MapButton show={RENT_MAP} label="주변 동네 지도로 보기" />
   <RentSummary a={a} place={dong} />
   {v?.jeonse && sgMed !== null && <p class="mt-3 text-cap text-ink-2">참고: 빌라 전세 중위값은 {dong} {manwon(v.jeonse.median)}, {a.sigunguName} 전체 {manwon(sgMed)}이에요.</p>}
   <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} />
@@ -37,4 +42,5 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
     </>}
   </nav>
   <RentNotes />
+  {RENT_MAP && <RentMap slot="map" focus={{ sido, slug: a.sigungu, dong }} />}
 </BaseLayout>

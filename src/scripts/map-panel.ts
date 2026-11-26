@@ -5,14 +5,13 @@
 // - 목록 필터(무료만·지금 운영 중·24시간 등)를 바꾸면 'list:filtered' 이벤트를 받아 지도 핀도 같은 조건으로 거른다.
 // 보안: 핀 데이터는 빌드 때 만든 JSON이고, 카드에는 textContent·setAttribute만 쓴다(innerHTML 없음).
 // CSS는 정적 import(지도가 있는 페이지에만 실림). 동적 import로 두면 빌드에서 CSS 파일이 빠지는 문제가 있었다.
-import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import { announce, copyText } from './copy.ts';
 import type * as Leaflet from 'leaflet';
+import { baseMap } from './map-base.ts';
 
 type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string };
-type Cfg = { url: string; attribution: string; maxZoom: number };
-interface MapApi { focus(id: string): void; hover(id: string | null): void; filter(ids: Set<string> | null): void; resize(): void }
+export interface MapApi { focus(id: string): void; hover(id: string | null): void; filter(ids: Set<string> | null): void; resize(): void }
 
 const LG = window.matchMedia('(min-width: 1024px)');
 const enc = encodeURIComponent;
@@ -21,40 +20,23 @@ const naverSearch = (p: Pt) => `https://map.naver.com/p/search/${enc(p.addr ? `$
 
 async function mount(pane: HTMLElement): Promise<MapApi> {
   const canvas = pane.querySelector<HTMLElement>('.map-canvas')!;
+  if (canvas.dataset.kind === 'rent') return (await import('./rent-map.ts')).mountRent(pane, canvas);
   const points = JSON.parse(canvas.dataset.points || '[]') as Pt[];
-  const cfg = JSON.parse(canvas.dataset.cfg || '{}') as Cfg;
-  const { default: L } = await import('leaflet');
-  (window as unknown as { L: typeof L }).L = L; // markercluster 1.x는 전역 L에 붙는다
+  const { L, map } = await baseMap(canvas);
   await import('leaflet.markercluster');
-  canvas.querySelector('.map-loading')?.remove();
-
-  // 남용 완화: 수도권 밖으로 끌고 가거나 아주 멀리 축소하지 못하게 해서 사용자 한 명이 만드는 타일 요청 수를 줄인다.
-  const area = L.latLngBounds([36.8, 124.5], [38.4, 128.0]);
-  const map = L.map(canvas, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, // PC: 지도 위에서 휠로 바로 확대·축소(사용자 요청 2026-11-26)
-    maxBounds: area, maxBoundsViscosity: 1, minZoom: 9 });
-  map.attributionControl.setPrefix('Leaflet');
-  L.control.zoom({ position: 'topright', zoomInTitle: '지도 확대', zoomOutTitle: '지도 축소' }).addTo(map); // 기본 영어 라벨 대신 한국어
-  const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 9, bounds: area, keepBuffer: 1 }).addTo(map);
-  // 타일이 계속 실패하면(키 한도 초과·차단 등) 빈 지도 대신 안내 문구를 띄운다.
-  let failed = 0;
-  tiles.on('tileerror', () => {
-    if (++failed !== 12) return;
-    const note = document.createElement('p');
-    note.className = 'absolute inset-x-3 top-14 z-[1000] rounded-xl bg-card px-3 py-2 text-cap text-ink-2 shadow';
-    note.textContent = '배경지도를 불러오지 못하고 있어요. 핀 위치와 목록은 그대로 볼 수 있어요.';
-    canvas.parentElement?.appendChild(note);
-  });
 
   // 핀·클러스터 모양은 우리 CSS(global.css .map-pin/.map-cluster)로 그린다(타사 아이콘 이미지 없음).
   // 누르는 영역: 핀 32px(보이는 점 22px), 클러스터 44px. WCAG 2.5.8(24px 이상)을 넘기고,
   // 묶음 반경 60px·펼침 간격 40px로 누르는 영역끼리 겹치지 않게 한다(axe target-size 겹침 해소, 2026-11-26).
-  const pin = L.divIcon({ className: 'map-hit map-hit-pin', html: '<span class="map-pin"></span>', iconSize: [32, 32], iconAnchor: [16, 16] });
+  const pin = L.divIcon({ className: 'map-hit map-hit-pin', html: '<span class="map-pin"><span class="map-pin-dot"></span></span>', iconSize: [32, 32], iconAnchor: [16, 16] });
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     maxClusterRadius: 60,
     spiderfyDistanceMultiplier: 1.6,
     chunkedLoading: true,
-    iconCreateFunction: (c) => L.divIcon({ className: 'map-hit', html: `<span class="map-cluster" aria-hidden="true">${c.getChildCount()}</span><span class="sr-only">${c.getChildCount()}곳 묶음, 눌러서 확대</span>`, iconSize: [44, 44] }),
+    // 묶음 크기는 개수에 따라 3단계(작음 36·중간 42·큼 50px). 누르는 영역은 모두 44px 이상
+    iconCreateFunction: (c) => { const n = c.getChildCount(); const sz = n < 10 ? 's' : n < 100 ? 'm' : 'l'; const hit = sz === 'l' ? 52 : 44;
+      return L.divIcon({ className: 'map-hit', html: `<span class="map-cluster map-cluster-${sz}" aria-hidden="true">${n}</span><span class="sr-only">${n}곳 묶음, 눌러서 확대</span>`, iconSize: [hit, hit] }); },
   });
 
   const card = pane.querySelector<HTMLElement>('.map-card')!;
@@ -112,8 +94,6 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
   const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
   const fit = () => (points.length === 1 ? map.setView(bounds.getCenter(), 16) : map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 }));
   fit();
-  // 패널 크기가 바뀌면(모바일 전체 화면 열기, 창 크기 변경) 지도 크기를 다시 잰다
-  new ResizeObserver(() => map.invalidateSize()).observe(canvas);
 
   const count = pane.querySelector('.map-count');
   const note = pane.querySelector<HTMLElement>('.map-filter-note');

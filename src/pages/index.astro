@@ -7,6 +7,11 @@ import { SIGUNGU } from '../../scripts/lib/regions.ts';
 import { stats as rentStats, HAS_PAGES as rentReady, IS_MOCK as rentMock, RENT_RULE, SIDOS as RENT_SIDOS, sigunguOf as rentSigunguOf, rentPath } from '../lib/rent.ts';
 import { kiosks, stats, regionsIn, SIDO_ORDER, sidoShort, regionPath, subGuOf } from '../lib/data.ts';
 import GuideList from '../components/GuideList.astro';
+import RentMap from '../components/rent/RentMap.astro';
+import RentPick from '../components/rent/RentPick.astro';
+import MapButton from '../components/MapButton.astro';
+import { MAP } from '../config.ts';
+
 import Icon from '../components/Icon.astro';
 import type { IconName } from '../lib/icons.ts';
 const ICON: Record<string, IconName> = { muin: 'file-text', waste: 'trash-2', parking: 'square-parking', rent: 'building', cert: 'award' };
@@ -54,6 +59,9 @@ const features: Record<string, { icon: IconName; label: string }[]> = {
   parking: [{ icon: 'square-parking', label: `무료 ${n(parkingLots.filter((l) => l.fee.type === 'free').length)}곳` }, { icon: 'clock', label: '2시간 요금 비교' }],
   rent: [{ icon: 'map-pin', label: `동네 ${n(rentDongs)}곳` }, { icon: 'file-text', label: '중개보수·전환 계산기' }],
 };
+// 2026-11-26 PC 홈 = 전월세 지도 화면(사용자·제미나이 합의): 1024px+ 왼쪽 400px 패널(지금 홈 내용 그대로) + 오른쪽 전월세 단계구분도.
+// 모바일은 카드 홈 그대로 + '전월세 지도로 보기' 버튼(전체 화면). 홈 HTML 본문은 그대로라 검색엔진에는 변화 없음.
+const rentMap = MAP.enabled && rentReady && live.some((t) => t.slug === 'rent');
 const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: `${SITE_URL}/` }];
 ---
 <BaseLayout title={`${SITE_NAME} | 발급기·주차장·전월세, 우리 동네 생활 정보 한눈에`} description={`서울·경기·인천 무인민원발급기 ${n(kiosks.length)}곳, 공영주차장 ${n(parkingLots.length)}곳, 빌라·오피스텔 전월세 실거래 ${n(rentTotal)}건을 지역별로 모아 보여 주는 민간 생활 정보 서비스예요.`} jsonld={jsonld} sidebar canvas="white">
@@ -71,6 +79,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
         </div>
       </fieldset>
     )}
+    {rentMap && <RentPick class="mt-5" />}
     <form id="region-search" action={live[0]?.path ?? '/muin/'} class="mt-3" role="search" onsubmit="return false">
       <label for="q" class="sr-only">시·군·구 검색</label>
       <div class="flex h-[52px] items-center gap-2 rounded-[14px] bg-bg px-4 focus-within:ring-2 focus-within:ring-brand">
@@ -94,6 +103,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
       </ul>
       <p id="region-empty" class="mt-2 px-1 text-cap text-ink-3" hidden>일치하는 지역이 없어요. 현재 서울·경기·인천만 지원해요. 시·군·구 이름(예: 분당 → 성남시)이나 동네 이름(예: 일산, 송도)으로 찾아 주세요.</p>
     </details>
+    {rentMap && <MapButton show label="전월세 지도로 보기" class="mt-4" />}
   </section>
 
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
@@ -121,6 +131,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
 
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
   <GuideList flat limit={4} title="생활 정보 가이드" />
+  {rentMap && <RentMap slot="map" />}
 </BaseLayout>
 
 <script>
