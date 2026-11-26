@@ -1,0 +1,23 @@
+---
+// 분기별 거래 건수·중위값과 계약 정보(v2 동·시군구 접힘). 지금 보는 유형만(.rt-v/.rt-o).
+import { amt } from '../../lib/rent-view.ts';
+import type { RentArea } from '../../../scripts/lib/rent.ts';
+interface Props { a: RentArea }
+const { a } = Astro.props;
+const T = [['v', 'villa', '빌라'], ['o', 'officetel', '오피스텔']] as const;
+const qLabel = (q: string) => `${q.slice(2, 4)}년 ${q.slice(6)}분기`;
+---
+{T.map(([k, key, nm]) => { const s = a.byType[key]; return (
+  <div class={`rt-${k}`}>
+    {s ? (
+      <>
+        <table class="v-tbl">
+          <caption class="sr-only">{nm} 분기별 거래 건수와 중위값</caption>
+          <thead><tr><th scope="col">분기</th><th scope="col" class="r">건수</th><th scope="col" class="r">전세 중위</th><th scope="col" class="r">월세 중위</th></tr></thead>
+          <tbody>{s.quarters.map((x) => <tr><th scope="row">{qLabel(x.q)}</th><td class="r m num">{x.n}</td><td class="r num">{x.jeonseMedian !== null ? amt(x.jeonseMedian) : '-'}</td><td class="r num">{x.wolseMonthlyMedian !== null ? `${x.wolseMonthlyMedian}만` : '-'}</td></tr>)}</tbody>
+        </table>
+        <p class="mt-2">신규 계약 {s.newCount}건 · 갱신 계약 {s.renewCount}건{s.usedRightCount ? ` (계약갱신요구권 사용 ${s.usedRightCount}건)` : ''}{s.buildYearMedian ? ` · 건축년도 중위 ${s.buildYearMedian}년` : ''}</p>
+      </>
+    ) : <p>{nm} 거래가 없어요.</p>}
+  </div>
+); })}

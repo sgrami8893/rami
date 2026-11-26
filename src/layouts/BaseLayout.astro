@@ -1,15 +1,18 @@
 ---
+// 사이트 공통 틀 v2(2026-11-26 사용자·제미나이 합의 'UX 처음부터 다시').
+// - 머리말 한 줄: 로고 · 도구 탭(전월세·주차장·발급기, 메인인 전월세가 먼저) · 검색(검색 시트 안에 글자 크기).
+// - 'map' 슬롯을 채운 찾는 화면: PC(1024px+) 왼쪽 420px 패널(본문 전부, 패널만 스크롤) + 오른쪽 큰 지도. 상세 화면도 같은 틀.
+//   모바일은 본문 한 줄 흐름 + 화면 아래 가운데 '지도' 알약(MapPill) → 전체 화면 지도.
+// - 지도 없는 화면(가이드·소개 등)은 한 단(680px).
+// - 위치 줄(PlaceBar)이 빵부스러기를 대신한다. crumbs는 검색엔진용 BreadcrumbList(JSON-LD)로만 쓴다.
 import Icon from '../components/Icon.astro';
 import '../styles/fonts/pretendard/pretendard.css'; // Pretendard Variable 동적 서브셋(OFL), 자체 호스팅
 import '../styles/global.css';
-// 가장 자주 쓰는 글자(라틴 + 상위 한글) 서브셋 1개만 미리 받는다. 나머지는 unicode-range로 필요할 때만.
 import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91.woff2?url';
-import { MAP, SITE_NAME, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
-import Breadcrumb from '../components/Breadcrumb.astro';
+import { MAP, SITE_NAME, SITE_URL, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
 import Logo from '../components/Logo.astro';
-import FontSizeMenu from '../components/FontSizeMenu.astro';
-import Sidebar from '../components/Sidebar.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import SearchSheet from '../components/v2/SearchSheet.astro';
 import { kiosks } from '../lib/data.ts';
 import { PARKING_DATE } from '../lib/parking.ts';
 import { RENT_SOURCES, HAS_PAGES as RENT_HAS_PAGES } from '../lib/rent.ts';
@@ -21,53 +24,44 @@ interface Props {
   noindex?: boolean;
   jsonld?: object[];
   crumbs?: { name: string; href: string }[];
-  wide?: boolean;
-  /** 도구 페이지면 그 도구의 하위 메뉴·출처를 보여 준다. 허브 공통 페이지는 생략. */
+  /** 도구 페이지면 머리말에서 그 도구를 표시하고 바닥글 출처를 그 도구 것으로 */
   tool?: ToolSlug;
-  /** PC(1024px+)에서 본문 740px + 사이드바 300px 2단. 기본: 도구 페이지에서 켬. */
-  sidebar?: boolean;
-  /** 'white': 순백 캔버스(3차 개편 페이지). 섹션은 .band 띠로 나누고, PC 사이드바는 옅은 회색 + 세로 구분선. */
-  canvas?: 'gray' | 'white';
-  /** 푸터 출처를 직접 지정(출처가 여러 개인 도구, 예: /rent/ 국토부 자료 2종) */
+  /** 바닥글 출처를 직접 지정(출처가 여러 개인 도구) */
   sources?: { name: string; url: string; label: string; date: string }[];
+  /** 지도 없는 화면에서 본문 폭을 넓게(표가 있는 소개 등) */
+  wide?: boolean;
+  /** 옛 페이지 호환(무시) */
+  sidebar?: boolean; canvas?: 'gray' | 'white';
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
-// PC 지도 2단(2026-11-26 사용자·제미나이 합의): 페이지가 'map' 슬롯을 채우면 1024px 이상에서
-// 왼쪽 400px 패널(본문 전부: 요약·필터·목록) + 오른쪽 큰 지도(화면 높이에 고정)로 나눈다. 본문 HTML은 그대로(검색엔진용).
-// 모바일은 기존 한 줄 흐름 그대로이고, 지도는 '지도로 보기' 버튼으로 전체 화면에 연다.
 const split = Astro.slots.has('map');
-// 지도 화면은 배경지도 타일 서버에 미리 연결해 첫 타일을 빨리 받는다(연결만, 데이터 저장 없음)
 const tileOrigin = split && MAP.enabled && MAP.url.startsWith('https://') ? new URL(MAP.url.replace(/\{[^}]+\}/g, '0')).origin : null;
-const sidebar = split ? false : (Astro.props.sidebar ?? Boolean(tool));
-const white = (Astro.props.canvas ?? 'white') === 'white'; // 3차 개편: 전 페이지 순백 캔버스
-const frame = split ? 'max-w-2xl lg:max-w-none' : sidebar ? 'max-w-2xl lg:max-w-[1072px]' : wide ? 'max-w-5xl' : 'max-w-2xl';
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트명을 붙이지 않음
 const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? '미상';
-// 출처: 도구 페이지는 그 도구의 출처만, 허브 공통 페이지는 운영 중인 도구 전체의 출처를 표기
 const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t) => t.slug))
   .flatMap((s) => s === 'rent' ? (RENT_HAS_PAGES ? RENT_SOURCES : []) : [{ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }])
   .filter((s) => s.name);
 if (Astro.props.sources) sources.splice(0, sources.length, ...Astro.props.sources);
-const liveTools = TOOLS.filter((t) => t.status === 'live');
-const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
-const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', rent: '전월세', waste: '대형폐기물', cert: '자격시험' };
+// 도구 탭: 메인인 전월세가 먼저(2026-11-26 합의)
+const ORDER = ['rent', 'parking', 'muin'];
+const SHORT: Record<string, string> = { muin: '발급기', parking: '주차장', rent: '전월세' };
+const liveTools = TOOLS.filter((t) => t.status === 'live').sort((a, b) => ORDER.indexOf(a.slug) - ORDER.indexOf(b.slug));
+const crumbLd = crumbs.length > 1 ? [{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: new URL(c.href, SITE_URL).href })) }] : [];
 ---
 <!doctype html>
-<html lang="ko" class={split ? 'app-split' : undefined}>
+<html lang="ko" class={split ? 'app-split' : undefined} data-tool={tool ?? ''}>
   <head>
     <meta charset="utf-8" />
-    <!-- 글자 크기 선택값을 첫 그리기 전에 적용(깜빡임 방지). 이 브라우저 localStorage에만 있음 -->
-    <script is:inline>try{var f=localStorage.getItem('dnkk:fs:v1');if(f==='l'||f==='xl')document.documentElement.dataset.fs=f}catch(e){}</script>
+    <!-- 첫 그리기 전에 이 브라우저에 저장된 선택(글자 크기, 전월세 유형·전세/월세)을 적용(깜빡임 방지). localStorage에만 있음 -->
+    <script is:inline>try{var d=document.documentElement,f=localStorage.getItem('dnkk:fs:v1');if(f==='l'||f==='xl')d.dataset.fs=f;var r=localStorage.getItem('dnkk:rm:v1');if(r&&/^[vo][jw]$/.test(r)){d.dataset.rt=r[0];d.dataset.rk=r[1]}}catch(e){}</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>{fullTitle}</title>
+    <title>{title}</title>
     {tileOrigin && <link rel="preconnect" href={tileOrigin} />}
-    {tileOrigin && <link rel="dns-prefetch" href={tileOrigin} />}
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {(noindex || NOINDEX_ALL) && <meta name="robots" content="noindex,follow" />}
     <meta property="og:type" content="website" />
-    <meta property="og:title" content={fullTitle} />
+    <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="ko_KR" />
@@ -76,56 +70,40 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
     {Astro.url.pathname === '/' && SITE_VERIFICATION.google && <meta name="google-site-verification" content={SITE_VERIFICATION.google} />}
     {Astro.url.pathname === '/' && SITE_VERIFICATION.naver && <meta name="naver-site-verification" content={SITE_VERIFICATION.naver} />}
     <link rel="preload" href={fontPreload} as="font" type="font/woff2" crossorigin />
-    <meta name="theme-color" content={white ? '#FFFFFF' : '#F3F5F8'} />
-    {jsonld.map((j) => <script type="application/ld+json" set:html={safeJsonLd(j)} />)}
+    <meta name="theme-color" content="#FFFFFF" />
+    {[...jsonld, ...crumbLd].map((j) => <script type="application/ld+json" set:html={safeJsonLd(j)} />)}
     {ADSENSE.client && (
       <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE.client}`} crossorigin="anonymous" />
     )}
   </head>
-  <body class={`min-h-screen text-ink antialiased ${white ? 'bg-card' : 'bg-bg'}`}>
-    <a href="#main" class="sr-only z-50 rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
-    <!-- 헤더(2026-11-26 제미나이 검수 반영): 640px 미만은 2단(1단 로고+검색+글자 크기 고정 / 2단 도구 탭, 스크롤과 함께 올라감).
-         도구가 3개가 되며 1줄 헤더가 375px에서 넘쳤기 때문. 로고 글자는 모든 폭에서 보인다. 640px 이상은 기존 1줄 -->
-    <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
-      <div class={`mx-auto flex h-14 items-center gap-2 px-4 ${frame}`}>
-        <a href="/" class="flex min-h-11 items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
-        <!-- 헤더는 도구 카테고리만(2026-11-25 UI 검수 합의). 시·도 전환은 각 도구 본문의 칩 바에서 -->
-        <nav aria-label="주요 메뉴" class="ml-auto hidden items-center gap-3 text-[16px] font-medium text-ink-2 sm:flex">
-          {liveTools.map((t) => (
-            <a href={t.path} class={`flex min-h-11 min-w-11 items-center justify-center ${tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
-          ))}
-        </nav>
-        <a href="/#search" class="ml-auto flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg sm:ml-0" aria-label="지역 검색"><Icon name="search" size={22} /></a>
-        <FontSizeMenu />
-      </div>
+  <body class="min-h-screen bg-card text-ink antialiased">
+    <a href="#main" class="sr-only z-[90] rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
+    <header class="v-hd">
+      <a href="/" class="v-logo" aria-label={`${SITE_NAME} 처음으로`}><Logo size={26} class="text-brand" /><span>{SITE_NAME}</span></a>
+      <nav aria-label="도구" class="v-tools">
+        {liveTools.map((t) => <a href={t.path} aria-current={tool === t.slug ? 'page' : undefined}>{SHORT[t.slug] ?? t.name}</a>)}
+      </nav>
+      <button type="button" class="v-hsearch" data-sheet-open aria-haspopup="dialog"><Icon name="search" size={18} />동네·지역 이름으로 찾기</button>
+      <button type="button" class="v-hbtn s" data-sheet-open aria-haspopup="dialog" aria-label="검색·글자 크기"><Icon name="search" size={22} /></button>
     </header>
-    <nav aria-label="주요 메뉴" class="border-b border-line bg-card sm:hidden">
-      <div class="grid px-2" style={`grid-template-columns: repeat(${liveTools.length}, minmax(0, 1fr))`}>
-        {liveTools.map((t) => (
-          <a href={t.path} class={`flex min-h-11 items-center justify-center border-b-2 text-[16px] font-medium ${tool === t.slug ? 'border-brand text-ink' : 'border-transparent text-ink-2 hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
-        ))}
-      </div>
-    </nav>
-    <!-- PC(1024px+) 지도 2단은 앱처럼: 페이지는 스크롤하지 않고 왼쪽 패널만 스크롤(스크롤바가 패널 오른쪽 끝), 지도는 나머지를 채운다. 푸터도 패널 안 맨 아래 -->
     {split ? (
-    <div class="split-shell mx-auto max-w-2xl lg:grid lg:max-w-none lg:grid-cols-[400px_minmax(0,1fr)]">
-      <main id="main" tabindex="-1" class="split-main min-w-0 px-5 pb-16 pt-4 tabular-nums focus:outline-none lg:border-r lg:border-line">
-        {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
+    <div class="split-shell lg:grid lg:grid-cols-[420px_minmax(0,1fr)]">
+      <main id="main" tabindex="-1" class="split-main min-w-0 px-5 pb-6 pt-4 tabular-nums focus:outline-none lg:border-r lg:border-line lg:px-6 lg:pt-5">
         <slot />
-        <SiteFooter sources={sources} muin={toolInfo?.slug === 'muin'} inPanel />
+        <SiteFooter sources={sources} muin={tool === 'muin'} />
+        <div class="v-pill-space" aria-hidden="true"></div>
       </main>
       <slot name="map" />
     </div>
     ) : (
-    <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
-      <main id="main" tabindex="-1" class={`min-w-0 focus:outline-none ${white && sidebar ? 'lg:pr-8' : ''}`}>
-        {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
+    <div class={`mx-auto px-5 pb-10 pt-4 ${wide ? 'max-w-4xl' : 'max-w-[680px]'}`}>
+      <main id="main" tabindex="-1" class="min-w-0 focus:outline-none">
         <slot />
       </main>
-      {sidebar && <Sidebar flat={white} />}
+      <SiteFooter sources={sources} muin={tool === 'muin'} />
     </div>
     )}
-    {!split && <SiteFooter sources={sources} muin={toolInfo?.slug === 'muin'} frame={frame} />}
     <slot name="bottom" />
+    <SearchSheet tool={tool} />
   </body>
 </html>

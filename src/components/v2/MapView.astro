@@ -1,0 +1,57 @@
+---
+// 지도 칸 v2(2026-11-26 '지도도 처음부터'). BaseLayout의 'map' 슬롯에 넣는다.
+//   전월세: <MapView slot="map" kind="rent" focus={{ sido, slug, dong }} />
+//   장소 핀: <MapView slot="map" kind="pins" points={pts} focusId={id} />
+// 지도 위에는 확대·축소(오른쪽 아래), 작은 범례(왼쪽 위, 전월세), 출처만. 모바일은 위 막대(닫기) + 아래 카드 1장 + '목록' 알약.
+// 바깥 요청은 배경지도 타일뿐(브이월드에서 브라우저가 직접, 저장·캐시 없음). 경계·통계는 우리 정적 JSON.
+import { MAP } from '../../config.ts';
+import Icon from '../Icon.astro';
+import { HAS_BUILDINGS } from '../../lib/rent-buildings.ts';
+type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
+interface Props { kind: 'rent' | 'pins'; title?: string; focus?: Record<string, string | null | undefined>; points?: Pt[]; focusId?: string; note?: string }
+const { kind, title = kind === 'rent' ? '전월세 시세 지도' : '지도', focus = {}, points = [], focusId, note } = Astro.props;
+const show = MAP.enabled && (kind === 'rent' || points.length > 0);
+const cfg = { url: MAP.url, attribution: MAP.attribution, maxZoom: MAP.maxZoom };
+const cleanFocus = Object.fromEntries(Object.entries(focus).filter(([, v]) => v));
+const src = kind === 'rent' ? '최근 12개월 실거래 중위값 · 경계: 행정안전부 도로명주소 법정동 경계' + (HAS_BUILDINGS ? ' · 건물 위치: 행정안전부 주소정보' : '') : (note ?? '위치: 공공데이터 좌표');
+---
+{show && (
+  <section id="map-pane" class="map-pane" aria-label={title}>
+    <div class="map-bar flex h-14 shrink-0 items-center gap-1 border-b border-line bg-card px-2 lg:hidden">
+      <button type="button" data-map-close class="v-hbtn" aria-label="지도 닫고 목록으로"><Icon name="chevron-left" size={24} /></button>
+      <h2 class="min-w-0 flex-1 truncate text-body font-bold text-ink">{title}</h2>
+    </div>
+    <div class="relative min-h-0 flex-1">
+      <div class="map-canvas absolute inset-0" data-kind={kind} data-src="/geo/rent/" data-bsrc={kind === 'rent' && HAS_BUILDINGS ? '/geo/rent-b/' : undefined}
+        data-cfg={JSON.stringify(cfg)} data-focus={kind === 'rent' ? JSON.stringify(cleanFocus) : undefined}
+        data-points={kind === 'pins' ? JSON.stringify(points) : undefined} data-focus-id={focusId}>
+        <p class="map-loading flex h-full items-center justify-center text-cap text-ink-3">지도 불러오는 중</p>
+      </div>
+      {kind === 'rent' && (
+        <div class="mv-legend" hidden>
+          <p class="mv-legend-t"></p>
+          <div class="mv-legend-bar" aria-hidden="true"></div>
+          <p class="mv-legend-ends"><span class="mv-legend-lo"></span><span class="mv-legend-hi"></span></p>
+          <p class="mv-legend-note"></p>
+        </div>
+      )}
+      <div class="mv-card" role="region" aria-label="고른 곳 요약" tabindex="-1" hidden>
+        <button type="button" class="mv-card-close" aria-label="요약 닫기"><Icon name="x" size={20} /></button>
+        <p class="mv-card-title"></p>
+        <p class="mv-card-value" hidden></p>
+        <p class="mv-card-sub" hidden></p>
+        <p class="mv-card-note" hidden></p>
+        <a class="mv-card-link v-btn pri" href="#">자세히 보기<Icon name="chevron-right" size={18} /></a>
+      </div>
+      <button type="button" data-map-close class="v-pill mv-back lg:!hidden" aria-label="지도 닫고 목록으로"><Icon name="list" size={20} />목록</button>
+    </div>
+    <p class="map-note shrink-0 border-t border-line bg-card px-4 py-1.5 text-[length:calc(13px*var(--fs,1))] text-ink-3">
+      {src}{src && MAP.name && ' · '}{MAP.name && <>배경지도 {MAP.policyUrl ? <a href={MAP.policyUrl} class="underline" target="_blank" rel="noopener noreferrer">{MAP.name}<span class="sr-only">(새 창)</span></a> : MAP.name} 오픈플랫폼 이용</>}
+    </p>
+  </section>
+)}
+
+<script>
+  import { initMapView } from '../../scripts/map/shell.ts';
+  initMapView();
+</script>

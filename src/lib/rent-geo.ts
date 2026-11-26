@@ -33,6 +33,11 @@ function breaks(i: number) {
   return out;
 }
 
+/** 목록 줄 색 칸(지도와 같은 색): BREAKS[지표]로 6단계 */
+export const BREAKS: Record<string, number[]> = Object.fromEntries(METRICS.map((k, i) => [k, breaks(i)]));
+export const MAP_COLORS = ['#FDF0C4', '#FBCB7A', '#F59A4E', '#E4634A', '#B23A5B', '#6B1F57'];
+export const colorOf = (key: string, v: number | null) => { if (v === null) return '#DDE1E6'; const b = BREAKS[key] ?? []; let i = 0; while (i < b.length && v >= b[i]) i++; return MAP_COLORS[Math.min(i, 5)]; };
+
 export async function sggCollection() {
   const load = Object.values(sggFile)[0];
   if (!load) return null;

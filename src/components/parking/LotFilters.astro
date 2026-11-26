@@ -2,21 +2,21 @@
 // 주차장 목록 위 필터·정렬 줄. 동작은 src/scripts/parking-list.ts
 interface Props { total: number; free?: boolean; sort?: boolean }
 const { total, free = true, sort = true } = Astro.props;
-const chip = 'min-h-11 shrink-0 rounded-xl bg-bg px-3.5 text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand aria-pressed:bg-ink aria-pressed:text-white';
+const chip = 'v-chip';
 ---
-<div class="mt-4 flex flex-wrap items-center gap-2">
+<div class="v-filters mt-4 flex flex-wrap items-center gap-2">
   <div role="group" aria-label="조건으로 거르기" class="flex flex-wrap gap-2">
     {free && <button type="button" data-filter="free" aria-pressed="false" class={chip}>무료만</button>}
     <button type="button" data-filter="open" aria-pressed="false" class={chip}>지금 운영시간 내</button>
     <button type="button" data-filter="24h" aria-pressed="false" class={chip}>24시간</button>
   </div>
   {sort && (
-    <div role="group" aria-label="정렬" class="ml-auto flex flex-wrap gap-2">
-      <button type="button" data-sort="name" aria-pressed="true" class={chip}>이름순</button>
-      <button type="button" data-sort="fee2" aria-pressed="false" class={chip}>2시간 요금 낮은 순</button>
+    <div role="group" aria-label="정렬" class="v-seg">
+      <button type="button" data-sort="name" aria-pressed="true">이름순</button>
+      <button type="button" data-sort="fee2" aria-pressed="false">2시간 요금 낮은 순</button>
     </div>
   )}
 </div>
 <p class="mt-2 text-cap text-ink-3"><span id="lot-count">{total}곳</span> · 운영 여부는 공개된 운영시간 기준이에요</p>
 <p id="list-status" class="sr-only" aria-live="polite"></p>
-<p id="lot-empty" hidden class="mt-4 rounded-xl bg-bg px-4 py-4 text-body text-ink-2">조건에 맞는 주차장이 없어요. 조건을 하나 꺼 보세요.</p>
+<p id="lot-empty" hidden class="py-4 text-body text-ink-2">조건에 맞는 주차장이 없어요. 조건을 하나 꺼 보세요.</p>

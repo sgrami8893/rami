@@ -2,11 +2,18 @@
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
 import BottomActionBar from '../../../../../components/BottomActionBar.astro';
+import MapView from '../../../../../components/v2/MapView.astro';
+import MapPill from '../../../../../components/v2/MapPill.astro';
+import PlaceBar from '../../../../../components/v2/PlaceBar.astro';
+import { parkingPlace } from '../../../../../lib/parking-view.ts';
+import { mapOn } from '../../../../../lib/map.ts';
 import FeeCalculator from '../../../../../components/parking/FeeCalculator.astro';
-import { lots, sidoShort, parkingPath, sigunguName, lotIndexable, FEE_LABEL, LOT_TYPE, dayText, won, IS_MOCK, type ParkingLot } from '../../../../../lib/parking.ts';
+import { lots, toPoint, sidoShort, parkingPath, sigunguName, lotIndexable, FEE_LABEL, LOT_TYPE, dayText, won, IS_MOCK, type ParkingLot } from '../../../../../lib/parking.ts';
 export function getStaticPaths() { return lots.map((l) => ({ params: { sido: l.sido, sigungu: l.sigungu, id: l.id }, props: { l } })); }
 const { l } = Astro.props as { l: ParkingLot };
 const sgName = sigunguName(l.sido, l.sigungu);
+// 상세도 지도 틀 안(v2): 같은 시·군·구 주차장 핀 + 이 곳을 크게
+const near = lots.filter((x) => x.sido === l.sido && x.sigungu === l.sigungu && x.lat !== null && x.lng !== null);
 const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/parking/' }, { name: sidoShort(l.sido), href: parkingPath(l.sido) }, { name: sgName, href: parkingPath(l.sido, l.sigungu) }, { name: l.name, href: Astro.url.pathname }];
 const rows: [string, string][] = [
   ['요금 구분', FEE_LABEL[l.fee.type]],
@@ -21,10 +28,11 @@ const info: [string, string][] = [
   ['장애인 전용 구역', l.disabledSpots === null ? '정보 없음' : l.disabledSpots ? '있음' : '없음'],
 ];
 ---
-<BaseLayout tool="parking" title={`${l.name} 주차장 요금·운영시간 - ${sgName}`} description={desc} crumbs={crumbs} noindex={IS_MOCK || !lotIndexable(l)} sidebar={false}>
+<BaseLayout tool="parking" title={`${l.name} 주차장 요금·운영시간 - ${sgName}`} description={desc} crumbs={crumbs} noindex={IS_MOCK || !lotIndexable(l)}>
   <MockBanner />
-  <p class="text-cap font-semibold text-brand">{FEE_LABEL[l.fee.type]} · {l.kind === 'private' ? '민영 · ' : ''}{LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
-  <h1 class="mt-1 text-title font-bold text-ink">{l.name}</h1>
+  <PlaceBar levels={parkingPlace(l.sido, l.sigungu, l.dong)} />
+  <p class="mt-3 text-cap font-semibold text-ink-3">{FEE_LABEL[l.fee.type]} · {l.kind === 'private' ? '민영 · ' : ''}{LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
+  <h1 class="v-h1 mt-1">{l.name}</h1>
   <p class="mt-2 text-body text-ink-2">{l.roadAddress || l.jibunAddress}</p>
   {l.flags.includes('feeConflict') && <p class="mt-3 rounded-xl bg-bg px-4 py-3 text-cap text-warn">원천 데이터의 요금 정보가 서로 맞지 않아 요금 구분을 '확인 필요'로 표시했어요. 관리기관에 확인해 주세요.</p>}
   <FeeCalculator l={l} />
@@ -54,6 +62,8 @@ const info: [string, string][] = [
     <p class="mt-2">{l.agency || '정보 없음'}{l.phone && ` · ${l.phone}`}</p>
     <p class="mt-2 text-cap text-ink-3">데이터 기준일 {l.baseDate ?? '미상'}</p>
   </section>
+  <MapPill />
+  {mapOn(near) && l.lat !== null && <MapView slot="map" kind="pins" points={near.map(toPoint)} focusId={l.id} title={`${l.name} 주변 지도`} />}
   <BottomActionBar slot="bottom" name={l.name} address={l.roadAddress || l.jibunAddress} lat={l.lat} lng={l.lng} label="길찾기·주소 복사" />
 </BaseLayout>
 

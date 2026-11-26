@@ -1,47 +1,84 @@
 ---
-// 동 페이지: 최근 12개월 거래 PAGE_MIN건 이상인 법정동만 생성. 색인은 INDEX_MIN건 이상 + 시·군·구의 90% 이하(scripts/lib/rent.ts RENT_RULE)
+// 전월세 동 상세(v2): "이 동네 보통 얼마고, 어느 건물이 얼마였어요?" ① 위치 줄 ② 답 카드 ③ 탭 [시세 | 건물별 거래 | 계산] ④ 접힘.
+// 동 페이지: 최근 12개월 거래 PAGE_MIN건 이상인 법정동만 생성. 색인은 INDEX_MIN건 이상 + 시·군·구의 90% 이하.
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/rent/MockBanner.astro';
-import RentMap from '../../../../../components/rent/RentMap.astro';
-import RentPick from '../../../../../components/rent/RentPick.astro';
-import MapButton from '../../../../../components/MapButton.astro';
-
-import RentSummary from '../../../../../components/rent/RentSummary.astro';
+import MapView from '../../../../../components/v2/MapView.astro';
 import RentCalculator from '../../../../../components/rent/RentCalculator.astro';
 import RentNotes from '../../../../../components/rent/RentNotes.astro';
-import AdSlot from '../../../../../components/AdSlot.astro';
-import NumText from '../../../../../components/ui/NumText.astro';
-import ShowMore from '../../../../../components/ui/ShowMore.astro';
-import { RENT_MAP, RENT_SOURCES, stats, DONG_PAGES, sidoShort, dongsOf, hasDongPage, rentPath, periodText, dongIndexable, IS_MOCK, rentDescription, type RentArea } from '../../../../../lib/rent.ts';
-import { manwon } from '../../../../../../scripts/lib/rent.ts';
-import type { SidoSlug } from '../../../../../../scripts/lib/regions.ts';
+import RentBands from '../../../../../components/rent/RentBands.astro';
+import RentRange from '../../../../../components/rent/RentRange.astro';
+import RentQuarters from '../../../../../components/rent/RentQuarters.astro';
+import PlaceBar from '../../../../../components/v2/PlaceBar.astro';
+import RentMode from '../../../../../components/v2/RentMode.astro';
+import RentAnswer from '../../../../../components/v2/RentAnswer.astro';
+import Tabs from '../../../../../components/v2/Tabs.astro';
+import Fold from '../../../../../components/v2/Fold.astro';
+import MapPill from '../../../../../components/v2/MapPill.astro';
+import Icon from '../../../../../components/Icon.astro';
+import { RENT_MAP, RENT_SOURCES, stats, DONG_PAGES, rentPath, dongIndexable, IS_MOCK, rentDescription, type RentArea } from '../../../../../lib/rent.ts';
+import { rentPlace } from '../../../../../lib/rent-view.ts';
+import { HAS_BUILDINGS, buildingSplit } from '../../../../../lib/rent-buildings.ts';
+import { fileOf } from '../../../../../lib/rent-geo.ts';
+import { SIDO, type SidoSlug } from '../../../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return DONG_PAGES.map((a) => ({ params: { sido: a.sido, sigungu: a.sigungu, dong: a.dong! }, props: { a } })); }
 const { a } = Astro.props as { a: RentArea };
 const sido = a.sido as SidoSlug, dong = a.dong!;
+const sg = stats.areas.find((x) => x.dong === null && x.sido === a.sido && x.sigungu === a.sigungu)!;
+// 시·군·구와 비교(사실 비교만, 판단 없음): 전세 중위 차이 비율
+const cmp = (t: 'villa' | 'officetel') => {
+  const x = a.byType[t]?.jeonse?.median, y = sg.byType[t]?.jeonse?.median;
+  if (!x || !y) return undefined;
+  const d = Math.round(((x - y) / y) * 100);
+  return Math.abs(d) < 3 ? `${a.sigunguName} 전세 중위와 비슷해요` : `${a.sigunguName} 전세 중위보다 약 ${Math.abs(d)}% ${d > 0 ? '높아요' : '낮아요'}`;
+};
+const file = fileOf(sido, a.sigungu);
+const bs = HAS_BUILDINGS ? buildingSplit(file, dong) : { many: 0, few: 0 };
+const tabs = [{ key: 'sise', label: '시세' }, ...(bs.many ? [{ key: 'bld', label: '건물별 거래' }] : []), { key: 'calc', label: '계산' }];
 const v = a.byType.villa, o = a.byType.officetel;
 const main = v && (!o || v.n >= o.n) ? v : o;
-const sg = stats.areas.find((x) => x.dong === null && x.sido === a.sido && x.sigungu === a.sigungu)!;
-const sgMed = sg.byType.villa?.jeonse?.median ?? null;
-const others = dongsOf(sido, a.sigungu).filter((d) => d.dong !== dong && hasDongPage(d));
-const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }, { name: dong, href: rentPath(sido, a.sigungu, dong) }];
+const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' }, { name: SIDO[sido].aliases[0], href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }, { name: dong, href: rentPath(sido, a.sigungu, dong) }];
 ---
-<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description={rentDescription(`${a.sigunguName} ${dong}`, a)} crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} tool="rent" sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description={rentDescription(`${a.sigunguName} ${dong}`, a)} crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} tool="rent" sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
-  <h1 class="text-title font-bold text-ink">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
-  <p class="mt-1 text-cap text-ink-3">{periodText()} 실거래 {a.n}건 · 빌라 {v?.n ?? 0}건 · 오피스텔 {o?.n ?? 0}건 · 법정동 기준</p>
-  <MapButton show={RENT_MAP} label="주변 동네 지도로 보기" />
-  <RentSummary a={a} place={dong} />
-  {v?.jeonse && sgMed !== null && <p class="mt-3 text-cap text-ink-2"><NumText text={`참고: 빌라 전세 중위값은 ${dong} ${manwon(v.jeonse.median)}, ${a.sigunguName} 전체 ${manwon(sgMed)}이에요.`} /></p>}
-  <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} wolse={main?.wolse?.deposit && main.wolse.monthly ? { deposit: main.wolse.deposit.median, monthly: main.wolse.monthly.median } : undefined} />
-  <AdSlot name="A" />
-  <nav aria-labelledby="more-h" class="mt-6">
-    <h2 id="more-h" class="text-h2 font-bold text-ink">더 찾아보기</h2>
-    <a href={rentPath(sido, a.sigungu)} class="mt-3 flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{a.sigunguName} 전체 보기</a>
-    {others.length > 0 && <>
-      <ul id="rent-others" class="mt-3 flex flex-wrap gap-2">{others.map((d) => <li data-more-item><a href={rentPath(sido, a.sigungu, d.dong)} class="flex min-h-11 items-center gap-1 rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{d.dong}<span class="text-ink-3">{d.n}건</span></a></li>)}</ul>
-      <ShowMore target="rent-others" limit={8} label={`${a.sigunguName} 다른 동 더 보기`} />
-    </>}
-  </nav>
-  <RentNotes />
-  {RENT_MAP && <RentMap slot="map" focus={{ sido, slug: a.sigungu, dong }} />}
+  <PlaceBar levels={rentPlace(sido, a.sigungu, dong)} />
+  <h1 class="v-h1">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
+  <RentMode class="mt-3" />
+  <RentAnswer a={a} compare={{ v: cmp('villa'), o: cmp('officetel') }} />
+  <Tabs tabs={tabs} label={`${dong} 전월세 보기`} />
+  <section id="tab-sise" role="tabpanel" class="v-panel">
+    <h2 class="sr-only">{dong} 시세</h2>
+    <RentRange a={a} />
+    <p class="v-cap">면적별 중위값</p>
+    <RentBands a={a} />
+    <div class="v-folds" style="margin-top:12px"><Fold title="분기별 흐름·계약 정보"><RentQuarters a={a} /></Fold></div>
+  </section>
+  {bs.many > 0 && (
+    <section id="tab-bld" role="tabpanel" class="v-panel" hidden>
+      <h2 class="sr-only">{dong} 건물별 거래</h2>
+      <div id="rent-bld" data-file={file} data-dong={dong} data-src="/geo/rent-b/">
+        <div class="bld-list">
+          <label class="v-input" style="min-height:48px"><Icon name="search" size={20} class="text-ink-3" /><span class="sr-only">건물 이름·지번으로 찾기</span><input type="search" class="bld-q" autocomplete="off" placeholder="건물 이름·지번으로 찾기" style="font-size:calc(16px*var(--fs,1));font-weight:500" /></label>
+          <p class="v-count mt-3">최근 3년 3건 이상 거래된 건물 {bs.many.toLocaleString('ko-KR')}곳 · 최근 거래 순</p>
+          <p class="bld-loading v-cap">건물 목록 불러오는 중</p>
+          <div class="bld-rows v-list"></div>
+          <p class="bld-msg v-cap" hidden></p>
+          <button type="button" class="bld-more v-more" hidden></button>
+          {bs.few > 0 && <p class="mt-4 rounded-xl bg-bg px-4 py-3 text-cap text-ink-2">거래가 1~2건인 건물 {bs.few.toLocaleString('ko-KR')}곳은 건물별 금액을 보여 주지 않아요. 위 동네 중위값에는 포함돼요.</p>}
+        </div>
+        <div class="bld-hist" hidden></div>
+      </div>
+    </section>
+  )}
+  <section id="tab-calc" role="tabpanel" class="v-panel" hidden>
+    <h2 class="sr-only">중개보수·전월세 전환 계산</h2>
+    <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} wolse={main?.wolse?.deposit && main.wolse.monthly ? { deposit: main.wolse.deposit.median, monthly: main.wolse.monthly.median } : undefined} />
+  </section>
+  <div class="v-folds"><RentNotes /></div>
+  <MapPill />
+  {RENT_MAP && <MapView slot="map" kind="rent" focus={{ sido, slug: a.sigungu, dong }} title={`${dong} 주변 전월세 지도`} />}
 </BaseLayout>
+<script>
+  import { initBldTab } from '../../../../../scripts/rent-bld.ts';
+  initBldTab();
+</script>

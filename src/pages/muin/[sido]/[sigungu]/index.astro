@@ -1,6 +1,6 @@
 ---
-import MapPanel from '../../../../components/MapPanel.astro';
-import MapButton from '../../../../components/MapButton.astro';
+import MapView from '../../../../components/v2/MapView.astro';
+import MapPill from '../../../../components/v2/MapPill.astro';
 import { mapOn, validPoints, kioskPoint } from '../../../../lib/map.ts';
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import KioskRow from '../../../../components/KioskRow.astro';
@@ -78,7 +78,7 @@ const crumbs = [
     {sidoName(sido)} · 데이터 기준일 {st.latestBaseDate ?? '미상'}
   </p>
   <StatCards st={st} />
-  <MapButton points={ks} />
+  {mapOn(ks) && <MapPill />}
 
   <FilterBar dongs={dongs} subGu={subGu} />
   {dongLinks.length > 1 && (
@@ -176,7 +176,7 @@ const crumbs = [
   {REPORT_FORM.formId && <p class="pb-6 px-1 text-cap text-ink-3">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>}
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
   <GuideList flat limit={4} />
-  {mapOn(ks) && <MapPanel slot="map" points={validPoints(ks).map(kioskPoint)} label={`${st.sigunguName} 무인민원발급기`} missing={ks.length - validPoints(ks).length} area={{ sido, sigungu }} tool="muin" />}
+  {mapOn(ks) && <MapView slot="map" kind="pins" points={validPoints(ks).map(kioskPoint)} title={`${st.sigunguName} 무인민원발급기 지도`} />}
 </BaseLayout>
 
 <script>

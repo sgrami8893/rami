@@ -1,0 +1,35 @@
+---
+// 탭(2026-11-26 v2, WAI-ARIA 탭 패턴). 패널은 페이지가 id="tab-{key}" + role="tabpanel"로 둔다.
+// JS가 없으면 탭 줄은 숨고 모든 패널이 위아래로 보인다(검색엔진도 모두 읽음).
+interface Props { tabs: { key: string; label: string }[]; label: string }
+const { tabs, label } = Astro.props;
+---
+<div class="v-tabs" role="tablist" aria-label={label} data-vtabs hidden>
+  {tabs.map((t, i) => <button type="button" role="tab" id={`tabbtn-${t.key}`} aria-controls={`tab-${t.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{t.label}</button>)}
+</div>
+<script>
+  import { onPage } from '../../scripts/soft-nav.ts';
+  onPage(() => {
+    document.querySelectorAll<HTMLElement>('[data-vtabs]').forEach((list) => {
+      if (list.dataset.ready) return;
+      list.dataset.ready = '1';
+      const tabs = [...list.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+      const panel = (t: HTMLButtonElement) => document.getElementById(t.getAttribute('aria-controls') ?? '');
+      const select = (t: HTMLButtonElement, focus = false) => {
+        for (const x of tabs) { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; const p = panel(x); if (p) p.hidden = !on; }
+        if (focus) t.focus();
+        document.dispatchEvent(new CustomEvent('v:tab', { detail: (t.getAttribute('aria-controls') ?? '').replace(/^tab-/, '') }));
+      };
+      list.hidden = false;
+      for (const x of tabs) { const p = panel(x); if (p) { p.setAttribute('aria-labelledby', x.id); p.tabIndex = 0; } }
+      select(tabs[0]);
+      tabs.forEach((t, i) => {
+        t.addEventListener('click', () => select(t));
+        t.addEventListener('keydown', (e) => {
+          const j = e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+          if (j < 0) return; e.preventDefault(); select(tabs[j], true);
+        });
+      });
+    });
+  });
+</script>

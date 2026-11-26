@@ -1,0 +1,87 @@
+---
+// 머리말 검색 시트(2026-11-26 v2): 동네·시·군·구 이름으로 찾기 + 글자 크기. 색인은 /search.json(빌드 때 생성, 약 1,500줄)을 처음 열 때만 받는다.
+// 결과 주소는 지금 보는 도구가 먼저(전월세 화면이면 전월세 페이지). 대화상자: Esc·바깥 누르기로 닫고, 연 버튼으로 포커스를 돌려준다.
+import Icon from '../Icon.astro';
+interface Props { tool?: string }
+const { tool } = Astro.props;
+const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', px: 18 }, { v: 'xl', label: '아주 크게', px: 20 }];
+---
+<div id="v-sheet" class="v-sheet" hidden data-tool={tool ?? ''}>
+  <div class="v-sheet-box" role="dialog" aria-modal="true" aria-labelledby="v-sheet-h">
+    <h2 id="v-sheet-h" class="sr-only">검색과 글자 크기</h2>
+    <div class="v-sheet-top">
+      <label class="v-input"><Icon name="search" size={20} class="text-ink-3" /><span class="sr-only">동네·지역 이름</span>
+        <input id="v-q" type="search" autocomplete="off" placeholder="동네·지역 이름 (예: 망원동, 분당)" /></label>
+      <button type="button" class="v-hbtn" data-sheet-close aria-label="닫기"><Icon name="x" size={22} /></button>
+    </div>
+    <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-labelledby="v-fs-h" id="v-fs">
+      <span id="v-fs-h" class="mr-1 text-[length:calc(14px*var(--fs,1))] font-semibold text-ink-3">글자 크기</span>
+      {SIZES.map((s) => <button type="button" class="v-chip" data-fs-v={s.v} aria-pressed="false" style={`font-size:${s.px}px`}>{s.label}</button>)}
+    </div>
+    <p id="v-s-msg" class="mt-4 text-cap text-ink-3">시·군·구나 동 이름을 두 글자 이상 넣어 보세요. 지금은 서울·경기·인천만 있어요.</p>
+    <div id="v-s-res" class="v-sres mt-1"></div>
+  </div>
+</div>
+<script>
+  type Row = [string, string, string, { r?: string; p?: string; m?: string }];
+  const sheet = document.getElementById('v-sheet')!;
+  const q = document.getElementById('v-q') as HTMLInputElement;
+  const res = document.getElementById('v-s-res')!;
+  const msg = document.getElementById('v-s-msg')!;
+  const root = document.documentElement;
+  let rows: Row[] | null = null;
+  let opener: HTMLElement | null = null;
+  const TOOL_KEY: Record<string, 'r' | 'p' | 'm'> = { rent: 'r', parking: 'p', muin: 'm' };
+  const LABEL = { r: '전월세', p: '주차장', m: '발급기' } as const;
+  const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+  const fsBtns = [...sheet.querySelectorAll<HTMLButtonElement>('[data-fs-v]')];
+  const paintFs = () => { const cur = root.dataset.fs || 'm'; fsBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fsV === cur))); };
+  fsBtns.forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.fsV || 'm';
+    if (v === 'm') delete root.dataset.fs; else root.dataset.fs = v;
+    try { if (v === 'm') localStorage.removeItem('dnkk:fs:v1'); else localStorage.setItem('dnkk:fs:v1', v); } catch { /* 이번 화면에만 적용 */ }
+    paintFs();
+  }));
+  const draw = () => {
+    const v = norm(q.value);
+    if (v.length < 1 || !rows) { res.replaceChildren(); msg.hidden = false; return; }
+    const pref = TOOL_KEY[root.dataset.tool || ''] ?? 'r';
+    const hits = rows.filter(([n, c, k]) => norm(`${n}${c}${k}`).includes(v))
+      .sort((a, b) => Number(!norm(a[0]).startsWith(v)) - Number(!norm(b[0]).startsWith(v)) || a[0].length - b[0].length).slice(0, 30);
+    msg.hidden = hits.length > 0;
+    if (!hits.length) msg.textContent = '찾는 지역이 없어요. 시·군·구 이름(예: 분당 → 성남시)이나 동 이름으로 찾아 보세요.';
+    res.replaceChildren(...hits.map(([n, c, , h]) => {
+      const key = h[pref] ? pref : (['r', 'p', 'm'] as const).find((x) => h[x])!;
+      const a = document.createElement('a'); a.href = h[key]!;
+      const t = document.createElement('span'); t.textContent = n;
+      const s = document.createElement('small'); s.textContent = `${c} · ${LABEL[key]}`;
+      a.append(t, s); return a;
+    }));
+  };
+  const open = (focusFs = false, from?: HTMLElement) => {
+    opener = from ?? (document.activeElement as HTMLElement | null);
+    sheet.hidden = false; root.classList.add('map-sheet-open');
+    paintFs();
+    (focusFs ? fsBtns.find((b) => b.getAttribute('aria-pressed') === 'true') ?? fsBtns[0] : q).focus();
+    if (!rows) fetch('/search.json').then((r) => r.json()).then((x: Row[]) => { rows = x; draw(); }).catch(() => { msg.textContent = '검색 목록을 불러오지 못했어요.'; });
+  };
+  const close = () => { sheet.hidden = true; root.classList.remove('map-sheet-open'); opener?.focus(); };
+  document.addEventListener('click', (e) => {
+    const t = (e.target as Element).closest<HTMLElement>('[data-sheet-open]');
+    if (t) { e.preventDefault(); open(t.dataset.sheetOpen === 'fs', t); return; }
+    if ((e.target as Element).closest('[data-sheet-close]') || e.target === sheet) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (sheet.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+    if (e.key === 'Tab') { // 대화상자 안에서만 포커스가 돈다
+      const f = [...sheet.querySelectorAll<HTMLElement>('input, button, a[href]')].filter((x) => x.offsetParent !== null);
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f.at(-1)!.focus(); }
+      else if (!e.shiftKey && document.activeElement === f.at(-1)) { e.preventDefault(); f[0].focus(); }
+    }
+  });
+  q.addEventListener('input', draw);
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = res.querySelector('a'); if (a) location.href = a.href; } });
+  if (location.hash === '#search') open();
+</script>

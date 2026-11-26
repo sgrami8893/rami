@@ -1,0 +1,37 @@
+---
+// 거래 80% 범위 막대(v2 동 상세 시세 탭): 지금 보는 유형×전세/월세 하나. 중위 점 + 양 끝 값. 숫자는 글자로도 있다.
+import type { RentArea, Dist } from '../../../scripts/lib/rent.ts';
+import { RENT_RULE } from '../../../scripts/lib/rent.ts';
+import { amt } from '../../lib/rent-view.ts';
+interface Props { a: RentArea }
+const { a } = Astro.props;
+const T = [['v', 'villa'], ['o', 'officetel']] as const;
+const span = (d: Dist | null | undefined) => (!d || d.n < RENT_RULE.RANGE_MIN ? null : { lo: d.p10 ?? d.p25, hi: d.p90 ?? d.p75, med: d.median, pct: d.p10 !== undefined ? '80%' : '절반' });
+const bar = (d: Dist | null | undefined, fmt: (v: number) => string, label: string) => {
+  const s = span(d);
+  if (!s) return { s: null, label };
+  const pad = (s.hi - s.lo) * 0.08 || 1;
+  const pos = Math.min(100, Math.max(0, ((s.med - (s.lo - pad)) / (s.hi + pad - (s.lo - pad))) * 100));
+  return { s, pos, lo: fmt(s.lo), hi: fmt(s.hi), med: fmt(s.med), label };
+};
+---
+{T.map(([k, key]) => { const t = a.byType[key]; return (
+  <div class={`rt-${k}`}>
+    {[['j', bar(t?.jeonse, amt, '전세 보증금')], ['w', bar(t?.wolse?.monthly, (v) => `월 ${v}만`, '월세')]].map(([kk, b]) => {
+      const x = b as ReturnType<typeof bar>;
+      return (
+        <div class={`rk-${kk}`}>
+          {x.s ? (
+            <>
+              <p class="v-cap" style="margin-top:2px">{x.label} 거래 {x.s.pct}가 이 범위예요</p>
+              <div class="v-range" role="img" aria-label={`${x.label} 거래 ${x.s.pct}가 ${x.lo}에서 ${x.hi} 사이, 중위 ${x.med}`}>
+                <span class="lab" style={`left:${x.pos}%`}>중위 {x.med}</span><span class="dot" style={`left:${x.pos}%`}></span>
+              </div>
+              <div class="v-range-ends"><span>{x.lo}</span><span>{x.hi}</span></div>
+            </>
+          ) : <p class="v-cap">{x.label} 거래가 {RENT_RULE.RANGE_MIN}건 미만이라 범위는 생략해요.</p>}
+        </div>
+      );
+    })}
+  </div>
+); })}
