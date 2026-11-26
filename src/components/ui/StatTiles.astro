@@ -1,0 +1,26 @@
+---
+// 상단 요약 숫자 타일(2026-11-26 전면 재배치: '기사'가 아닌 '생활 도구 대시보드'). 공통 컴포넌트라 세 도구가 같이 쓴다.
+// 타일 하나 = 라벨 1줄 + 큰 숫자 1줄 + 보조 1줄(선택). href가 있으면 타일 전체가 링크(높이 44px 이상).
+interface Tile { label: string; value: string; sub?: string; href?: string; tone?: 'ok' }
+interface Props { items: Tile[]; cols?: 2 | 3 | 4; label?: string; class?: string }
+const { items, cols = 2, label, class: cls = '' } = Astro.props;
+const grid = cols === 4 ? 'grid-cols-2 sm:grid-cols-4' : cols === 3 ? 'grid-cols-3' : 'grid-cols-2';
+---
+<ul class={`grid gap-2 ${grid} ${cls}`} aria-label={label}>
+  {items.map((t) => {
+    const body = (
+      <>
+        <span class={`block text-cap ${t.tone === 'ok' ? 'text-ok' : 'text-ink-3'}`}>{t.label}</span>
+        <span class="mt-0.5 block text-[length:calc(20px*var(--fs,1))] font-bold leading-tight text-ink">{t.value}</span>
+        {t.sub && <span class={`mt-1 block text-[length:calc(14px*var(--fs,1))] leading-snug ${t.href ? 'font-semibold text-brand' : 'text-ink-2'}`}>{t.sub}</span>}
+      </>
+    );
+    return (
+      <li class="min-w-0">
+        {t.href
+          ? <a href={t.href} class={`block h-full min-h-11 rounded-2xl px-3.5 py-3 hover:brightness-[0.97] ${t.tone === 'ok' ? 'bg-ok-bg' : 'bg-bg'}`}>{body}</a>
+          : <div class="h-full rounded-2xl bg-bg px-3.5 py-3">{body}</div>}
+      </li>
+    );
+  })}
+</ul>

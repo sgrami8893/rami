@@ -11,6 +11,7 @@ import FontSizeMenu from '../components/FontSizeMenu.astro';
 import Sidebar from '../components/Sidebar.astro';
 import { kiosks } from '../lib/data.ts';
 import { PARKING_DATE } from '../lib/parking.ts';
+import { RENT_SOURCES, HAS_PAGES as RENT_HAS_PAGES } from '../lib/rent.ts';
 import { safeJsonLd } from '../lib/jsonld.ts';
 
 interface Props {
@@ -26,7 +27,7 @@ interface Props {
   sidebar?: boolean;
   /** 'white': 순백 캔버스(3차 개편 페이지). 섹션은 .band 띠로 나누고, PC 사이드바는 옅은 회색 + 세로 구분선. */
   canvas?: 'gray' | 'white';
-  /** 푸터 출처를 직접 지정(TOOLS에 없는 미리보기 도구용, 예: /rent/) */
+  /** 푸터 출처를 직접 지정(출처가 여러 개인 도구, 예: /rent/ 국토부 자료 2종) */
   sources?: { name: string; url: string; label: string; date: string }[];
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
@@ -38,11 +39,12 @@ const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트
 const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? '미상';
 // 출처: 도구 페이지는 그 도구의 출처만, 허브 공통 페이지는 운영 중인 도구 전체의 출처를 표기
 const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t) => t.slug))
-  .map((s) => ({ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }))
+  .flatMap((s) => s === 'rent' ? (RENT_HAS_PAGES ? RENT_SOURCES : []) : [{ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }])
   .filter((s) => s.name);
 if (Astro.props.sources) sources.splice(0, sources.length, ...Astro.props.sources);
+const liveTools = TOOLS.filter((t) => t.status === 'live');
 const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
-const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', waste: '대형폐기물', cert: '자격시험' };
+const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', rent: '전월세', waste: '대형폐기물', cert: '자격시험' };
 ---
 <!doctype html>
 <html lang="ko">
@@ -73,19 +75,28 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
   </head>
   <body class={`min-h-screen text-ink antialiased ${white ? 'bg-card' : 'bg-bg'}`}>
     <a href="#main" class="sr-only z-50 rounded-xl bg-ink px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">본문 바로가기</a>
+    <!-- 헤더(2026-11-26 제미나이 검수 반영): 640px 미만은 2단(1단 로고+검색+글자 크기 고정 / 2단 도구 탭, 스크롤과 함께 올라감).
+         도구가 3개가 되며 1줄 헤더가 375px에서 넘쳤기 때문. 로고 글자는 모든 폭에서 보인다. 640px 이상은 기존 1줄 -->
     <header class="sticky top-0 z-30 bg-card/95 backdrop-blur">
       <div class={`mx-auto flex h-14 items-center gap-2 px-4 ${frame}`}>
-        <a href="/" class="flex items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
+        <a href="/" class="flex min-h-11 items-center gap-1.5 text-[20px] font-extrabold tracking-tight text-ink"><Logo size={26} class="text-brand" />{SITE_NAME}</a>
         <!-- 헤더는 도구 카테고리만(2026-11-25 UI 검수 합의). 시·도 전환은 각 도구 본문의 칩 바에서 -->
-        <nav aria-label="주요 메뉴" class="ml-auto flex items-center gap-3 text-[16px] font-medium text-ink-2">
-          {TOOLS.filter((t) => t.status === 'live').map((t) => (
-            <a href={t.path} class={tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
+        <nav aria-label="주요 메뉴" class="ml-auto hidden items-center gap-3 text-[16px] font-medium text-ink-2 sm:flex">
+          {liveTools.map((t) => (
+            <a href={t.path} class={`flex min-h-11 min-w-11 items-center justify-center ${tool === t.slug ? 'text-ink hover:text-brand' : 'hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
           ))}
-          <a href="/#search" class="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg" aria-label="지역 검색"><Icon name="search" size={22} /></a>
         </nav>
+        <a href="/#search" class="ml-auto flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-bg sm:ml-0" aria-label="지역 검색"><Icon name="search" size={22} /></a>
         <FontSizeMenu />
       </div>
     </header>
+    <nav aria-label="주요 메뉴" class="border-b border-line bg-card sm:hidden">
+      <div class="grid px-2" style={`grid-template-columns: repeat(${liveTools.length}, minmax(0, 1fr))`}>
+        {liveTools.map((t) => (
+          <a href={t.path} class={`flex min-h-11 items-center justify-center border-b-2 text-[16px] font-medium ${tool === t.slug ? 'border-brand text-ink' : 'border-transparent text-ink-2 hover:text-brand'}`} aria-current={tool === t.slug ? 'true' : undefined}>{TOOL_SHORT[t.slug] ?? t.name}</a>
+        ))}
+      </div>
+    </nav>
     <div class={`mx-auto pb-16 pt-4 ${white ? 'px-5' : 'px-4'} ${frame} ${sidebar ? `lg:grid lg:grid-cols-[minmax(0,740px)_300px] lg:justify-between ${white ? 'lg:gap-0' : 'lg:gap-8'}` : ''}`}>
       <main id="main" tabindex="-1" class={`min-w-0 focus:outline-none ${white && sidebar ? 'lg:pr-8' : ''}`}>
         {crumbs.length > 0 && <Breadcrumb items={crumbs} />}
@@ -100,7 +111,7 @@ const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '
           <p>출처: <a href={s.url} class="underline" rel="noopener noreferrer" target="_blank">{s.name}</a>({s.label} {s.date}). 공공데이터를 가공해 제공해요.</p>
         ))}
         {toolInfo?.slug === 'muin' && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있어요. 중요한 방문 전에는 기기 상세의 관리기관 안내 페이지 등에서 다시 확인하세요.</p>}
-        <p class="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-white/85"><a href="/about/" class="hover:underline">소개</a><a href="/privacy/" class="font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="hover:underline">문의</a><a href="/about/#licenses" class="hover:underline">오픈소스 라이선스</a></p>
+        <p class="flex flex-wrap gap-x-4 pt-1 text-white/85"><a href="/about/" class="inline-flex min-h-11 items-center hover:underline">소개</a><a href="/privacy/" class="inline-flex min-h-11 items-center font-semibold hover:underline">개인정보처리방침</a><a href="/contact/" class="inline-flex min-h-11 items-center hover:underline">문의</a><a href="/about/#licenses" class="inline-flex min-h-11 items-center hover:underline">오픈소스 라이선스</a></p>
       </div>
     </footer>
     <slot name="bottom" />

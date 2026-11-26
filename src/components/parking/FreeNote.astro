@@ -1,5 +1,12 @@
 ---
-// 무료 표기 면책(무료 필터·무료 허브 공통)
+// 무료 표기 면책(무료 필터·무료 허브 공통). 2026-11-26 재배치: 핵심 한 줄은 항상 보이고 자세한 설명은 접는다.
+import Icon from '../Icon.astro';
 const { class: cls = '' } = Astro.props as { class?: string };
 ---
-<p class={`rounded-xl bg-bg px-4 py-3 text-cap text-ink-2 ${cls}`}>'무료'는 공공데이터 기준이에요. 시간대·차종·행사에 따라 유료일 수 있으니 현장 안내와 관리기관에 확인하세요. 운영 여부도 공개된 운영시간으로 계산한 값이에요.</p>
+<details class={`group rounded-xl bg-bg px-4 text-cap text-ink-2 ${cls}`}>
+  <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 py-2 [&::-webkit-details-marker]:hidden">
+    <span>요금·'무료'·운영 여부는 공공데이터 기준이라 현장과 다를 수 있어요.</span>
+    <Icon name="chevron-down" size={18} class="text-ink-3 transition-transform group-open:rotate-180" />
+  </summary>
+  <p class="pb-3">요금은 공개된 요금표로 계산한 참고값이에요. 시간대·차종·행사에 따라 유료일 수 있으니 현장 안내와 관리기관에 확인하세요. 운영 여부도 공개된 운영시간으로 계산한 값이에요.</p>
+</details>

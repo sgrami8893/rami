@@ -164,6 +164,13 @@ export function dongIndexable(s: RentStats, a: RentArea) {
   return a.n >= RENT_RULE.INDEX_MIN && a.n / total <= RENT_RULE.MAX_SHARE && pagesInSigungu >= RENT_RULE.MIN_DONGS_IN_SIGUNGU;
 }
 export const sigunguIndexable = (a: RentArea) => a.n >= RENT_RULE.SIGUNGU_INDEX_MIN;
+/** 사이트맵에서 뺄 경로: 페이지의 noindex 기준과 같다(색인 기준 미달 시·군·구, 동) */
+export function rentNoindexPaths(s: RentStats) {
+  const out = new Set<string>();
+  for (const a of sigunguAreas(s)) if (!sigunguIndexable(a)) out.add(`/rent/${a.sido}/${a.sigungu}/`);
+  for (const a of dongPages(s)) if (!dongIndexable(s, a)) out.add(`/rent/${a.sido}/${a.sigungu}/${encodeURIComponent(a.dong!)}/`);
+  return out;
+}
 
 /** 중간 80% 구간(P10~P90) 문구. 거래가 적거나 옛 파일(p10 없음)이면 중간 50%(P25~P75)로 */
 export function bandText(d: Dist | null, fmt: (v: number) => string) {

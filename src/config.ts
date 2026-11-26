@@ -19,6 +19,7 @@ export const TOOLS = [
   { slug: 'muin', name: '무인민원발급기 찾기', path: '/muin/', status: 'live', desc: '서울·경기·인천 무인민원발급기 위치, 지금 운영시간인 곳, 24시간·주말 운영, 등기부등본·가족관계증명서 발급 기기.' },
   { slug: 'waste', name: '대형폐기물 수수료', path: '/waste/', status: 'soon', desc: '가구·가전 버릴 때 우리 동네 대형폐기물 배출 수수료 확인.' },
   { slug: 'parking', name: '공영주차장 찾기', path: '/parking/', status: 'live', desc: '서울·경기·인천 공영주차장 4,700여 곳의 요금과 운영시간, 무료 주차장, 2시간 주차 요금 비교.' },
+  { slug: 'rent', name: '빌라·오피스텔 전월세 시세', path: '/rent/', status: 'live', desc: '서울·경기·인천 동네별 빌라·오피스텔 전월세 실거래 시세(최근 12개월)와 중개보수·전월세 전환 계산기.' },
   { slug: 'cert', name: '국가기술자격 시험', path: '/cert/', status: 'soon', desc: '국가기술자격 시험 일정과 합격률.' },
 ] as const;
 export type ToolSlug = (typeof TOOLS)[number]['slug'];
@@ -44,7 +45,7 @@ export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
   muin: { name: '행정안전부 무인민원발급기 정보', url: 'https://www.localdata.go.kr' },
   // 공공데이터포털 '전국주차장정보표준데이터'(API tn_pubr_prkplce_info_api). 이용허락범위는 포털 화면에서 확인 후 about에 기록
   parking: { name: '공공데이터포털 전국주차장정보표준데이터', url: 'https://www.data.go.kr/data/15012896/standard.do' },
-  // 국토교통부 실거래가 공개 API(이용허락 제한 없음). /rent/ 는 TOOLS에 아직 없어서 페이지가 sources로 직접 넘긴다
+  // 국토교통부 실거래가 공개 API(이용허락 제한 없음). /rent/ 는 출처가 2개라 BaseLayout이 RENT_SOURCES로 펼친다
   rentVilla: { name: '국토교통부 연립다세대 전월세 실거래가 자료', url: 'https://www.data.go.kr/data/15126473/openapi.do' },
   rentOffi: { name: '국토교통부 오피스텔 전월세 실거래가 자료', url: 'https://www.data.go.kr/data/15126475/openapi.do' },
 };
@@ -86,8 +87,9 @@ export const MAP = env('MAP_TILE_URL')
 export const PARKING_PREVIEW = env('PARKING_PREVIEW') === '1';
 
 /**
- * /rent/ (동네 빌라·오피스텔 전월세 시세) 골격 미리보기. RENT_PREVIEW=1 빌드에서만 페이지를 만든다(가짜 데이터, 모두 noindex).
- * 배포 환경변수에는 넣지 않는다. 실데이터 첫 수집(npm run fetch-rent) 결과 확인 전 공개 금지.
+ * /rent/ (동네 빌라·오피스텔 전월세 시세) 미리보기. RENT_PREVIEW=1 이면 TOOLS의 rent가 'soon'이어도 페이지를 만든다
+ * (실데이터 rent-stats.json이 없으면 가짜 데이터+noindex). 배포 환경변수에는 넣지 않는다.
+ * 배포 공개는 TOOLS의 rent status를 'live'로 두는 것으로 한다(실데이터가 있을 때만 페이지가 생김, src/lib/rent.ts).
  */
 export const RENT_PREVIEW = env('RENT_PREVIEW') === '1';
 

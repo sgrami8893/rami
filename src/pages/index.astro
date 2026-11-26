@@ -2,17 +2,36 @@
 // 허브: 도구 목록만 둔다. 도구별 콘텐츠·내부 링크·사이트맵은 각 하위 폴더(/muin/ …)에서 독립적으로 관리.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { SITE_NAME, SITE_URL, TOOLS } from '../config.ts';
-import { lots as parkingLots } from '../lib/parking.ts';
+import { lots as parkingLots, SIDOS as PARKING_SIDOS, regionsOf as parkingRegionsOf, parkingPath } from '../lib/parking.ts';
+import { SIGUNGU } from '../../scripts/lib/regions.ts';
+import { stats as rentStats, HAS_PAGES as rentReady, IS_MOCK as rentMock, RENT_RULE, SIDOS as RENT_SIDOS, sigunguOf as rentSigunguOf, rentPath } from '../lib/rent.ts';
 import { kiosks, stats, regionsIn, SIDO_ORDER, sidoShort, regionPath, subGuOf } from '../lib/data.ts';
 import GuideList from '../components/GuideList.astro';
 import Icon from '../components/Icon.astro';
 import type { IconName } from '../lib/icons.ts';
-const ICON: Record<string, IconName> = { muin: 'file-text', waste: 'trash-2', parking: 'square-parking', cert: 'award' };
+const ICON: Record<string, IconName> = { muin: 'file-text', waste: 'trash-2', parking: 'square-parking', rent: 'building', cert: 'award' };
 
-const counts: Record<string, string> = { muin: `수도권 ${kiosks.length.toLocaleString('ko-KR')}곳`, ...(parkingLots.length ? { parking: `수도권 ${parkingLots.length.toLocaleString('ko-KR')}곳 · 무료 ${parkingLots.filter((l) => l.fee.type === 'free').length.toLocaleString('ko-KR')}곳` } : {}) };
+const n = (x: number) => x.toLocaleString('ko-KR');
+const rentTotal = rentStats.areas.filter((a) => a.dong === null).reduce((s, a) => s + a.n, 0);
+const rentDongs = rentStats.areas.filter((a) => a.dong !== null && a.n >= RENT_RULE.PAGE_MIN).length;
+// 도구 카드 2줄 규격(2026-11-26 제미나이 검수): 1줄 핵심 수치 + 2줄 대표 조건 2개. 세 카드 높이를 같게 맞춘다
+const counts: Record<string, string> = { muin: `수도권 ${n(kiosks.length)}곳`, ...(parkingLots.length ? { parking: `수도권 ${n(parkingLots.length)}곳` } : {}), ...(rentReady && !rentMock ? { rent: `최근 12개월 실거래 ${n(rentTotal)}건` } : {}) };
 const live = TOOLS.filter((t) => t.status === 'live');
 // 검색용: 시·군·구 67곳을 HTML에 내장(JS 없이도 '전체 지역'에서 링크로 이동 가능)
-const allRegions = SIDO_ORDER.flatMap((s) => [...regionsIn(s)].sort((a, b) => a.sigunguName.localeCompare(b.sigunguName, 'ko')));
+// 2026-11-26 재배치: 지역 검색이 무인발급기 하나로 고정되지 않게, 시·군·구마다 세 도구 주소를 함께 싣고 위의 '찾을 정보' 선택으로 바꾼다
+type R = { sido: (typeof SIDO_ORDER)[number]; sigungu: string; sigunguName: string; href: Partial<Record<'muin' | 'parking' | 'rent', string>> };
+const regionMap = new Map<string, R>();
+const put = (sido: R['sido'], sigungu: string, tool: keyof R['href'], href: string) => {
+  const k = `${sido}/${sigungu}`;
+  const r = regionMap.get(k) ?? { sido, sigungu, sigunguName: SIGUNGU[sido].find((x) => x.slug === sigungu)?.name ?? sigungu, href: {} };
+  r.href[tool] = href; regionMap.set(k, r);
+};
+SIDO_ORDER.forEach((s) => regionsIn(s).forEach((r) => put(s, r.sigungu, 'muin', regionPath(s, r.sigungu))));
+if (live.some((t) => t.slug === 'parking')) PARKING_SIDOS.forEach((s) => parkingRegionsOf(s).forEach((r) => put(s, r.sigungu, 'parking', parkingPath(s, r.sigungu))));
+if (live.some((t) => t.slug === 'rent') && rentReady) RENT_SIDOS.forEach((s) => rentSigunguOf(s).forEach((r) => put(s, r.sigungu, 'rent', rentPath(s, r.sigungu))));
+const allRegions = SIDO_ORDER.flatMap((s) => [...regionMap.values()].filter((r) => r.sido === s).sort((a, b) => a.sigunguName.localeCompare(b.sigunguName, 'ko')));
+const PICK = live.map((t) => ({ slug: t.slug as 'muin' | 'parking' | 'rent', label: ({ muin: '무인발급기', parking: '주차장', rent: '전월세' } as Record<string, string>)[t.slug] ?? t.name }));
+const hrefAttrs = (r: R) => Object.fromEntries(Object.entries(r.href).map(([k, v]) => [`data-href-${k}`, v]));
 // 모바일 390px 한 줄에 들어가는 5개: 서울·경기·인천 균형
 const QUICK = ['seoul/gangnam-gu', 'gyeonggi/seongnam-si', 'gyeonggi/suwon-si', 'gyeonggi/anyang-si', 'incheon/bupyeong-gu'];
 // 생활권 별칭: 시·군·구 이름이 아닌 동네 이름으로 찾는 경우(분당·일산·영통처럼 일반구 이름은 이미 검색 키에 있음)
@@ -23,35 +42,48 @@ const ALIAS: Record<string, string> = {
   'seoul/songpa-gu': '위례 잠실', 'incheon/yeonsu-gu': '송도', 'incheon/seohae-gu': '청라 서구', 'incheon/geomdan-gu': '서구',
   'incheon/michuhol-gu': '남구', 'incheon/jemulpo-gu': '중구 동구', 'incheon/yeongjong-gu': '영종도',
 };
-const quick = QUICK.map((key) => stats.find((r) => `${r.sido}/${r.sigungu}` === key)).filter((r) => r !== undefined);
+const quick = QUICK.map((key) => regionMap.get(key)).filter((r) => r !== undefined);
 const sum = (f: (k: (typeof kiosks)[number]) => boolean) => kiosks.filter(f).length;
-const muinStats = [
-  { icon: 'clock' as const, label: `24시간 ${sum((k) => k.is24h).toLocaleString('ko-KR')}곳` },
-  { icon: 'file-text' as const, label: `등기부 ${sum((k) => k.docs.includes('registry')).toLocaleString('ko-KR')}곳` },
-];
+const features: Record<string, { icon: IconName; label: string }[]> = {
+  muin: [{ icon: 'clock', label: `24시간 ${n(sum((k) => k.is24h))}곳` }, { icon: 'file-text', label: `등기부 ${n(sum((k) => k.docs.includes('registry')))}곳` }],
+  parking: [{ icon: 'square-parking', label: `무료 ${n(parkingLots.filter((l) => l.fee.type === 'free').length)}곳` }, { icon: 'clock', label: '2시간 요금 비교' }],
+  rent: [{ icon: 'map-pin', label: `동네 ${n(rentDongs)}곳` }, { icon: 'file-text', label: '중개보수·전환 계산기' }],
+};
 const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: `${SITE_URL}/` }];
 ---
-<BaseLayout title={`${SITE_NAME} | 우리 동네 무인민원발급기 운영시간·위치 찾기`} description={`서울·경기·인천 무인민원발급기 ${kiosks.length.toLocaleString('ko-KR')}곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스예요.`} jsonld={jsonld} sidebar canvas="white">
+<BaseLayout title={`${SITE_NAME} | 발급기·주차장·전월세, 우리 동네 생활 정보 한눈에`} description={`서울·경기·인천 무인민원발급기 ${n(kiosks.length)}곳, 공영주차장 ${n(parkingLots.length)}곳, 빌라·오피스텔 전월세 실거래 ${n(rentTotal)}건을 지역별로 모아 보여 주는 민간 생활 정보 서비스예요.`} jsonld={jsonld} sidebar canvas="white">
   <section id="search" class="scroll-mt-16 pt-2 pb-7">
-    <h1 class="text-[length:calc(30px*var(--fs,1))] font-bold leading-[36px] tracking-tight text-ink">우리 동네 무인민원발급기,<br class="sm:hidden" /> 지금 운영시간 바로 확인</h1>
-    <form id="region-search" action="/muin/" class="mt-5" role="search" onsubmit="return false">
+    <h1 class="text-[length:calc(30px*var(--fs,1))] font-bold leading-[36px] tracking-tight text-ink">발급기·주차장·전월세,<br class="sm:hidden" /> 우리 동네 생활 정보 한눈에</h1>
+    {PICK.length > 1 && (
+      <fieldset class="mt-5">
+        <legend class="sr-only">찾을 정보</legend>
+        <div class="grid gap-1 rounded-2xl bg-bg p-1" style={`grid-template-columns: repeat(${PICK.length}, minmax(0, 1fr))`}>
+          {PICK.map((p, i) => (
+            <label class="relative flex min-h-11 cursor-pointer items-center justify-center rounded-xl text-[length:calc(16px*var(--fs,1))] font-semibold text-ink-2 has-checked:bg-card has-checked:text-ink has-checked:shadow-sm has-focus-visible:outline-2 has-focus-visible:outline-brand">
+              <input type="radio" name="pick" value={p.slug} checked={i === 0} class="sr-only" />{p.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    )}
+    <form id="region-search" action="/muin/" class="mt-3" role="search" onsubmit="return false">
       <label for="q" class="sr-only">시·군·구 검색</label>
       <div class="flex h-[52px] items-center gap-2 rounded-[14px] bg-bg px-4 focus-within:ring-2 focus-within:ring-brand">
-        <input id="q" type="search" autocomplete="off" placeholder="시·군·구 이름으로 검색 (예: 강남구, 안양시)"
+        <input id="q" type="search" autocomplete="off" placeholder="시·군·구 이름 (예: 강남구, 분당)"
           class="min-w-0 flex-1 bg-transparent text-body text-ink outline-none focus-visible:outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden" />
         <button type="button" id="q-clear" class="flex h-8 w-8 items-center justify-center rounded-lg text-ink-3 hover:text-ink" aria-label="검색어 지우기" hidden><Icon name="x" size={20} /></button>
         <Icon name="search" size={20} class="text-ink-3" />
       </div>
     </form>
     <div class="scrollbar-none -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 lg:mx-0 lg:px-0">
-      {quick.map((r) => <a href={regionPath(r.sido, r.sigungu)} class="shrink-0 rounded-xl bg-bg px-3 py-1.5 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
+      {quick.map((r) => <a href={r.href.muin ?? Object.values(r.href)[0]} {...hrefAttrs(r)} data-region-link class="flex min-h-10 shrink-0 items-center rounded-xl bg-bg px-3 text-[length:calc(16px*var(--fs,1))] font-medium text-ink-2 hover:text-brand">{r.sigunguName}</a>)}
     </div>
     <details id="all-regions" class="mt-3">
-      <summary class="cursor-pointer px-1 text-cap font-semibold text-ink-3">전체 지역 보기 ({allRegions.length})</summary>
+      <summary class="inline-flex min-h-11 cursor-pointer items-center px-1 text-cap font-semibold text-ink-2">전체 지역 보기 (<span id="region-total">{allRegions.filter((r) => r.href.muin).length}</span>)</summary>
       <ul id="region-list" class="mt-2 grid rounded-2xl bg-bg grid-cols-2 gap-x-3 gap-y-1 p-4 sm:grid-cols-3">
         {allRegions.map((r) => (
-          <li data-key={`${r.sigunguName} ${sidoShort(r.sido)} ${subGuOf(r.sido, r.sigungu).join(' ')} ${ALIAS[`${r.sido}/${r.sigungu}`] ?? ''}`}>
-            <a href={regionPath(r.sido, r.sigungu)} class="block rounded-lg px-2 py-1.5 text-body text-ink-2 hover:bg-card hover:text-brand">{r.sigunguName} <span class="text-cap text-ink-3">{sidoShort(r.sido)}</span></a>
+          <li data-key={`${r.sigunguName} ${sidoShort(r.sido)} ${subGuOf(r.sido, r.sigungu).join(' ')} ${ALIAS[`${r.sido}/${r.sigungu}`] ?? ''}`} hidden={!r.href.muin}>
+            <a href={r.href.muin ?? Object.values(r.href)[0]} {...hrefAttrs(r)} data-region-link class="block rounded-lg px-2 py-1.5 text-body text-ink-2 hover:bg-card hover:text-brand">{r.sigunguName} <span class="text-cap text-ink-3">{sidoShort(r.sido)}</span></a>
           </li>
         ))}
       </ul>
@@ -72,9 +104,9 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
           </span>
           <Icon name="chevron-right" size={20} class="text-ink-3" />
         </span>
-        {t.slug === 'muin' && (
+        {features[t.slug] && (
           <span class="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line/80 pt-3 text-cap text-ink-2">
-            {muinStats.map((m) => <span class="flex items-center gap-1"><Icon name={m.icon} size={14} class="text-ink-3" />{m.label}</span>)}
+            {features[t.slug].map((m) => <span class="flex items-center gap-1"><Icon name={m.icon} size={14} class="text-ink-3" />{m.label}</span>)}
           </span>
         )}
       </a>
@@ -83,7 +115,7 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
   </section>
 
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
-  <GuideList flat title="생활 정보 가이드" />
+  <GuideList flat limit={4} title="생활 정보 가이드" />
 </BaseLayout>
 
 <script>
@@ -94,6 +126,20 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
   const empty = document.getElementById('region-empty');
   const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
   const clear = document.getElementById('q-clear');
+  // 찾을 정보(무인발급기·주차장·전월세) 선택: 지역 링크 주소를 그 도구로 바꾸고, 그 도구에 페이지가 없는 지역은 숨긴다
+  let tool = 'muin';
+  const total = document.getElementById('region-total');
+  const applyTool = () => {
+    document.querySelectorAll<HTMLAnchorElement>('[data-region-link]').forEach((a) => {
+      const h = a.dataset[`href${tool[0].toUpperCase()}${tool.slice(1)}`];
+      if (h) a.href = h;
+      const li = a.closest('li');
+      if (li) li.dataset.off = h ? '' : '1'; else a.hidden = !h;
+    });
+    if (total) total.textContent = String(items.filter((li) => !li.dataset.off).length);
+    q?.dispatchEvent(new Event('input'));
+  };
+  document.querySelectorAll<HTMLInputElement>('input[name="pick"]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { tool = r.value; applyTool(); } }));
   // 헤더의 검색 버튼(/#search)으로 들어오면 검색창에 바로 포커스
   // 헤드라인부터 보이도록 맨 위로 올린 뒤, 스크롤 없이 포커스만 준다
   const focusIfHash = () => { if (location.hash === '#search') { scrollTo({ top: 0 }); q?.focus({ preventScroll: true }); } };
@@ -106,10 +152,14 @@ const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SI
     if (clear) clear.hidden = !q.value;
     const v = norm(q.value);
     let n = 0;
-    for (const li of items) { const ok = !v || norm(li.dataset.key ?? '').includes(v); li.hidden = !ok; if (ok) n++; }
-    if (box) box.open = v.length > 0;
+    for (const li of items) { const ok = !li.dataset.off && (!v || norm(li.dataset.key ?? '').includes(v)); li.hidden = !ok; if (ok) n++; }
+    if (box && v.length > 0) box.open = true;
     if (empty) empty.hidden = n > 0;
   });
+  // 첫 그리기: 선택값(새로고침 시 브라우저가 기억한 라디오 포함)을 반영
+  const picked = document.querySelector<HTMLInputElement>('input[name="pick"]:checked');
+  if (picked) tool = picked.value;
+  applyTool();
   q?.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     const first = items.find((li) => !li.hidden)?.querySelector('a');

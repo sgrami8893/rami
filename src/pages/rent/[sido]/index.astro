@@ -1,9 +1,9 @@
 ---
-// 시·도 페이지(골격): 시·군·구 목록 + 거래 건수
+// 시·도 페이지: 시·군·구 목록 + 거래 건수
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../components/rent/MockBanner.astro';
 import RentNotes from '../../../components/rent/RentNotes.astro';
-import { RENT_SOURCES, IS_MOCK, SIDOS, sidoName, sidoShort, sigunguOf, rentPath } from '../../../lib/rent.ts';
+import { RENT_SOURCES, IS_MOCK, SIDOS, sidoName, sidoShort, sigunguOf, rentPath, periodText } from '../../../lib/rent.ts';
 import { manwon } from '../../../../scripts/lib/rent.ts';
 import type { SidoSlug } from '../../../../scripts/lib/regions.ts';
 export function getStaticPaths() { return SIDOS.map((sido) => ({ params: { sido } })); }
@@ -11,13 +11,13 @@ const sido = Astro.params.sido as SidoSlug;
 const list = sigunguOf(sido);
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }, { name: sidoShort(sido), href: rentPath(sido) }];
 ---
-<BaseLayout title={`${sidoName(sido)} 빌라·오피스텔 전월세 실거래 시세 | 시·군·구별`} description="골격 미리보기" crumbs={crumbs} noindex sidebar={false} sources={RENT_SOURCES}>
+<BaseLayout title={`${sidoName(sido)} 빌라·오피스텔 전월세 실거래 시세 | 시·군·구별`} description={`${sidoName(sido)} ${list.length}개 시·군·구의 빌라·오피스텔 전월세 실거래 ${list.reduce((s, a) => s + a.n, 0).toLocaleString('ko-KR')}건(${periodText()})을 지역별 거래 건수와 전세 중위값으로 정리했어요.`} crumbs={crumbs} noindex={IS_MOCK} tool="rent" sidebar={false} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">{sidoName(sido)} 빌라·오피스텔 전월세</h1>
   <table class="mt-4 w-full text-[length:calc(16px*var(--fs,1))]">
     <caption class="sr-only">시·군·구별 거래 건수와 빌라 전세 중위값</caption>
     <thead><tr class="border-b border-line text-cap text-ink-3"><th scope="col" class="py-2 text-left font-medium">시·군·구</th><th scope="col" class="py-2 text-right font-medium">거래</th><th scope="col" class="py-2 text-right font-medium">빌라 전세 중위</th></tr></thead>
-    <tbody>{list.map((a) => <tr class="border-b border-line"><th scope="row" class="py-3 text-left"><a href={rentPath(sido, a.sigungu)} class="inline-flex min-h-11 items-center font-semibold text-ink hover:text-brand">{a.sigunguName}</a></th><td class="py-3 text-right text-ink-2">{a.n}건</td><td class="py-3 text-right text-ink">{a.byType.villa?.jeonse ? manwon(a.byType.villa.jeonse.median) : '-'}</td></tr>)}</tbody>
+    <tbody>{list.map((a) => <tr class="border-b border-line"><th scope="row" class="p-0 text-left"><a href={rentPath(sido, a.sigungu)} class="flex min-h-11 items-center gap-1 font-semibold text-brand hover:underline">{a.sigunguName}<span aria-hidden="true" class="text-ink-3">›</span></a></th><td class="py-2 text-right text-ink-2">{a.n}건</td><td class="py-2 text-right text-ink">{a.byType.villa?.jeonse ? manwon(a.byType.villa.jeonse.median) : '-'}</td></tr>)}</tbody>
   </table>
   <RentNotes />
 </BaseLayout>

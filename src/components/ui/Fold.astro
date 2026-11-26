@@ -1,0 +1,19 @@
+---
+// 접기 상자: 설명·기준·부가 표를 기본으로 접어 화면 길이를 줄인다. 내용은 HTML에 그대로 있어 검색엔진이 읽는다.
+// summary 높이 44px(터치 타깃). hint는 제목 옆 보조 문구(예: 미리 계산한 결과).
+import Icon from '../Icon.astro';
+interface Props { title: string; hint?: string; open?: boolean; class?: string; id?: string; tone?: 'plain' | 'box'; heading?: 2 | 3 }
+const { title, hint, open = false, class: cls = '', id, tone = 'box', heading } = Astro.props;
+// heading을 주면 제목을 h2/h3로 낸다(접혀 있어도 문서 개요·검색엔진에 섹션 제목이 남음)
+const T = heading ? `h${heading}` : 'span';
+---
+<details id={id} open={open} class={`group ${tone === 'box' ? 'rounded-2xl bg-bg px-4' : ''} ${cls}`}>
+  <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-2 [&::-webkit-details-marker]:hidden">
+    <span class="min-w-0">
+      <T class="block text-body font-bold text-ink">{title}</T>
+      {hint && <span class="block text-cap text-ink-2">{hint}</span>}
+    </span>
+    <Icon name="chevron-down" size={20} class="text-ink-3 transition-transform group-open:rotate-180" />
+  </summary>
+  <div class="pb-4"><slot /></div>
+</details>

@@ -7,7 +7,7 @@ const { items } = Astro.props;
     {items.map((it, i) => (
       <li class="flex items-center gap-1">
         {i > 0 && <span aria-hidden="true">›</span>}
-        {i < items.length - 1 ? <a href={it.href} class="hover:text-brand">{it.name}</a> : <span aria-current="page" class="text-ink-2">{it.name}</span>}
+        {i < items.length - 1 ? <a href={it.href} class="inline-flex min-h-6 items-center hover:text-brand">{it.name}</a> : <span aria-current="page" class="text-ink-2">{it.name}</span>}
       </li>
     ))}
   </ol>

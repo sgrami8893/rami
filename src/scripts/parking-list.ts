@@ -14,6 +14,11 @@ export function initParkingList() {
   const count = document.getElementById('lot-count');
   const status = document.getElementById('list-status');
   const empty = document.getElementById('lot-empty');
+  // 2026-11-26 재배치: 긴 목록은 처음 PAGE곳만 보이고 '더 보기'로 이어 본다(필터·정렬을 바꾸면 다시 PAGE곳부터).
+  // 숨긴 행도 HTML에는 그대로 있다(검색엔진·JS 꺼짐에서는 전부 보임).
+  const PAGE = 20;
+  let limit = PAGE;
+  const more = document.getElementById('lot-more') as HTMLButtonElement | null;
 
   const paintOpen = () => {
     const now = kstNow();
@@ -35,13 +40,20 @@ export function initParkingList() {
     let n = 0;
     for (const r of rows()) {
       const show = (!on.has('free') || r.dataset.free === '1') && (!on.has('open') || r.dataset.open === '1');
-      r.hidden = !show; if (show) n++;
+      r.hidden = !show;
+      r.toggleAttribute('data-clip', show && n >= limit);
+      if (show) n++;
     }
     list.querySelectorAll<HTMLElement>('.lot-group').forEach((g) => {
-      const v = [...g.querySelectorAll<HTMLElement>('.lot')].filter((r) => !r.hidden).length;
-      g.hidden = v === 0;
-      const gc = g.querySelector('.g-count'); if (gc) gc.textContent = `${v}곳`;
+      const lots = [...g.querySelectorAll<HTMLElement>('.lot')].filter((r) => !r.hidden);
+      g.hidden = lots.every((r) => r.hasAttribute('data-clip'));
+      const gc = g.querySelector('.g-count'); if (gc) gc.textContent = `${lots.length}곳`;
     });
+    if (more) {
+      const rest = n - limit;
+      more.hidden = rest <= 0;
+      if (rest > 0) more.textContent = `${Math.min(PAGE, rest)}곳 더 보기 (남은 ${rest}곳)`;
+    }
     if (count) count.textContent = `${n}곳`;
     if (empty) empty.hidden = n > 0;
     if (announce && status) status.textContent = `조건에 맞는 주차장 ${n}곳`;
@@ -49,8 +61,24 @@ export function initParkingList() {
 
   chips.forEach((c) => c.addEventListener('click', () => {
     c.setAttribute('aria-pressed', String(c.getAttribute('aria-pressed') !== 'true'));
+    limit = PAGE;
     apply(true);
   }));
+  more?.addEventListener('click', () => {
+    const firstNew = rows().find((r) => r.hasAttribute('data-clip'));
+    limit += PAGE;
+    apply();
+    firstNew?.querySelector('a')?.focus(); // 키보드 위치를 새로 보인 첫 곳으로
+  });
+  // '동별 바로가기'(#동이름)로 가면 그 동이 잘려 있지 않게 전부 펼친다
+  const unclipFor = (hash: string) => {
+    const t = hash && document.getElementById(decodeURIComponent(hash.slice(1)));
+    if (t && list.contains(t)) { limit = Infinity; apply(); }
+  };
+  document.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest?.('a[href^="#"]') as HTMLAnchorElement | null;
+    if (a) unclipFor(a.hash);
+  });
 
   // 정렬: 무료(0) → 요금 낮은 순 → 요금 정보 없음은 맨 뒤. 같은 값은 이름순.
   const boxes = [...list.querySelectorAll<HTMLElement>('[data-lots]')];
@@ -59,6 +87,7 @@ export function initParkingList() {
   flat.hidden = true; list.appendChild(flat);
   sorts.forEach((b) => b.addEventListener('click', () => {
     const by = b.dataset.sort;
+    limit = PAGE;
     const v = (e: HTMLElement) => (e.dataset.fee2 === '' || e.dataset.fee2 === undefined ? Infinity : Number(e.dataset.fee2));
     const byName = (a: HTMLElement, c: HTMLElement) => (a.dataset.name ?? '').localeCompare(c.dataset.name ?? '', 'ko');
     if (boxes.length) {
@@ -84,5 +113,6 @@ export function initParkingList() {
   chips.forEach((c) => { if (pre.includes(c.dataset.filter ?? '')) c.setAttribute('aria-pressed', 'true'); });
 
   paintOpen(); apply();
+  unclipFor(location.hash);
   setInterval(() => { paintOpen(); apply(); }, 60_000);
 }

@@ -4,6 +4,8 @@ import MockBanner from '../../../../components/parking/MockBanner.astro';
 import LotRow from '../../../../components/parking/LotRow.astro';
 import LotFilters from '../../../../components/parking/LotFilters.astro';
 import FreeNote from '../../../../components/parking/FreeNote.astro';
+import LotMore from '../../../../components/parking/LotMore.astro';
+import StatTiles from '../../../../components/ui/StatTiles.astro';
 import MapPanel from '../../../../components/MapPanel.astro';
 import { SIDOS, sidoShort, parkingPath, regionsOf, regionIndexable, toPoint, IS_MOCK } from '../../../../lib/parking.ts';
 import type { SidoSlug } from '../../../../../scripts/lib/regions.ts';
@@ -31,22 +33,14 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
   noindex={IS_MOCK || !regionIndexable(ls.length)} canvas="white" sidebar={false}>
   <MockBanner />
   <h1 class="text-title font-bold text-ink">{r.name} 공영주차장 {ls.length}곳</h1>
-  <p class="mt-1 text-cap text-ink-3">무료 {r.free}곳 · 유료·혼합 {ls.length - r.free}곳</p>
+  <!-- 2026-11-26 재배치: 요금 비교 상자·무료 링크 상자·안내 문단 3개를 숫자 타일 한 줄로 -->
+  <StatTiles cols={3} class="mt-3" label={`${r.name} 공영주차장 요약`} items={[
+    { label: '전체', value: `${ls.length}곳`, sub: `유료·혼합 ${ls.length - r.free}곳` },
+    freeN > 0 ? { label: '무료', value: `${freeN}곳`, sub: '무료만 보기 ›', href: `${parkingPath(sido, r.sigungu)}free/`, tone: 'ok' as const } : { label: '무료', value: '0곳' },
+    { label: '2시간 최저', value: twoh.length ? w(Math.min(...twoh)) : '-', sub: twoh.length ? `최고 ${w(Math.max(...twoh))}` : '계산 가능한 곳 없음' },
+  ]} />
+  <FreeNote class="mt-2" />
   <MapPanel points={withCoords.map(toPoint)} label={`${r.name} 공영주차장`} missing={ls.length - withCoords.length} />
-  <section class="mt-5 rounded-2xl bg-bg px-4 py-4" aria-labelledby="cmp-h">
-    <h2 id="cmp-h" class="text-body font-bold text-ink">2시간 주차 요금 비교</h2>
-    <p class="mt-1 text-body text-ink-2">
-      {twoh.length ? <>유료 {twoh.length}곳 기준 <strong class="text-ink">{w(Math.min(...twoh))}</strong> ~ <strong class="text-ink">{w(Math.max(...twoh))}</strong></> : '계산할 수 있는 유료 요금 정보가 없어요'}
-      {freeN > 0 && <> · 무료 {freeN}곳</>}
-    </p>
-    <p class="mt-1 text-cap text-ink-3">참고용이에요. 현장 요금과 다를 수 있어요.</p>
-  </section>
-  {freeN > 0 && (
-    <a href={`${parkingPath(sido, r.sigungu)}free/`} class="mt-3 flex min-h-11 items-center justify-between rounded-2xl bg-ok-bg px-4 py-3 text-body font-semibold text-ok">
-      <span>{r.name} 무료주차장 {freeN}곳 바로 보기</span><span aria-hidden="true">›</span>
-    </a>
-  )}
-  {freeN > 0 && <FreeNote class="mt-2" />}
   <LotFilters total={ls.length} />
   {groups.length > 1 && (
     <details class="mt-2">
@@ -67,6 +61,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       </section>
     ))}
   </div>
+  <LotMore />
 </BaseLayout>
 
 <script>
