@@ -80,7 +80,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   const sggStyle = (p: SggP): Leaflet.PathOptions => {
     if (!sggActive(p.f)) {
       // 지금 시·군·구(동 단계)는 채우지 않고 바깥 테두리만(동 칸이 위에 깔림)
-      if (p.f === fileOf()) return { fillOpacity: 0, color: '#191F28', weight: 2, opacity: 0.85 };
+      if (p.f === fileOf()) return { fillOpacity: 0, color: '#FFFFFF', weight: 2.5, opacity: 1, className: 'rm-edge' }; // 검정 테두리 없음(2026-11-26 사용자)
       return DIM;
     }
     if (budget && level() === 'home') {
@@ -101,7 +101,8 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   let ghost: Leaflet.Layer | null = null;
   let selLine: Leaflet.Layer | null = null;
   const outline = (g: GeoJSON.Geometry, sel: boolean) => L.geoJSON(g as GeoJSON.GeoJsonObject, { pane: 'v2-line', interactive: false,
-    style: { color: sel ? '#191F28' : '#FFFFFF', weight: sel ? 3 : 3, opacity: 1, fill: false, className: sel ? '' : 'rm-glow' } });
+    style: { color: '#FFFFFF', weight: sel ? 3.5 : 2.5, opacity: 1, fill: false, className: sel ? 'rm-sel' : 'rm-hov' } });
+  // 고른 동·마우스 칸: 검정선 대신 흰 선 + 은은한 그림자(고른 동은 자두색 번짐)로 '떠오른' 느낌(2026-11-26 사용자 '검정 외곽선 구려')
 
   // ---- 라벨 ----
   const labels = L.layerGroup().addTo(map);

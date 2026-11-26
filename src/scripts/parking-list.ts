@@ -70,7 +70,11 @@ function bind() {
       if (rest > 0) more.textContent = `${Math.min(PAGE, rest)}곳 더 보기 (남은 ${rest}곳)`;
     }
     if (count) count.textContent = `${n}곳`;
-    if (empty) empty.hidden = n > 0;
+    if (empty) {
+      empty.hidden = n > 0;
+      // 빈 결과: 켜 둔 조건 이름을 그대로 적어 무엇을 끄면 되는지 알려 준다(제미나이 검수 3-2)
+      if (!n) { const names = chips.filter((c) => c.getAttribute('aria-pressed') === 'true').map((c) => `'${c.textContent?.trim()}'`); empty.textContent = names.length ? `조건에 맞는 주차장이 없어요. ${names.join('·')} 중 하나를 꺼 보거나, 위 지역 줄에서 시·군·구 전체로 넓혀 보세요.` : '이 지역에는 공영주차장 자료가 없어요. 위 지역 줄에서 이웃 지역을 골라 보세요.'; }
+    }
     if (announce && status) status.textContent = `조건에 맞는 주차장 ${n}곳`;
     document.dispatchEvent(new CustomEvent('list:filtered')); // 지도 핀도 같은 조건으로(map-panel.ts)
   };

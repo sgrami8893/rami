@@ -53,7 +53,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     if (f) { map.setView([f.lat, f.lng], 16); return; }
     if (!points.length) return;
     const b = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-    if (points.length === 1) map.setView(b.getCenter(), 16); else map.fitBounds(b, { padding: [32, 32], maxZoom: 16 });
+    if (points.length === 1) map.setView(b.getCenter(), 16); else map.fitBounds(b, { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
   };
   fit();
   if (active) { const m = markers.get(active); if (m) cluster.zoomToShowLayer(m, () => paint(active!)); }

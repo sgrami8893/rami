@@ -67,12 +67,16 @@ function swap(doc: Document, url: URL, push: boolean) {
     if (pane && np) { document.dispatchEvent(new CustomEvent('dnkk:unmount')); pane.replaceWith(document.importNode(np, true)); }
   }
   // 머리말 도구 메뉴의 '지금 도구' 표시와 문서 정보
-  const tool = url.pathname.split('/')[1] || 'rent';
+  // 홈('/')은 어느 도구도 아님(전월세로 떨어지면 안 됨: 2026-11-26 맥락 이탈 점검)
+  const tool = url.pathname.split('/')[1] ?? '';
   document.querySelectorAll<HTMLAnchorElement>('.v-tools a').forEach((a) => {
-    const on = new URL(a.href).pathname.split('/')[1] === tool;
+    const on = !!tool && new URL(a.href).pathname.split('/')[1] === tool;
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
   document.documentElement.dataset.tool = doc.documentElement.dataset.tool ?? '';
+  // 검색 시트는 본문 밖이라 새 화면의 도구로 맞춰 준다(주차장 화면 검색이 전월세 우선으로 남지 않게)
+  const sheet = document.getElementById('v-sheet'), nsheet = doc.getElementById('v-sheet');
+  if (sheet) sheet.dataset.tool = nsheet?.dataset.tool ?? '';
   document.title = doc.title;
   for (const sel of ['meta[name="description"]', 'link[rel="canonical"]', 'meta[name="robots"]']) {
     const a = document.head.querySelector(sel), b = doc.head.querySelector(sel);

@@ -67,22 +67,23 @@ const rentMap = MAP.enabled && rentReady && live.some((t) => t.slug === 'rent');
 const jsonld = [{ '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: `${SITE_URL}/` }];
 ---
 <BaseLayout title={`${SITE_NAME} | 전월세·주차장·발급기, 우리 동네 생활 정보 한눈에`} description={`서울·경기·인천 빌라·오피스텔 전월세 실거래 ${n(rentTotal)}건, 공영주차장 ${n(parkingLots.length)}곳, 무인민원발급기 ${n(kiosks.length)}곳을 지역별로 모아 보여 주는 민간 생활 정보 서비스예요.`} jsonld={jsonld} tool={undefined}>
-  <h1 class="v-h1 pt-2">우리 동네 생활 정보,<br class="sm:hidden" /> 한눈에 찾아요</h1>
+  <p class="v-eyebrow mt-1"><Icon name="map-pin" size={14} />서울·경기·인천</p>
+  <h1 class="v-h1 mt-2">우리 동네 생활 정보,<br class="sm:hidden" /> <span class="hl">한눈에</span> 찾아요</h1>
   <button type="button" class="v-search-big mt-4" data-sheet-open aria-haspopup="dialog"><Icon name="search" size={20} />동네·지역 이름으로 찾기</button>
   <Near auto />
-  <h2 class="v-cap">도구</h2>
+  <h2 class="v-sec">무엇을 찾을까요</h2>
   <div class="grid gap-2">
     {live.map((t) => (
-      <a href={t.path} class="v-tool">
+      <a href={t.path} class="v-tool" data-t={t.slug}>
         <span class="ic" aria-hidden="true"><Icon name={ICON[t.slug] ?? 'map-pin'} size={22} /></span>
         <span class="t"><b>{({ rent: '빌라·오피스텔 전월세', parking: '공영주차장', muin: '무인민원발급기' } as Record<string, string>)[t.slug] ?? t.name}</b>
-          <span>{counts[t.slug]}{features[t.slug] && ` · ${features[t.slug].map((f) => f.label).join(' · ')}`}</span></span>
+          <span><span class="num">{counts[t.slug]}</span>{features[t.slug] && <span class="ft">{features[t.slug].map((f) => f.label).join(' · ')}</span>}</span></span>
         <Icon name="chevron-right" size={18} class="chev" />
       </a>
     ))}
   </div>
   {quick.length > 0 && <>
-    <h2 class="v-cap" data-quick-h>자주 찾는 지역 전월세</h2>
+    <h2 class="v-sec" data-quick-h>자주 찾는 지역 전월세</h2>
     <ul class="flex flex-wrap gap-2" data-quick>{quick.map((r) => <li><a class="v-chip" href={r.href.rent ?? defHref(r)}>{r.sigunguName}</a></li>)}</ul>
   </>}
   <div class="v-folds">

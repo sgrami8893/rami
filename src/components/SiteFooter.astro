@@ -6,9 +6,12 @@ const { sources, muin = false } = Astro.props;
 ---
 <footer class="v-foot">
   <p><b>동네콕콕은 정부·지자체 공식 사이트가 아닌 민간 정보 서비스예요.</b></p>
-  {sources.map((s) => (
-    <p>자료: <a href={s.url} rel="noopener noreferrer" target="_blank">{s.name}<span class="sr-only">(새 창)</span></a> ({s.label} {s.date}). 공공데이터를 가공해 보여 줘요.</p>
-  ))}
+  {sources.length > 0 && <>
+    <p class="mt-1">자료 출처(공공데이터를 가공해 보여 줘요)</p>
+    <ul class="srcs">{sources.map((s) => (
+      <li><a href={s.url} rel="noopener noreferrer" target="_blank">{s.name}<span class="sr-only">(새 창)</span></a> <span>{s.label} {s.date}</span></li>
+    ))}</ul>
+  </>}
   {muin && <p>운영시간과 발급 서류는 현장 사정에 따라 다를 수 있어요. 중요한 방문 전에는 관리기관에 다시 확인하세요.</p>}
   <nav aria-label="사이트 정보">
     <a href="/about/">소개</a><a href="/privacy/">개인정보처리방침</a><a href="/contact/">문의</a><a href="/about/#licenses">오픈소스 라이선스</a>
