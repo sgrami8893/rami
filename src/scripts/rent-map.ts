@@ -26,7 +26,9 @@ const SIDO_ZOOM = 10;      // 이 줌부터 화면 가운데의 시·도만(시�
 const LOW_LABEL_ZOOM = 14; // '거래 적음' 라벨은 이만큼 가까이서만
 // 파랑 6단계(밝음→진함). 라벨은 흰 바탕 알약이라 칸 색과 상관없이 글자 대비 4.5:1 이상
 // 2026-11-26 사용자 '1도 모르겠음' → 단계 사이 밝기 차이를 크게(한 색상 파랑 100→700 중 6단계, 밝은→진한). 색각이상에서도 밝기 차이로 구분된다
-const COLORS = ['#CCE3FD', '#84B9F3', '#338CED', '#2370CD', '#1757AC', '#0E3D7E'];
+// 2026-11-26 사용자 '파랑 계열 별로' → 따뜻한 한 방향 색(크림→호박→산호→자두, YlOrRd·magma 계열). 파랑·초록 배경지도와 겹치지 않고,
+// 밝기가 단계마다 크게 달라 색각이상에서도 순서가 보인다
+const COLORS = ['#FDF0C4', '#FBCB7A', '#F59A4E', '#E4634A', '#B23A5B', '#6B1F57'];
 const GREY = '#D5D9DE';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -95,9 +97,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   };
   const TIP = { sticky: true, direction: 'top' as const, offset: [0, -14] as [number, number], className: 'rm-tip', opacity: 1 };
   // 경계 스타일 v3(2026-11-26 사용자 '경계 색 세련되게'): 검은 선 없음. 동 경계 흰 1.25px(90%), 마우스 올리면 파랑 2px + 채움 살짝 진하게,
-  // 고른 동은 파랑 3px + 은은한 그림자, 지금 보는 시·군·구 테두리는 짙은 남색 2.5px + 파란 빛 테(CSS .rm-glow)
-  const ACCENT = '#2563EB', SLATE = '#1E293B';
-  const HOVER = { color: ACCENT, weight: 2, opacity: 1, fillOpacity: 0.95 };
+  // v4(2026-11-26 사용자 '경계선이 꼭 시커매야 하나', '포커스해도 경계선이 안 보여'): 고른 곳·마우스 올린 곳은 흰 3px + 어두운 부드러운 그림자(CSS .rm-glow)
+  // 를 맨 앞으로. 어떤 칸 색 위에서도 보인다. 바깥 틀은 map-frame.ts의 중간 회청색
+  const PICK = '#FFFFFF', SLATE = '#475569';
+  const HOVER = { color: PICK, weight: 3, opacity: 1, fillOpacity: 0.95 };
+  const lift = (l: Leaflet.Path) => { l.setStyle(HOVER); (l.getElement() as Element | undefined)?.classList.add('rm-glow'); l.bringToFront(); };
   // 경계 가독성(2026-11-26 사용자 '경계가 잘 안 보여'): 회색 배경지도 위에 진한 채움 + 흰 경계 2px, 시·군·구 경계는 진한 선
   const FILL = 0.85;
 
@@ -122,7 +126,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
       layer.bindTooltip(() => tipEl(`${p.sd} ${p.nm}`, p), TIP);
-      layer.on('mouseover', () => { if (!isNear() && inScope(p.f)) (layer as Leaflet.Path).setStyle(HOVER); });
+      layer.on('mouseover', () => { if (!isNear() && inScope(p.f)) lift(layer as Leaflet.Path); });
       layer.on('mouseout', () => restyle());
     },
   }).addTo(map);
@@ -157,7 +161,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
           dongs.set(key, [...(dongs.get(key) ?? []), { p, layer: l as Leaflet.Polygon, sg }]);
           l.on('click', (e) => { L.DomEvent.stopPropagation(e); pickDong(key); });
           l.bindTooltip(() => tipEl(`${sg.sd} ${sg.nm} ${p.k}`, p), TIP);
-          l.on('mouseover', () => { if (key !== selected) (l as Leaflet.Path).setStyle(HOVER); });
+          l.on('mouseover', () => { if (key !== selected) lift(l as Leaflet.Path); });
           l.on('mouseout', () => { if (key !== selected) (l as Leaflet.Path).setStyle(dongStyle(p)); });
         },
       });
@@ -234,10 +238,11 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       return near
         // 동 단계: 고른 시·군·구 테두리는 틀(map-frame)이 그리므로 여기서는 범위를 안 정했을 때만 옅은 선
         ? (scopeSgg ? { stroke: false, fill: false } : { stroke: true, fill: false, color: SLATE, weight: 1.25, opacity: 0.4, fillOpacity: 0, fillColor: GREY })
-        : { stroke: true, fill: true, color: p.f === selectedSgg ? ACCENT : '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.9, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
+        : { stroke: true, fill: true, color: '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.9, fillColor: colorOf(valueOf(p)), fillOpacity: FILL };
     });
+    if (!near && selectedSgg) sggByFile.get(selectedSgg)?.layer.bringToFront();
     for (const [key, parts] of dongs) for (const { p, layer } of parts) {
-      layer.setStyle(key === selected ? { ...dongStyle(p), color: ACCENT, weight: 3, opacity: 1 } : dongStyle(p));
+      layer.setStyle(key === selected ? { ...dongStyle(p), color: PICK, weight: 3, opacity: 1 } : dongStyle(p));
       (layer.getElement() as Element | undefined)?.classList.toggle('rm-glow', key === selected);
       if (key === selected) layer.bringToFront();
     }
