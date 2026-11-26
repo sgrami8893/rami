@@ -108,8 +108,13 @@ export function typeStats(ds: Deal[]): TypeStats {
   };
 }
 
-/** 최근 months개월(데이터의 마지막 달 포함) 거래만 남긴다 */
-export function lastMonths(ds: Deal[], months = 12) {
+/** 이번 달(수집 시점, 한국 시간)은 신고가 덜 들어와 뺀다 */
+export const currentYm = (now = new Date()) => { const k = new Date(now.getTime() + 9 * 3600_000); return `${k.getUTCFullYear()}-${String(k.getUTCMonth() + 1).padStart(2, '0')}`; };
+
+/** 최근 months개월(데이터의 마지막 '완결된' 달 포함) 거래만 남긴다 */
+export function lastMonths(all: Deal[], months = 12, now = new Date()) {
+  const cur = currentYm(now);
+  const ds = all.filter((d) => d.ym < cur);
   const to = ds.map((d) => d.ym).sort().at(-1) ?? '';
   if (!to) return { from: '', to: '', deals: [] as Deal[] };
   const [y, m] = to.split('-').map(Number);
@@ -119,8 +124,8 @@ export function lastMonths(ds: Deal[], months = 12) {
 }
 
 /** 거래 목록 → 시·군·구 + 법정동 단위 통계. 지역 판정이 안 되는 거래 수도 돌려준다. */
-export function aggregate(all: Deal[], { months = 12, isMock = false } = {}) {
-  const { from, to, deals } = lastMonths(all, months);
+export function aggregate(all: Deal[], { months = 12, isMock = false, now = new Date() } = {}) {
+  const { from, to, deals } = lastMonths(all, months, now);
   const groups = new Map<string, { area: Omit<RentArea, 'n' | 'byType'>; ds: Deal[] }>();
   let unknown = 0;
   const add = (k: string, area: Omit<RentArea, 'n' | 'byType'>, d: Deal) => { const g = groups.get(k) ?? { area, ds: [] }; g.ds.push(d); groups.set(k, g); };
@@ -145,6 +150,7 @@ export function aggregate(all: Deal[], { months = 12, isMock = false } = {}) {
  * 색인: INDEX_MIN건 이상 + 시·군·구 거래의 MAX_SHARE 이하(시·군·구 페이지와 거의 같은 중복 방지).
  *   근거: 중위값은 표본 30건 안팎부터 분기마다 크게 흔들리지 않고, 면적대 2~3칸(칸당 K_MIN건)을 채울 수 있다.
  */
+// 2026-11-26 실데이터(수도권 45만 건): 동 1,398곳 중 10건+ 1,028곳, 30건+ 808곳 → 색인 30건 유지(제미나이 합의 범위 20~30의 상한).
 export const RENT_RULE = { PAGE_MIN: 10, INDEX_MIN: 30, MAX_SHARE: 0.9, SIGUNGU_INDEX_MIN: 30 };
 export const sigunguAreas = (s: RentStats) => s.areas.filter((a) => a.dong === null);
 export const dongAreasOf = (s: RentStats, sido: string, sigungu: string) => s.areas.filter((a) => a.dong !== null && a.sido === sido && a.sigungu === sigungu);

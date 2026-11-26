@@ -48,7 +48,7 @@ test(`통계 칸은 ${K_MIN}건 미만이면 숨긴다`, () => {
 test('집계: 최근 12개월, 시·군·구 + 동', () => {
   const mk = (ym: string, dong: string, dep: number, mon = 0): Deal => ({ type: 'villa', code: '11680', dong, ym, deposit: dep, monthly: mon, area: 30, buildYear: null, renewal: null, usedRight: null });
   const ds = [mk('2025-09', '역삼동', 1), mk('2025-10', '역삼동', 100), mk('2026-09', '역삼동', 200), mk('2026-09', '삼성동', 300), { ...mk('2026-09', '어딘가', 1), code: '99999' }];
-  const { stats, unknown } = aggregate(ds);
+  const { stats, unknown } = aggregate(ds, { now: new Date('2026-11-26T01:00:00Z') });
   assert.equal(stats.from, '2025-10');
   assert.equal(unknown, 1);
   assert.equal(stats.areas.find((a) => a.dong === null)?.n, 3);
@@ -79,4 +79,18 @@ test('개편 지역: 범위 탐색으로 찾은 새 코드도 시·군·구로 �
   assert.equal(regionOfDeal('28116', '송림동')?.sigunguName, '제물포구');
   assert.equal(regionOfDeal('28110', '운서동')?.sigunguName, '영종구'); // 옛 코드(개편 전 달)
   assert.equal(regionOfDeal('99999', '어딘가'), null);
+});
+
+test('수집한 이번 달(신고 덜 들어옴)은 집계에서 뺀다', () => {
+  const mk = (ym: string): Deal => ({ type: 'villa', code: '11680', dong: '역삼동', ym, deposit: 100, monthly: 0, area: 30, buildYear: null, renewal: null, usedRight: null });
+  const { stats } = aggregate([mk('2025-11'), mk('2026-10'), mk('2026-11')], { now: new Date('2026-11-26T01:00:00Z') });
+  assert.deepEqual([stats.from, stats.to], ['2025-11', '2026-10']);
+  assert.equal(stats.areas.find((a) => a.dong === null)?.n, 2);
+});
+
+test('개편 후 코드를 표에 고정', async () => {
+  const { regionOfDeal } = await import('../lib/rent-lawd.ts');
+  assert.equal(regionOfDeal('41597', '반송동')?.subGu, '동탄구');
+  assert.equal(regionOfDeal('28290', '당하동')?.sigunguName, '검단구');
+  assert.equal(regionOfDeal('28125', '만석동')?.sigunguName, '제물포구');
 });

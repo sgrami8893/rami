@@ -3,12 +3,12 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import MockBanner from '../../components/rent/MockBanner.astro';
 import { RENT_PREVIEW } from '../../config.ts';
-import { SIDOS, sidoName, sigunguOf, rentPath, periodText } from '../../lib/rent.ts';
+import { IS_MOCK, SIDOS, sidoName, sigunguOf, rentPath, periodText } from '../../lib/rent.ts';
 export function getStaticPaths() { return RENT_PREVIEW ? [{ params: { index: undefined } }] : []; }
 const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월세', href: '/rent/' }];
 ---
 <BaseLayout title="동네 빌라·오피스텔 전월세 실거래 시세 | 서울·경기·인천" description="골격 미리보기" crumbs={crumbs} noindex sidebar={false}>
-  <MockBanner />
+  {IS_MOCK && <MockBanner />}
   <h1 class="text-title font-bold text-ink">동네 빌라·오피스텔 전월세 실거래</h1>
   <p class="mt-1 text-body text-ink-2">{periodText()} 신고된 전월세 거래를 동네별로 모았어요. 아파트는 다루지 않아요.</p>
   {SIDOS.map((s) => (

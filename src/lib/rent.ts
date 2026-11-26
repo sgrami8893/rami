@@ -1,14 +1,16 @@
 // /rent/ 빌드 데이터 접근 (골격). 지금은 가짜 통계(rent-stats.mock.json)만 있다.
 import mock from '../data/rent-stats.mock.json';
+// 실데이터(npm run fetch-rent 결과)가 있으면 그것을, 없으면 가짜 데이터를 쓴다(파일이 없어도 빌드되게 glob)
+const real = Object.values(import.meta.glob('../data/rent-stats.json', { eager: true, import: 'default' }))[0] as RentStats | undefined;
 import { RENT_PREVIEW } from '../config.ts';
 import { SIDO, SIGUNGU, type SidoSlug } from '../../scripts/lib/regions.ts';
 import { sigunguAreas, dongAreasOf, dongPages, dongIndexable, sigunguIndexable, RENT_RULE, type RentStats, type RentArea } from '../../scripts/lib/rent.ts';
 
 export type { RentArea };
 export { dongIndexable, sigunguIndexable, RENT_RULE };
-export const IS_MOCK = true;
+export const IS_MOCK = !real;
 const EMPTY: RentStats = { from: '', to: '', generatedAt: '', isMock: true, areas: [] };
-export const stats: RentStats = RENT_PREVIEW ? (mock as unknown as RentStats) : EMPTY;
+export const stats: RentStats = RENT_PREVIEW ? (real ?? (mock as unknown as RentStats)) : EMPTY;
 export const RENT_BASE = '/rent/';
 export const SIDOS: SidoSlug[] = (['seoul', 'gyeonggi', 'incheon'] as SidoSlug[]).filter((s) => stats.areas.some((a) => a.sido === s));
 export const sidoName = (s: SidoSlug) => SIDO[s].name;
