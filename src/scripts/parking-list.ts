@@ -116,6 +116,16 @@ function bind() {
     if (a) unclipFor(a.hash);
   }, { signal: ac.signal });
 
+  // PC 동 바로가기: 두 줄이 넘으면 '동 N곳 모두 보기'로 펼친다
+  const jumpNav = document.getElementById('dong-jump');
+  const jumpMore = document.querySelector<HTMLButtonElement>('.v-dongjump-more');
+  if (jumpNav && jumpMore) {
+    const n = jumpNav.querySelectorAll('a').length;
+    const sync = () => { const open = jumpNav.classList.contains('is-open'); jumpMore.hidden = jumpNav.hidden || (!open && jumpNav.scrollHeight <= jumpNav.clientHeight + 2) || getComputedStyle(jumpNav).flexWrap !== 'wrap'; jumpMore.textContent = open ? '동 바로가기 접기' : `동 ${n}곳 모두 보기`; jumpMore.setAttribute('aria-expanded', String(open)); };
+    jumpMore.addEventListener('click', () => { jumpNav.classList.toggle('is-open'); sync(); });
+    addEventListener('resize', sync, { signal: ac.signal }); document.addEventListener('list:filtered', sync, { signal: ac.signal }); sync();
+  }
+
   // 정렬: 무료(0) → 요금 낮은 순 → 요금 정보 없음은 맨 뒤. 같은 값은 이름순.
   const boxes = [...list.querySelectorAll<HTMLElement>('[data-lots]')];
   boxes.forEach((box, i) => box.querySelectorAll<HTMLElement>('.lot').forEach((r) => (r.dataset.home = String(i))));
