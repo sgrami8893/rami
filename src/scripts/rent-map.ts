@@ -5,6 +5,8 @@
 // - 동을 누르면 테두리를 강조하고, PC는 왼쪽 패널(#rent-pick), 모바일은 지도 위 카드에 요약과 동 페이지 링크를 보여 준다.
 // - 라벨은 키보드로도 고를 수 있는 버튼(마커)이고, 서로 겹치면 거래가 적은 쪽을 숨긴다.
 // - 건물별 실거래(rent-buildings.ts): 동 요약 아래 건물 목록, 줌 15+ 건물 핀, 누르면 이력(그래프·표). 층·계약일 없음.
+// - 내 예산 맞춤(rent-budget-core.ts, 2026-11-26): 예산 안 동네만 여유 색(여유가 많을수록 진함), 예산보다 높은 곳은 회색 #E5E8EB + 회청색 경계,
+//   라벨은 예산 안 동네만. 시·군·구 단계는 예산 안 동네 수로 칠한다.
 // 표시 원칙: 사실 숫자만(중위값·건수). 위험·안전 판정 없음. 보안: 데이터는 빌드 JSON, 화면에는 textContent·esc()만 쓴다.
 import type * as Leaflet from 'leaflet';
 import { baseMap } from './map-base.ts';
@@ -14,6 +16,7 @@ import type { MapApi } from './map-panel.ts';
 import { createBuildings, BUILD_ZOOM } from './rent-buildings.ts';
 import { createFrame, getGeo, AREA_SRC } from './map-frame.ts';
 import { takeView } from './soft-nav.ts';
+import { current as currentBudget, judge, loadIndex, pendingScope, ROOM_COLORS, ROOM_BREAKS, roomStep, COUNT_BREAKS, countStep, OVER, typeName, short as shortB, type Budget } from './rent-budget-core.ts';
 
 type M = (number | null)[]; // [빌라 전세, 빌라 월세, 빌라 월세 보증금, 오피 전세, 오피 월세, 오피 월세 보증금]
 type SggP = { f: string; nm: string; sd: string; l: [number, number]; n: number; h: string | null; m: M; b?: number };
@@ -87,6 +90,24 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     return COLORS[Math.min(i, COLORS.length - 1)];
   };
 
+  // ---- 내 예산 맞춤: 본문 폼이 'rent:budget'으로 알려 준다. null이면 보통 시세 색 ----
+  let budget: Budget | null = currentBudget();
+  let counts: Map<string, number> | null = null; // 시·군·구별 예산 안 동네 수
+  const OVER_FILL = 0.55, OVER_LINE = '#6B7684';
+  const verdict = (p: { n: number; m: M }) => judge(p, sgg.low, budget!);
+  /** 칸 색·투명도. sggF가 있으면 시·군·구(예산 모드에서는 예산 안 동네 수로 칠함) */
+  const paint = (p: { n: number; m: M }, sggF?: string): { fill: string; op: number; muted: boolean } => {
+    if (!budget) { const v = valueOf(p); return { fill: colorOf(v), op: v === null ? GREY_FILL : FILL, muted: false }; }
+    if (sggF !== undefined) {
+      const c = counts?.get(sggF);
+      if (c === undefined) return { fill: GREY, op: GREY_FILL, muted: true };
+      return c > 0 ? { fill: ROOM_COLORS[countStep(c)], op: FILL, muted: false } : { fill: OVER, op: OVER_FILL, muted: true };
+    }
+    const j = verdict(p);
+    return j.s === 'ok' ? { fill: ROOM_COLORS[roomStep(j.room)], op: FILL, muted: false } : j.s === 'over' ? { fill: OVER, op: OVER_FILL, muted: true } : { fill: GREY, op: GREY_FILL, muted: true };
+  };
+  const budgetValue = (p: { n: number; m: M }) => { const j = verdict(p); return j.s === 'ok' ? (budget!.kind === 'j' ? shortB(j.d) : `월 ${j.w}만`) : null; };
+
   // ---- 마우스를 올린 곳 이름·값(사용자 요청 2026-11-26): '서울 마포구 망원동' + 고른 유형의 중위값 ----
   const kindLabel = () => `${type === 'v' ? '빌라' : '오피스텔'} ${kind === 'j' ? '전세' : '월세'}`;
   const tipEl = (path: string, p: { n: number; m: M }) => {
@@ -94,6 +115,17 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     const t = document.createElement('strong'); t.className = 'rm-tip-path'; t.textContent = path;
     const v = valueOf(p);
     const s = document.createElement('span'); s.className = 'rm-tip-val';
+    if (budget) {
+      const sf = (p as { f?: string }).f;
+      if (sf !== undefined && !(p as { k?: string }).k) { const c = counts?.get(sf) ?? 0; s.textContent = c ? `예산 안 동네 ${c}곳` : '예산 안 동네 없음'; }
+      else {
+        const j = verdict(p);
+        s.textContent = j.s === 'ok' ? `${typeName(j.t)} ${budget.kind === 'j' ? `전세 중위 ${shortB(j.d)}` : `중위 ${shortB(j.d)} / 월 ${j.w}만`} · 예산 안`
+          : j.s === 'over' ? `예산보다 높아요 · ${p.n.toLocaleString('ko-KR')}건` : p.n ? `거래 적음 · ${p.n}건` : '최근 12개월 거래 없음';
+      }
+      d.append(t, s);
+      return d;
+    }
     s.textContent = v === null ? (p.n ? `거래 적음 · ${p.n}건` : '최근 12개월 거래 없음') : `${kindLabel()} 중위 ${kind === 'j' ? short(v) : `월 ${v}만`} · ${p.n.toLocaleString('ko-KR')}건`;
     d.append(t, s);
     return d;
@@ -127,6 +159,20 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // ---- 범례 ----
   const drawLegend = () => {
     if (!legend) return;
+    const note = legend.querySelector<HTMLElement>('.rm-legend-note');
+    if (budget) {
+      const near = isNear();
+      const title = legend.querySelector('.rm-legend-title');
+      if (title) title.textContent = near ? '예산 여유(중위값 기준, 진할수록 여유)' : '예산 안 동네 수';
+      const ticks = near ? ROOM_BREAKS.map((x) => `${Math.round(x * 100)}%`) : COUNT_BREAKS.map((x) => `${x}곳`);
+      legend.querySelector('.rm-legend-bar')!.replaceChildren(...ROOM_COLORS.map((c) => { const s = document.createElement('span'); s.style.background = c; return s; }));
+      legend.querySelector('.rm-legend-ticks')!.replaceChildren(...ticks.map((v, i) => { const s = document.createElement('span'); s.textContent = v; s.style.left = `${((i + 1) / ROOM_COLORS.length) * 100}%`; return s; }));
+      if (note) note.textContent = near ? '회색: 예산보다 높음 · 옅은 회색: 거래 적음' : '회색: 예산 안 동네 없음';
+      const sr = legend.querySelector('.rm-legend-sr');
+      if (sr) sr.textContent = near ? `예산 안 동네만 색칠했어요. 색이 진할수록 예산과 중위값 차이가 커요. 구간: ${ticks.join(', ')}. 회색은 예산보다 높거나 거래가 적은 곳이에요.` : `시·군·구마다 예산 안 동네 수로 칠했어요. 구간: ${ticks.join(', ')}.`;
+      return;
+    }
+    if (note?.dataset.default) note.textContent = note.dataset.default;
     const b = sgg.breaks[metric()] ?? [];
     const title = legend.querySelector('.rm-legend-title');
     if (title) title.textContent = `${type === 'v' ? '빌라' : '오피스텔'} ${kind === 'j' ? '전세' : '월세(월)'} 중위값`;
@@ -140,7 +186,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
 
   // ---- 도형 ----
   const sggLayer = L.geoJSON(sgg as unknown as GeoJSON.FeatureCollection, {
-    style: (f) => ({ color: '#FFFFFF', weight: 1.5, opacity: 0.75, lineJoin: 'round', lineCap: 'round', fillColor: colorOf(valueOf((f!.properties as SggP))), fillOpacity: valueOf(f!.properties as SggP) === null ? GREY_FILL : FILL }),
+    style: (f) => { const c = paint(f!.properties as SggP, (f!.properties as SggP).f); return { color: '#FFFFFF', weight: 1.5, opacity: 0.75, lineJoin: 'round', lineCap: 'round', fillColor: c.fill, fillOpacity: c.op }; },
     onEachFeature: (f, layer) => {
       const p = f.properties as SggP;
       layer.on('click', (e) => { L.DomEvent.stopPropagation(e); pickSgg(p, layer as Leaflet.Polygon); });
@@ -166,7 +212,13 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const loaded = new Map<string, Leaflet.GeoJSON>();
   const loading = new Map<string, Promise<void>>();
   const dongs = new Map<string, { p: DongP; layer: Leaflet.Polygon; sg: SggP }[]>(); // 키: 파일__동이름 (화성 '능동'처럼 같은 이름 조각이 여럿일 수 있음)
-  const dongStyle = (p: DongP) => ({ color: '#FFFFFF', weight: 1.25, opacity: 0.7, lineJoin: 'round' as const, fillColor: colorOf(valueOf(p)), fillOpacity: valueOf(p) === null ? GREY_FILL : FILL });
+  const dongStyle = (p: DongP) => {
+    const c = paint(p);
+    // 예산 모드의 회색 칸은 흰 경계가 묻히므로 회청색 경계(이웃 칸과 구분)
+    return budget && c.muted
+      ? { color: OVER_LINE, weight: 1, opacity: 0.55, lineJoin: 'round' as const, fillColor: c.fill, fillOpacity: c.op }
+      : { color: '#FFFFFF', weight: 1.25, opacity: 0.7, lineJoin: 'round' as const, fillColor: c.fill, fillOpacity: c.op };
+  };
   const loadFile = (f: string) => {
     if (loaded.has(f)) return Promise.resolve();
     if (!loading.has(f)) loading.set(f, fetch(`${src}${f}.json`).then((r) => r.json() as Promise<FC<DongP> | null>).then((fc) => {
@@ -208,6 +260,12 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     if (!isNear()) {
       for (const { p } of sggByFile.values()) {
         if (!inScope(p.f)) continue;
+        if (budget) {
+          const c = counts?.get(p.f) ?? 0;
+          if (!c) continue; // 예산 모드: 예산 안 동네가 있는 곳만 라벨
+          list.push({ id: p.f, at: p.l, name: p.nm, value: `${c}곳`, color: paint(p, p.f).fill, n: c, pick: () => pickSgg(p, sggByFile.get(p.f)!.layer), active: false, layer: sggByFile.get(p.f)!.layer });
+          continue;
+        }
         const v = valueOf(p);
         list.push({ id: p.f, at: p.l, name: p.nm, value: v === null ? null : valueText(v, kind), color: colorOf(v), n: p.n, pick: () => pickSgg(p, sggByFile.get(p.f)!.layer), active: false, layer: sggByFile.get(p.f)!.layer });
       }
@@ -215,6 +273,13 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       for (const [key, parts] of dongs) {
         const { p, sg } = parts[0];
         if (!inScope(sg.f) || !view.contains(p.l)) continue;
+        if (budget) {
+          const bv = budgetValue(p);
+          if (bv === null && key !== selected) continue; // 예산 모드: 예산 안 동네만 라벨(고른 곳은 예외)
+          if (blds?.pinsShown && z >= BUILD_ZOOM && key !== selected) continue;
+          list.push({ id: key, at: p.l, name: p.k.split(' ').pop()!, value: bv, color: paint(p).fill, n: p.n + (bv === null ? 0 : 1e6), pick: () => pickDong(key), active: key === selected, layer: parts[0].layer });
+          continue;
+        }
         const v = valueOf(p);
         if (v === null && z < LOW_LABEL_ZOOM) continue;
         if (blds?.pinsShown && z >= BUILD_ZOOM && key !== selected) continue; // 건물 핀과 겹치지 않게
@@ -259,7 +324,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
       return near
         // 동 단계: 고른 시·군·구 테두리는 틀(map-frame)이 그리므로 여기서는 범위를 안 정했을 때만 옅은 선
         ? (scopeSgg ? { stroke: false, fill: false } : { stroke: true, fill: false, color: SLATE, weight: 1.25, opacity: 0.4, fillOpacity: 0, fillColor: GREY })
-        : { stroke: true, fill: true, color: '#FFFFFF', weight: p.f === selectedSgg ? 3 : 1.5, opacity: p.f === selectedSgg ? 1 : 0.75, fillColor: colorOf(valueOf(p)), fillOpacity: valueOf(p) === null ? GREY_FILL : FILL };
+        : (() => { const c = paint(p, p.f); return { stroke: true, fill: true, color: budget && c.muted && p.f !== selectedSgg ? OVER_LINE : '#FFFFFF', weight: p.f === selectedSgg ? 3 : budget && c.muted ? 1 : 1.5, opacity: p.f === selectedSgg ? 1 : budget && c.muted ? 0.55 : 0.75, fillColor: c.fill, fillOpacity: c.op }; })();
     });
     if (!near && selectedSgg) sggByFile.get(selectedSgg)?.layer.bringToFront();
     for (const [key, parts] of dongs) for (const { p, layer } of parts) {
@@ -272,6 +337,7 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const refresh = () => {
     const near = isNear();
     updateFrame(); syncLevel();
+    if (budget) drawLegend(); // 예산 모드는 단계(시·군·구/동)마다 범례가 다르다
     // 범위 밖 시·군·구의 동은 그리지 않는다
     for (const [f, layer] of loaded) {
       if (inScope(f) && !dongGroup.hasLayer(layer)) dongGroup.addLayer(layer);
@@ -375,7 +441,13 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   const allBounds = () => boundsOf(() => true);
   const sidoBounds = (sido: string) => boundsOf((f) => sidoOf(f) === sido);
   const sidoName = (sido: string) => [...sggByFile.values()].find(({ p }) => sidoOf(p.f) === sido)?.p.sd ?? '';
-  const metaOf = (p: { n: number; m: M }) => { const v = valueOf(p); return v === null ? '거래 적음' : valueText(v, kind); };
+  const metaOf = (p: { n: number; m: M; f?: string; k?: string }) => {
+    if (budget) {
+      if (p.k === undefined && p.f) { const c = counts?.get(p.f) ?? 0; return c ? `예산 안 ${c}곳` : '예산 안 없음'; }
+      const j = verdict(p); return j.s === 'ok' ? budgetValue(p)! : j.s === 'over' ? '예산보다 높음' : '거래 적음';
+    }
+    const v = valueOf(p); return v === null ? '거래 적음' : valueText(v, kind);
+  };
   const SIDO_ORDER = ['seoul', 'gyeonggi', 'incheon'];
   const pk = (k: string) => pane.querySelector<HTMLElement>(`.rm-pick-${k}`);
   let curDong: string | null = null;
@@ -520,6 +592,42 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
     announce(`${type === 'v' ? '빌라' : '오피스텔'} ${kind === 'j' ? '전세' : '월세'} 중위값으로 칠했어요.`);
   }));
 
+  // ---- 내 예산 맞춤(본문 폼 RentBudget) ----
+  const segs = pane.querySelector<HTMLElement>('.rm-segs');
+  const pill = pane.querySelector<HTMLElement>('.rm-budget');
+  pill?.querySelector('.rm-budget-edit')?.addEventListener('click', () => pane.querySelector<HTMLElement>('[data-map-close]')?.click());
+  const pillText = () => {
+    if (!pill || !budget) return;
+    const ty = budget.type === 'a' ? '' : `${typeName(budget.type)} `;
+    const money = budget.kind === 'j' ? `전세 ${shortB(budget.dep)} 이하` : `월세 ${shortB(budget.dep)}/${budget.mon}만 이하`;
+    const total = counts ? [...counts].filter(([f]) => inScope(f)).reduce((s, [, c]) => s + c, 0) : null;
+    pill.querySelector('.rm-budget-text')!.textContent = `${ty}${money}${total === null ? '' : ` · ${total.toLocaleString('ko-KR')}곳`}`;
+  };
+  document.addEventListener('map:area', () => pillText());
+  const applyBudget = (b: Budget | null) => {
+    budget = b;
+    if (segs) segs.hidden = Boolean(b);
+    if (pill) pill.hidden = !b;
+    unlift();
+    const draw = () => { pillText(); drawLegend(); restyle(); drawLabels(); };
+    if (b) {
+      void loadIndex(src).then((ix) => {
+        if (budget !== b) return;
+        counts = new Map();
+        for (const d of ix.d) if (judge(d, ix.low, b).s === 'ok') counts.set(d.f, (counts.get(d.f) ?? 0) + 1);
+        for (const f of sggByFile.keys()) if (!counts.has(f)) counts.set(f, 0);
+        draw();
+      }).catch(() => {});
+    } else counts = null;
+    draw();
+  };
+  document.addEventListener('rent:budget', (e) => { if (document.contains(canvas)) applyBudget((e as CustomEvent<Budget | null>).detail); });
+  document.addEventListener('rent:scope', (e) => {
+    if (!document.contains(canvas)) return;
+    pendingScope();
+    setScope((e as CustomEvent<{ sido: string | null }>).detail.sido, null);
+  });
+
   // ---- 첫 화면 ----
   drawLegend();
   const sgFocus = focus.slug && focus.sido ? sggByFile.get(`${focus.sido}__${focus.slug}`) : undefined;
@@ -548,7 +656,9 @@ export async function mountRent(pane: HTMLElement, canvas: HTMLElement): Promise
   // 시·군·구·동 페이지는 그 시·군·구만, 시·도 페이지는 그 시·도만 보이게 시작(홈·전월세 첫 화면은 전체)
   if (sgFocus) setScope(sidoOf(sgFocus.p.f), sgFocus.p.f, false);
   else if (focus.sido) setScope(focus.sido, null, false);
+  else { const ps = pendingScope(); if (ps && !kept) setScope(ps.sido, null); }
   refresh();
+  if (budget) applyBudget(budget); // 지도 위치가 잡힌 뒤에(라벨 계산에 화면 범위가 필요)
 
   // 지도 화면 안 이동(soft-nav): 새 본문의 지도 초점으로 범위·선택만 바꾸고, 지도는 그대로 둔다
   document.addEventListener('dnkk:swap', (e) => {

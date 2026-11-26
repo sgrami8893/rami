@@ -1,0 +1,239 @@
+---
+// '내 예산으로 갈 수 있는 동네'(2026-11-26 사용자·제미나이 2단계). /rent/ 첫 화면 본문(PC 왼쪽 패널, 모바일 본문 위)에 들어간다.
+// - '지역별 시세 / 내 예산 맞춤' 전환. 예산 맞춤이면 아래 [data-rent-regions] 지역 목록을 숨기고 폼·목록을 보여 준다.
+// - 계산·상태는 rent-budget-core.ts, 지도 색칠은 rent-map.ts. 상태는 주소(?b=…)에 남긴다.
+// 법적 선: 실거래 '중위값'과 예산의 단순 비교만. 위험·안전·추천 표현, 매물·계약 가능 단정 없음. 광고 자리 없음.
+import { RENT_RULE } from '../../lib/rent.ts';
+const NOTE = '최근 12개월 실거래 중위값 기준 참고용이며, 실제 매물·계약 가능 여부와 다를 수 있어요.';
+const qb = 'rb-quick relative flex h-9 items-center rounded-lg bg-bg px-3 text-[length:calc(14px*var(--fs,1))] font-semibold text-ink-2 hover:text-brand after:absolute after:inset-x-0 after:-inset-y-1 after:content-[""]';
+const fld = 'num block h-12 w-full rounded-xl border border-line bg-card px-3 pr-14 text-[length:calc(18px*var(--fs,1))] font-semibold text-ink';
+---
+<div id="rent-mode" class="mt-4" hidden>
+  <fieldset class="rm-seg w-full sm:w-fit [&>label]:flex-1 [&>label]:whitespace-nowrap">
+    <legend class="sr-only">보기 방식</legend>
+    <label><input type="radio" name="rent-mode" value="region" checked class="sr-only" />지역별 시세</label>
+    <label><input type="radio" name="rent-mode" value="budget" class="sr-only" />내 예산 맞춤</label>
+  </fieldset>
+</div>
+
+<section id="rent-budget" class="mt-4" aria-labelledby="rb-h" hidden>
+  <h2 id="rb-h" class="text-h2 font-bold text-ink">내 예산으로 갈 수 있는 동네</h2>
+  <p class="mt-1 text-cap text-ink-2">{NOTE}</p>
+
+  <form class="rb-form mt-3 grid gap-4 rounded-2xl border border-line bg-card p-4" onsubmit="return false">
+    <div class="flex flex-wrap gap-x-3 gap-y-3">
+      <fieldset class="rm-seg"><legend class="sr-only">전세·월세</legend>
+        <label><input type="radio" name="rb-kind" value="j" checked class="sr-only" />전세</label>
+        <label><input type="radio" name="rb-kind" value="w" class="sr-only" />월세</label>
+      </fieldset>
+      <fieldset class="rm-seg"><legend class="sr-only">주택 유형</legend>
+        <label><input type="radio" name="rb-type" value="a" checked class="sr-only" />전체</label>
+        <label><input type="radio" name="rb-type" value="v" class="sr-only" />빌라</label>
+        <label><input type="radio" name="rb-type" value="o" class="sr-only" />오피스텔</label>
+      </fieldset>
+    </div>
+    <div>
+      <label for="rb-dep" class="rb-dep-label text-cap font-semibold text-ink-2">보증금 상한</label>
+      <div class="relative mt-1">
+        <input id="rb-dep" name="dep" type="number" inputmode="numeric" min="0" max="300000" step="100" value="20000" aria-describedby="rb-dep-won" class={fld} />
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cap text-ink-3" aria-hidden="true">만 원</span>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <p id="rb-dep-won" class="num mr-auto text-cap text-ink-2">2억 원</p>
+        <button type="button" class={qb} data-add="dep:-1000" aria-label="보증금 1,000만 원 빼기">−1,000만</button>
+        <button type="button" class={qb} data-add="dep:1000" aria-label="보증금 1,000만 원 더하기">+1,000만</button>
+        <button type="button" class={qb} data-add="dep:5000" aria-label="보증금 5,000만 원 더하기">+5,000만</button>
+      </div>
+    </div>
+    <div class="rb-mon" hidden>
+      <label for="rb-mon" class="text-cap font-semibold text-ink-2">월세 상한</label>
+      <div class="relative mt-1">
+        <input id="rb-mon" name="mon" type="number" inputmode="numeric" min="0" max="1000" step="5" value="60" aria-describedby="rb-mon-won" class={fld} />
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cap text-ink-3" aria-hidden="true">만 원</span>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <p id="rb-mon-won" class="num mr-auto text-cap text-ink-2">월 60만 원</p>
+        <button type="button" class={qb} data-add="mon:-10" aria-label="월세 10만 원 빼기">−10만</button>
+        <button type="button" class={qb} data-add="mon:10" aria-label="월세 10만 원 더하기">+10만</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="mt-5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+    <h3 class="text-body font-bold text-ink">조건에 맞는 동네 <span class="rb-count num text-brand">-</span></h3>
+    <fieldset class="rm-seg"><legend class="sr-only">정렬</legend>
+      <label><input type="radio" name="rb-sort" value="room" checked class="sr-only" />예산 여유순</label>
+      <label><input type="radio" name="rb-sort" value="n" class="sr-only" />거래 많은 순</label>
+    </fieldset>
+  </div>
+  <fieldset class="rm-seg mt-3 w-full sm:w-fit [&>label]:flex-1 [&>label]:min-w-0 [&>label]:px-2">
+    <legend class="sr-only">지역</legend>
+    <label><input type="radio" name="rb-region" value="" checked class="sr-only" />전체</label>
+    <label><input type="radio" name="rb-region" value="seoul" class="sr-only" />서울</label>
+    <label><input type="radio" name="rb-region" value="gyeonggi" class="sr-only" />경기</label>
+    <label><input type="radio" name="rb-region" value="incheon" class="sr-only" />인천</label>
+  </fieldset>
+  <div class="rb-scope mt-2 flex flex-wrap items-center gap-2 text-cap text-ink-2" hidden>
+    <span class="rb-scope-text"></span>
+    <button type="button" class="rb-scope-up relative font-semibold text-brand underline after:absolute after:inset-x-0 after:-inset-y-3 after:content-['']"></button>
+  </div>
+  <p class="rb-loading mt-3 text-cap text-ink-3">동네 목록 불러오는 중</p>
+  <ol class="rb-list mt-2 grid gap-1.5" aria-labelledby="rb-h"></ol>
+  <p class="rb-empty mt-3 rounded-2xl bg-card px-4 py-4 text-body text-ink-2" hidden>조건에 맞는 동네가 없어요. 금액을 바꾸거나 유형·지역을 넓혀 보세요.</p>
+  <button type="button" class="rb-more mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border border-line bg-card text-body font-semibold text-ink hover:text-brand" hidden>더 보기</button>
+  <p class="mt-4 text-cap text-ink-3">{NOTE} 최근 12개월 거래가 {RENT_RULE.INDEX_MIN}건 미만인 동네는 빼고 셌어요. 전용면적 조건은 아직 없어요.</p>
+</section>
+
+<script>
+  import { onPage, noteUrl } from '../../scripts/soft-nav.ts';
+  import { announce } from '../../scripts/copy.ts';
+  import { DEFAULT, DEFAULT_W_DEP, MAX_DEP, MAX_MON, parse, query, judge, loadIndex, setBudget, askScope, roomStep, ROOM_COLORS, short, won, typeName, type Budget, type Index, type Verdict } from '../../scripts/rent-budget-core.ts';
+
+  // 지도에서 보는 범위(시·도·시·군·구). 지도가 옮겨질 때마다 rent-map.ts가 'map:area'를 보낸다
+  let area: { sido: string | null; sgg: string | null } = { sido: null, sgg: null };
+  let rerender: (() => void) | null = null;
+  document.addEventListener('map:area', (e) => { area = (e as CustomEvent<typeof area>).detail; rerender?.(); });
+
+  const PAGE = 20;
+  onPage(() => {
+    const root = document.getElementById('rent-budget');
+    const mode = document.getElementById('rent-mode');
+    rerender = null;
+    if (!root || !mode) { setBudget(null); return; }
+    mode.hidden = false; // JS가 있을 때만 전환을 보여 준다
+    const regions = document.querySelector<HTMLElement>('[data-rent-regions]');
+    const $ = <T extends Element>(s: string) => root.querySelector<T>(s)!;
+    const radios = (name: string) => [...document.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)];
+    const val = (name: string) => radios(name).find((r) => r.checked)?.value ?? '';
+    const setRadio = (name: string, v: string) => radios(name).forEach((r) => { r.checked = r.value === v; });
+    const dep = $<HTMLInputElement>('#rb-dep'), mon = $<HTMLInputElement>('#rb-mon');
+
+    const init = parse(location.search);
+    const q0 = new URLSearchParams(location.search);
+    let b: Budget = init ?? { ...DEFAULT };
+    const deps = { j: b.kind === 'j' ? b.dep : DEFAULT.dep, w: b.kind === 'w' ? b.dep : DEFAULT_W_DEP };
+    let on = Boolean(init);
+    let shown = PAGE;
+    setRadio('rent-mode', on ? 'budget' : 'region');
+    setRadio('rb-kind', b.kind); setRadio('rb-type', b.type);
+    setRadio('rb-sort', q0.get('s') === 'n' ? 'n' : 'room');
+    setRadio('rb-region', ['seoul', 'gyeonggi', 'incheon'].includes(q0.get('r') ?? '') ? q0.get('r')! : '');
+    dep.value = String(b.dep); mon.value = String(b.mon);
+
+    let index: Index | null = null;
+    const num = (el: HTMLInputElement, hi: number) => Math.max(0, Math.min(hi, Math.round(Number(el.value) || 0)));
+    const sync = () => {
+      const kind = val('rb-kind') as Budget['kind'];
+      b = { kind, dep: num(dep, MAX_DEP), mon: num(mon, MAX_MON), type: val('rb-type') as Budget['type'] };
+      $<HTMLElement>('.rb-mon').hidden = kind !== 'w';
+      $('.rb-dep-label').textContent = kind === 'j' ? '전세 보증금 상한' : '월세 보증금 상한';
+      $('#rb-dep-won').textContent = won(b.dep);
+      $('#rb-mon-won').textContent = `월 ${b.mon.toLocaleString('ko-KR')}만 원`;
+    };
+    const writeUrl = () => {
+      const r = val('rb-region'), s = val('rb-sort');
+      const url = on ? `${location.pathname}${query(b, { r: r || null, s: s === 'n' ? 'n' : null })}` : location.pathname;
+      if (url !== location.pathname + location.search) { history.replaceState(history.state, '', url); noteUrl(); }
+    };
+
+    // ---- 목록 ----
+    const list = $<HTMLOListElement>('.rb-list');
+    const valueText = (v: Extract<Verdict, { s: 'ok' }>) => (b.kind === 'j' ? `${typeName(v.t)} 전세 중위 ${short(v.d)}` : `${typeName(v.t)} 월세 중위 ${short(v.d)} / 월 ${v.w}만`);
+    const diffText = (v: Extract<Verdict, { s: 'ok' }>) => (v.diff <= 0 ? '예산과 같아요' : b.kind === 'j' ? `예산보다 ${short(v.diff)} 낮아요` : `월세 예산보다 ${v.diff}만 낮아요`);
+    let lastCount = -1, timer = 0;
+    const render = () => {
+      if (!index || !on) return;
+      const region = val('rb-region');
+      const sgg = area.sgg && (!region || area.sgg.startsWith(`${region}__`)) ? area.sgg : null;
+      const rows = index.d.filter((d) => (sgg ? d.f === sgg : !region || d.f.startsWith(`${region}__`)))
+        .map((d) => ({ d, v: judge(d, index!.low, b) }))
+        .filter((x): x is { d: typeof x.d; v: Extract<Verdict, { s: 'ok' }> } => x.v.s === 'ok');
+      if (val('rb-sort') === 'n') rows.sort((x, y) => y.d.n - x.d.n);
+      else rows.sort((x, y) => y.v.room - x.v.room || y.d.n - x.d.n);
+      const scope = $<HTMLElement>('.rb-scope');
+      scope.hidden = !sgg;
+      if (sgg) {
+        $('.rb-scope-text').textContent = `지도에서 보는 ${index.sgg[sgg]?.[1] ?? ''} 안의 동네예요.`;
+        const sd = sgg.split('__')[0];
+        $('.rb-scope-up').textContent = `${radios('rb-region').find((r) => r.value === sd)?.parentElement?.textContent ?? ''} 전체 보기`;
+        $<HTMLElement>('.rb-scope-up').dataset.sido = sd;
+      }
+      $('.rb-count').textContent = `${rows.length.toLocaleString('ko-KR')}곳`;
+      list.replaceChildren(...rows.slice(0, shown).map(({ d, v }) => {
+        const [sd, nm, sh] = index!.sgg[d.f] ?? ['', '', null];
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = d.h ?? sh ?? '/rent/';
+        a.className = 'flex min-h-14 items-start gap-3 rounded-xl bg-card px-3 py-2.5 hover:bg-subtle';
+        // 좁은 화면에서도 잘리지 않게 한 칸에 두 줄: 이름·지역 / 중위값·예산 차이(줄이 모자라면 그 사이에서 줄바꿈)
+        const dot = document.createElement('span'); dot.setAttribute('aria-hidden', 'true');
+        dot.className = 'mt-1.5 size-3 shrink-0 rounded-full ring-1 ring-black/10'; dot.style.background = ROOM_COLORS[roomStep(v.room)];
+        const body = document.createElement('span'); body.className = 'min-w-0 flex-1';
+        const top = document.createElement('span'); top.className = 'flex flex-wrap items-baseline gap-x-2';
+        const name = document.createElement('span'); name.className = 'text-body font-bold text-ink'; name.textContent = d.k.split(' ').pop()!;
+        const where = document.createElement('span'); where.className = 'text-cap text-ink-3'; where.textContent = `${sd} ${nm}${d.k.includes(' ') ? ` ${d.k.split(' ')[0]}` : ''} · 거래 ${d.n.toLocaleString('ko-KR')}건`;
+        top.append(name, where);
+        const bot = document.createElement('span'); bot.className = 'mt-0.5 flex flex-wrap gap-x-2 text-cap';
+        const value = document.createElement('span'); value.className = 'num font-bold text-ink'; value.textContent = valueText(v);
+        const diff = document.createElement('span'); diff.className = 'num text-ink-2'; diff.textContent = diffText(v);
+        bot.append(value, diff);
+        body.append(top, bot);
+        a.append(dot, body);
+        li.append(a);
+        return li;
+      }));
+      $<HTMLElement>('.rb-empty').hidden = rows.length > 0;
+      const more = $<HTMLButtonElement>('.rb-more');
+      more.hidden = rows.length <= shown;
+      more.textContent = `더 보기 (${Math.min(PAGE, rows.length - shown)}곳)`;
+      if (rows.length !== lastCount) {
+        lastCount = rows.length;
+        clearTimeout(timer);
+        timer = window.setTimeout(() => announce(`조건에 맞는 동네 ${rows.length}곳이에요.`), 600);
+      }
+    };
+    rerender = render;
+
+    const apply = (resetPage = true) => {
+      sync();
+      if (resetPage) shown = PAGE;
+      root.hidden = !on;
+      if (regions) regions.hidden = on;
+      writeUrl();
+      setBudget(on ? b : null);
+      if (on && !index) {
+        loadIndex().then((x) => { index = x; $<HTMLElement>('.rb-loading').hidden = true; render(); })
+          .catch(() => { $('.rb-loading').textContent = '동네 목록을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.'; });
+      }
+      render();
+    };
+
+    radios('rent-mode').forEach((r) => r.addEventListener('change', () => {
+      on = val('rent-mode') === 'budget';
+      apply();
+      if (on) { const r0 = val('rb-region'); if (r0) askScope(r0); }
+      announce(on ? '내 예산 맞춤으로 바꿨어요. 지도에 예산 안 동네만 색칠해요.' : '지역별 시세로 바꿨어요.');
+    }));
+    radios('rb-kind').forEach((r) => r.addEventListener('change', () => {
+      const k = val('rb-kind') as Budget['kind'];
+      deps[k === 'j' ? 'w' : 'j'] = num(dep, MAX_DEP);
+      dep.value = String(deps[k]);
+      apply();
+    }));
+    for (const n of ['rb-type', 'rb-sort']) radios(n).forEach((r) => r.addEventListener('change', () => apply()));
+    radios('rb-region').forEach((r) => r.addEventListener('change', () => { area = { sido: val('rb-region') || null, sgg: null }; askScope(val('rb-region') || null); apply(); }));
+    let inputTimer = 0;
+    for (const el of [dep, mon]) el.addEventListener('input', () => { sync(); clearTimeout(inputTimer); inputTimer = window.setTimeout(() => apply(), 250); });
+    root.querySelectorAll<HTMLButtonElement>('[data-add]').forEach((btn) => btn.addEventListener('click', () => {
+      const [k, d] = btn.dataset.add!.split(':');
+      const el = k === 'dep' ? dep : mon;
+      el.value = String(Math.max(0, Math.min(k === 'dep' ? MAX_DEP : MAX_MON, (Number(el.value) || 0) + Number(d))));
+      apply();
+      announce(k === 'dep' ? `보증금 상한 ${won(b.dep)}` : `월세 상한 월 ${b.mon}만 원`);
+    }));
+    $('.rb-more').addEventListener('click', () => { shown += PAGE; render(); (list.children[shown - PAGE] as HTMLElement | undefined)?.querySelector('a')?.focus(); });
+    $('.rb-scope-up').addEventListener('click', (e) => { const sd = (e.currentTarget as HTMLElement).dataset.sido ?? null; area = { sido: sd, sgg: null }; setRadio('rb-region', sd ?? ''); askScope(sd); apply(); });
+
+    apply();
+  });
+</script>

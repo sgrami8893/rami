@@ -135,6 +135,9 @@ export function initSoftNav() {
   });
 }
 
+/** 페이지가 history.replaceState로 주소(쿼리)를 바꾼 뒤 알려 준다(같은 주소 링크 판정이 어긋나지 않게) */
+export const noteUrl = () => { if (started) current = keyOf(new URL(location.href)); };
+
 /** 본문이 바뀔 때마다 다시 돌려야 하는 초기화(탭·더 보기·계산기 등). 자기 요소가 없으면 아무것도 하지 않게 짠다 */
 export function onPage(fn: () => void) {
   fn();
