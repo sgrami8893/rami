@@ -9,14 +9,22 @@ const chip = 'v-chip';
     {free && <button type="button" data-filter="free" aria-pressed="false" class={chip}>무료만</button>}
     <button type="button" data-filter="open" aria-pressed="false" class={chip}>지금 운영시간 내</button>
     <button type="button" data-filter="24h" aria-pressed="false" class={chip}>24시간</button>
+    <button type="button" data-filter="stay" aria-pressed="false" class={chip}>나올 때까지 운영</button>
   </div>
+  {sort && (
+    <p class="v-stay-k w-full" aria-hidden="true">머물 시간 <small>· 이 시간 기준 예상 요금</small></p>
+    <div class="v-stay w-full" role="group" aria-label="머물 시간(예상 요금 기준)">
+      {[['0', '30분'], ['1', '1시간'], ['2', '2시간'], ['3', '3시간'], ['4', '종일']].map(([i, t]) => <button type="button" data-stay={i} aria-pressed={i === '2' ? 'true' : 'false'}>{t}</button>)}
+    </div>
+  )}
   {sort && (
     <div role="group" aria-label="정렬" class="v-seg">
       <button type="button" data-sort="name" aria-pressed="true">이름순</button>
-      <button type="button" data-sort="fee2" aria-pressed="false">2시간 요금 낮은 순</button>
+      <button type="button" data-sort="fee2" aria-pressed="false">예상 요금 낮은 순</button>
     </div>
   )}
 </div>
-<p class="mt-2 text-cap text-ink-3"><span id="lot-count">{total}곳</span> · 운영 여부는 공개된 운영시간 기준이에요</p>
+<p class="mt-2 text-cap text-ink-3"><span id="lot-count">{total}곳</span> · 요금·운영 여부는 공개된 자료로 계산한 참고값이에요</p>
 <p id="list-status" class="sr-only" aria-live="polite"></p>
-<p id="lot-empty" hidden class="py-4 text-body text-ink-2">조건에 맞는 주차장이 없어요. 조건을 하나 꺼 보세요.</p>
+<p id="lot-empty" hidden class="v-empty-pin text-body text-ink-2">조건에 맞는 주차장이 없어요. 조건을 하나 꺼 보세요.</p>
+<div class="flex justify-center"><button type="button" id="lot-reset" class="v-btn sec" hidden>켜 둔 조건 모두 끄기</button></div>

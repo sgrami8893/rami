@@ -1,11 +1,13 @@
 ---
-// 동네콕콕 심볼: 높이가 다른 두 건물(동네) + 동네를 콕 짚는 점. 자체 제작 단색 기하 도형(지도 핀·태극 색 미사용).
+// 동네콕콕 심볼 B '콕 핀'(2026-11-27 사용자 선택, 제미나이 합의): 둥근 네모 + 가운데 아래 짧은 세모 꼬리 + 흰 원 속 살구 점.
+// 비율 고정(모서리 반지름 = 한 변의 22%, 꼬리 폭 = 33%, 흰 원 지름 40%, 살구 점 17%). 자체 제작 기하 도형.
+// 피할 것: 물방울 핀 실루엣, 렌즈형 사각 아이콘(네모+고리+모서리 점), 한쪽으로 치우친 말풍선 꼬리.
 interface Props { size?: number; class?: string }
 const { size = 24, class: cls = '' } = Astro.props;
+const id = `lg${Math.random().toString(36).slice(2, 8)}`;
 ---
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class={`shrink-0 ${cls}`}>
-  <rect width="24" height="24" rx="7" fill="currentColor" />
-  <rect x="5" y="10" width="6" height="9" rx="1.5" fill="#fff" />
-  <rect x="13" y="6" width="6" height="13" rx="1.5" fill="#fff" fill-opacity=".72" />
-  <circle cx="8" cy="6.5" r="2" fill="#fff" />
+  <defs><linearGradient id={id} x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#6B1F57" /><stop offset="1" stop-color="#B23A5B" /></linearGradient></defs>
+  <path d="M12 23.2 8.7 19.4H6.4A4.4 4.4 0 0 1 2 15V6.4A4.4 4.4 0 0 1 6.4 2h11.2A4.4 4.4 0 0 1 22 6.4V15a4.4 4.4 0 0 1-4.4 4.4h-2.3Z" fill={`url(#${id})`} />
+  <circle cx="12" cy="10.7" r="4" fill="#fff" /><circle cx="12" cy="10.7" r="1.7" fill="#F59A4E" />
 </svg>

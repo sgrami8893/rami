@@ -105,7 +105,7 @@ export function renderNear(box: HTMLElement, r: Near, tool: NearTool = 'home') {
       const row = el('div', 'v-row');
       const t = el('div', 't');
       const a = el('a', 'n', l.name) as HTMLAnchorElement; a.href = l.href;
-      t.append(a, el('span', 's', `${l.fee} · ${l.tag}`));
+      t.append(a, el('span', 's', l.tag && l.tag !== l.fee && l.tag !== '유료' && l.tag !== '무료' ? `${l.fee} · 기본 ${l.tag}` : l.fee));
       const v = el('div', 'val', distText(l.d)); v.append(el('small', '', '직선거리'));
       row.append(t, v);
       list.append(row);

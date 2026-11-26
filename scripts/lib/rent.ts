@@ -74,7 +74,7 @@ export interface Dist { n: number; min: number; p10?: number; p25: number; media
 export interface KindStats { jeonse: Dist | null; wolse: { n: number; deposit: Dist | null; monthly: Dist | null } | null }
 export interface TypeStats extends KindStats {
   n: number; newCount: number; renewCount: number; usedRightCount: number;
-  bands: { key: string; label: string; n: number; jeonseMedian: number | null; wolseDepositMedian: number | null; wolseMonthlyMedian: number | null }[];
+  bands: { key: string; label: string; n: number; jeonseMedian: number | null; wolseDepositMedian: number | null; wolseMonthlyMedian: number | null; jq?: number[]; wq?: number[] }[];
   quarters: { q: string; n: number; jeonseMedian: number | null; wolseMonthlyMedian: number | null }[];
   buildYearMedian: number | null;
 }
@@ -99,7 +99,9 @@ export function typeStats(ds: Deal[]): TypeStats {
   const bands = AREA_BANDS.map((b) => {
     const xs = ds.filter((d) => bandOf(d.area) === b.key);
     const j = xs.filter((d) => d.monthly === 0), w = xs.filter((d) => d.monthly > 0);
-    return { key: b.key, label: b.label, n: xs.length, jeonseMedian: med(j.map((d) => d.deposit)), wolseDepositMedian: med(w.map((d) => d.deposit)), wolseMonthlyMedian: med(w.map((d) => d.monthly)) };
+    // '이 가격 위치'(2026-11-27 제미나이 합의: 같은 유형·같은 면적 구간으로만): 30건 이상인 구간만 [최저,P10,P25,중위,P75,P90,최고]
+    const qs7 = (v: number[]) => { if (v.length < 30) return undefined; const s = [...v].sort((a, b) => a - b); return [s[0], q(s, 0.1), q(s, 0.25), q(s, 0.5), q(s, 0.75), q(s, 0.9), s.at(-1)!]; };
+    return { key: b.key, label: b.label, n: xs.length, jeonseMedian: med(j.map((d) => d.deposit)), wolseDepositMedian: med(w.map((d) => d.deposit)), wolseMonthlyMedian: med(w.map((d) => d.monthly)), jq: qs7(j.map((d) => d.deposit)), wq: qs7(w.map((d) => d.monthly)) };
   }).filter((b) => b.n >= K_MIN);
   const qs = [...new Set(ds.map((d) => quarterOf(d.ym)))].sort();
   return {
