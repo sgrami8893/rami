@@ -56,11 +56,12 @@ export function createBuildings(ctx: Ctx) {
   let cluster: Leaflet.MarkerClusterGroup | null = null;
   const markers = new Map<string, Leaflet.Marker>();
   let active: string | null = null;
-  const pinIcon = L.divIcon({ className: 'map-hit map-hit-pin', html: '<span class="map-pin map-pin-bld"><span class="map-pin-dot"></span></span>', iconSize: [32, 32], iconAnchor: [16, 16] });
+  // 건물 핀(v3): 실거래 건수 알약 '12건'(주차장 핀과 같은 모양, 짙은 회색)
+  const pinIcon = (b: Bld) => L.divIcon({ className: 'map-hit map-hit-tag', iconSize: [0, 0], iconAnchor: [0, 0], html: `<span class="map-tag map-tag-info">${b.n.toLocaleString('ko-KR')}건</span>` });
   const markerOf = (b: Bld) => {
     let m = markers.get(b.id);
     if (m) return m;
-    m = L.marker([b.lat!, b.lng!], { icon: pinIcon, keyboard: true, title: '' });
+    m = L.marker([b.lat!, b.lng!], { icon: pinIcon(b), keyboard: true, title: '' });
     m.on('click', (e) => { L.DomEvent.stopPropagation(e); open(b, { fromMap: true }); });
     m.on('add', () => {
       const el = m!.getElement();
@@ -82,7 +83,7 @@ export function createBuildings(ctx: Ctx) {
       cluster = L.markerClusterGroup({
         showCoverageOnHover: false, maxClusterRadius: 50, spiderfyDistanceMultiplier: 1.6, disableClusteringAtZoom: 18, chunkedLoading: true,
         iconCreateFunction: (c) => { const n = c.getChildCount(); const sz = n < 10 ? 's' : n < 100 ? 'm' : 'l'; const hit = sz === 'l' ? 52 : 44;
-          return L.divIcon({ className: 'map-hit', html: `<span class="map-cluster map-cluster-${sz}" aria-hidden="true">${n}</span><span class="sr-only">건물 ${n}곳 묶음, 눌러서 확대</span>`, iconSize: [hit, hit] }); },
+          return L.divIcon({ className: 'map-hit', html: `<span class="map-cluster map-cluster-${sz}" aria-hidden="true"><b>${n.toLocaleString('ko-KR')}</b>곳</span><span class="sr-only">건물 ${n}곳 묶음, 눌러서 확대</span>`, iconSize: [hit, hit] }); },
       });
     }
     await Promise.all(ctx.filesInView().map(load));
@@ -101,7 +102,7 @@ export function createBuildings(ctx: Ctx) {
     const root = map.getContainer().parentElement!;
     const boxes = [...root.querySelectorAll<HTMLElement>('.rm-toolbar > *, .rm-legend, .rm-card, .leaflet-control-zoom')].filter((x) => !x.closest('[hidden]') && x.offsetParent !== null).map((x) => x.getBoundingClientRect());
     for (const el of root.querySelectorAll<HTMLElement>('.leaflet-marker-pane .map-hit:not(.rm-label-wrap)')) {
-      const r = el.getBoundingClientRect();
+      const r = ((el.firstElementChild as HTMLElement | null) ?? el).getBoundingClientRect(); // 보이는 알약·묶음(핀 래퍼는 크기 0)
       const hit = boxes.some((q) => r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top);
       el.style.visibility = hit ? 'hidden' : '';
       if (hit) el.setAttribute('tabindex', '-1'); else if (el.getAttribute('tabindex') === '-1') el.setAttribute('tabindex', '0');

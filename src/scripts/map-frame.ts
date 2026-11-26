@@ -37,9 +37,9 @@ export function createFrame(L: typeof Leaflet, map: Leaflet.Map) {
       const ring = (r: GeoJSON.Position[]) => r.map(([x, y]) => [y, x] as [number, number]);
       // 바깥 큰 사각형 + 지역 고리들(짝수-홀수 채움이라 지역 안은 비고, 지역 안의 구멍은 다시 덮인다)
       const outer: [number, number][] = [[30, 118], [30, 136], [44, 136], [44, 118]];
-      const mask = L.polygon([outer, ...polys.flatMap((p) => p.map(ring))], { pane: maskPane, stroke: false, fillColor: '#EEF2F7', fillOpacity: 0.62, interactive: false });
-      const halo = L.geoJSON(g, { pane: framePane, interactive: false, style: { color: '#FFFFFF', weight: 6, opacity: 0.7, fill: false, lineJoin: 'round', lineCap: 'round' } });
-      const line = L.geoJSON(g, { pane: framePane, interactive: false, style: { color: SLATE, weight: 2.25, opacity: 0.8, fill: false, lineJoin: 'round', lineCap: 'round', className: 'map-frame-line' } });
+      const mask = L.polygon([outer, ...polys.flatMap((p) => p.map(ring))], { pane: maskPane, stroke: false, fillColor: '#EEF2F7', fillOpacity: 0.5, interactive: false });
+      const halo = L.geoJSON(g, { pane: framePane, interactive: false, style: { color: '#FFFFFF', weight: 5, opacity: 0.5, fill: false, lineJoin: 'round', lineCap: 'round' } });
+      const line = L.geoJSON(g, { pane: framePane, interactive: false, style: { color: SLATE, weight: 2, opacity: 0.55, fill: false, lineJoin: 'round', lineCap: 'round', className: 'map-frame-line' } });
       layers = [mask, halo, line];
       layers.forEach((l) => l.addTo(map));
     },

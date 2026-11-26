@@ -10,7 +10,8 @@ import { announce, copyText } from './copy.ts';
 import type * as Leaflet from 'leaflet';
 import { baseMap } from './map-base.ts';
 
-type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string };
+type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 export interface MapApi { focus(id: string): void; hover(id: string | null): void; filter(ids: Set<string> | null): void; resize(): void }
 
 const LG = window.matchMedia('(min-width: 1024px)');
@@ -30,7 +31,10 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
   // 핀·클러스터 모양은 우리 CSS(global.css .map-pin/.map-cluster)로 그린다(타사 아이콘 이미지 없음).
   // 누르는 영역: 핀 32px(보이는 점 22px), 클러스터 44px. WCAG 2.5.8(24px 이상)을 넘기고,
   // 묶음 반경 60px·펼침 간격 40px로 누르는 영역끼리 겹치지 않게 한다(axe target-size 겹침 해소, 2026-11-26).
-  const pin = L.divIcon({ className: 'map-hit map-hit-pin', html: '<span class="map-pin"><span class="map-pin-dot"></span></span>', iconSize: [32, 32], iconAnchor: [16, 16] });
+  // v3(2026-11-26 사용자 '핀·클러스터 맘에 안 듦'): 핀은 핵심 사실을 적은 작은 알약(무료·300원/5분·24시간) + 아래 꼬리.
+  // 알약 높이 30px(WCAG 2.5.8 24px 이상). 래퍼는 크기 0으로 좌표에 두고 알약을 위쪽 가운데에 그린다(CSS .map-tag)
+  const pinOf = (p: Pt) => L.divIcon({ className: 'map-hit map-hit-tag', iconSize: [0, 0], iconAnchor: [0, 0],
+    html: `<span class="map-tag map-tag-${esc(p.tone ?? 'info')}">${esc(p.tag ?? '●')}</span>` });
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     maxClusterRadius: 60,
@@ -38,7 +42,7 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
     chunkedLoading: true,
     // 묶음 크기는 개수에 따라 3단계(작음 36·중간 42·큼 50px). 누르는 영역은 모두 44px 이상
     iconCreateFunction: (c) => { const n = c.getChildCount(); const sz = n < 10 ? 's' : n < 100 ? 'm' : 'l'; const hit = sz === 'l' ? 52 : 44;
-      return L.divIcon({ className: 'map-hit', html: `<span class="map-cluster map-cluster-${sz}" aria-hidden="true">${n}</span><span class="sr-only">${n}곳 묶음, 눌러서 확대</span>`, iconSize: [hit, hit] }); },
+      return L.divIcon({ className: 'map-hit', html: `<span class="map-cluster map-cluster-${sz}" aria-hidden="true"><b>${n.toLocaleString('ko-KR')}</b>곳</span><span class="sr-only">${n}곳 묶음, 눌러서 확대</span>`, iconSize: [hit, hit] }); },
   });
 
   const card = pane.querySelector<HTMLElement>('.map-card')!;
@@ -86,7 +90,7 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
   map.on('click', () => { if (active) select(null); });
 
   for (const p of points) {
-    const m = L.marker([p.lat, p.lng], { icon: pin, title: p.name, keyboard: true, alt: p.name });
+    const m = L.marker([p.lat, p.lng], { icon: pinOf(p), title: p.name, keyboard: true, alt: p.name });
     m.on('add', () => { m.getElement()?.setAttribute('aria-label', p.name); paint(p.id); }); // 다시 그려질 때 강조 유지
     m.on('click', (e) => { L.DomEvent.stopPropagation(e); select(p.id, (e as Leaflet.LeafletMouseEvent).originalEvent instanceof KeyboardEvent); });
     markers.set(p.id, m);
