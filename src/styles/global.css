@@ -206,7 +206,10 @@ input[type="search"]:focus-visible { outline: none; }
    도형은 Tab으로 오지 않고(키보드는 라벨 버튼·지역 선택으로 고름), 고른 곳은 도형 모양의 굵은 테두리로 이미 보인다. */
 .map-pane path.leaflet-interactive:focus, .map-pane path.leaflet-interactive:focus-visible, .map-pane svg:focus, .map-pane svg *:focus { outline: none; }
 /* 지금 보는 시·군·구 테두리·고른 동: 파란 빛 테(검은 선 대신) */
-.leaflet-container path.rm-glow { filter: drop-shadow(0 0 2px rgb(15 23 42 / 0.55)) drop-shadow(0 1px 4px rgb(15 23 42 / 0.3)); }
+.leaflet-container path.rm-glow { filter: drop-shadow(0 1px 3px rgb(15 23 42 / 0.28)); }
+.leaflet-container path.rm-hov { filter: drop-shadow(0 1px 4px rgb(15 23 42 / 0.22)); }
+.leaflet-container path.rm-sel { filter: drop-shadow(0 0 6px rgb(107 31 87 / 0.45)) drop-shadow(0 2px 8px rgb(15 23 42 / 0.18)); }
+.leaflet-container path.rm-edge { filter: drop-shadow(0 0 3px rgb(15 23 42 / 0.18)); }
 .rent-map path.leaflet-interactive { transition: fill-opacity .15s ease; }
 /* 지역 틀(map-frame.ts): 중간 회청색 외곽선에 아주 옅은 그림자(검은 선·파란 빛 없음) */
 .leaflet-container path.map-frame-line { filter: drop-shadow(0 1px 2px rgb(15 23 42 / 0.18)); }
@@ -516,3 +519,67 @@ html[data-rt="o"]:not([data-rk="w"]) .v-row .sw-wrap .sw.rm-oj, html[data-rt="o"
 .mv-legend-pins { display: flex; flex-wrap: wrap; gap: 4px 10px; width: auto; max-width: calc(100% - 24px); padding: 8px 12px; }
 .mv-legend-pins span { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: #4E5968; }
 .mv-legend-pins i { width: 10px; height: 10px; border-radius: 9999px; border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgb(15 23 42 / .15); }
+
+/* ===== 시각 다듬기 v1(2026-11-26 사용자 '정부 사이트처럼 안 보이게, 공들인 상업 사이트 느낌'·'검정 외곽선 구려') =====
+   원칙: 진한 테두리 대신 그림자·옅은 색 면으로 구분, 숫자는 크게, 도구마다 고유 색 타일(아이콘 색만, 파랑 없음). */
+:root { --sh-1: 0 1px 2px rgb(25 31 40 / .04), 0 2px 10px rgb(25 31 40 / .05); --sh-2: 0 2px 4px rgb(25 31 40 / .05), 0 10px 28px rgb(25 31 40 / .09); }
+.v-hd { background: rgb(255 255 255 / .86); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom-color: rgb(25 31 40 / .05); }
+/* 홈 머리 */
+.v-eyebrow { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 9999px; background: var(--color-brand-weak); color: var(--color-brand); font-size: calc(13px * var(--fs, 1)); font-weight: 700; }
+.v-h1 .hl { background: linear-gradient(transparent 62%, #F6DCE9 62%, #F6DCE9 92%, transparent 92%); }
+.v-search-big { background: #fff; box-shadow: var(--sh-1), inset 0 0 0 1px rgb(25 31 40 / .06); transition: box-shadow .15s ease; }
+.v-search-big:hover { box-shadow: var(--sh-2), inset 0 0 0 1px rgb(25 31 40 / .08); }
+.v-sec { margin: 26px 0 10px; font-size: calc(18px * var(--fs, 1)); font-weight: 800; letter-spacing: -0.02em; color: var(--color-ink); }
+/* 도구 카드: 테두리 없이 그림자, 도구별 색 타일, 누르면 살짝 내려앉음 */
+.v-tool { border: 0; box-shadow: var(--sh-1), inset 0 0 0 1px rgb(25 31 40 / .04); transition: transform .15s ease, box-shadow .15s ease; }
+.v-tool:hover { background: #fff; transform: translateY(-1px); box-shadow: var(--sh-2); }
+.v-tool:active { transform: translateY(0) scale(.99); }
+.v-tool .ic { width: 48px; height: 48px; border-radius: 14px; }
+.v-tool[data-t="rent"] .ic { background: linear-gradient(145deg, #F9E9F1, #F1D6E4); color: var(--color-brand); }
+.v-tool[data-t="parking"] .ic { background: linear-gradient(145deg, #E6F5EC, #D3EDDD); color: #0E7C4A; }
+.v-tool[data-t="muin"] .ic { background: linear-gradient(145deg, #FFF3E3, #FCE5C6); color: #9A4A00; }
+.v-tool .t b { font-size: calc(18px * var(--fs, 1)); font-weight: 800; letter-spacing: -0.02em; }
+.v-tool .t .num { color: var(--color-ink); font-weight: 700; }
+/* 칩: 회색 덩어리 대신 흰 바탕 + 아주 옅은 윤곽 */
+.v-chip { background: #fff; box-shadow: inset 0 0 0 1px rgb(25 31 40 / .09); font-weight: 600; transition: background-color .12s ease, box-shadow .12s ease; }
+.v-chip:hover { background: var(--color-subtle); box-shadow: inset 0 0 0 1px rgb(25 31 40 / .14); }
+.v-chip[aria-pressed="true"], .v-chip[aria-current] { background: var(--color-brand-weak); box-shadow: inset 0 0 0 1.5px rgb(107 31 87 / .55); }
+/* 답 카드: 회색 상자 → 옅은 자두빛이 스미는 흰 카드 */
+.v-ans { background: linear-gradient(165deg, #FBF3F7 0%, #FFFFFF 58%); box-shadow: var(--sh-1), inset 0 0 0 1px rgb(107 31 87 / .07); padding: 18px 20px; }
+.v-ans .v { font-size: calc(26px * var(--fs, 1)); letter-spacing: -0.03em; }
+.v-ans .k { color: var(--color-ink-2); }
+/* 범위 막대 점: 검정 테두리 → 흰 점 + 자두 테두리 + 그림자 */
+.v-range { height: 10px; }
+.v-range .dot { width: 22px; height: 22px; border: 5px solid var(--color-brand); box-shadow: 0 2px 6px rgb(107 31 87 / .35); }
+/* 버튼 */
+.v-btn { transition: background-color .12s ease, transform .12s ease; }
+.v-btn:active { transform: scale(.98); }
+.v-btn.sec { background: #fff; box-shadow: inset 0 0 0 1px rgb(25 31 40 / .1); }
+.v-btn.sec:hover { background: var(--color-subtle); }
+.near-wrap > .v-btn.sec, .near-wrap > .v-chip, .v-near-btn { background: var(--color-brand-weak); color: var(--color-brand); box-shadow: none; }
+.near-wrap > .v-btn.sec:hover, .near-wrap > .v-chip:hover, .v-near-btn:hover { background: #F2E2EB; }
+.near-place .k { background: var(--color-brand); }
+/* 목록 줄 */
+.v-row { border-bottom-color: rgb(25 31 40 / .05); transition: background-color .12s ease; }
+.v-row .val { font-size: calc(18px * var(--fs, 1)); font-weight: 800; letter-spacing: -0.02em; }
+/* 바닥글: 짧고 가볍게 */
+.v-foot { margin-top: 40px; border-top: 0; padding-top: 20px; position: relative; }
+.v-foot::before { content: ''; position: absolute; left: 0; top: 0; width: 32px; height: 3px; border-radius: 3px; background: var(--color-brand); opacity: .5; }
+.v-foot .srcs { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.v-foot .srcs a { color: var(--color-ink-2); }
+/* 주차장 핀 v4: 진한 알약이 지도를 덮던 것 → 유료·혼합·확인 필요는 흰 알약 + 색 점, 무료만 초록 채움(무료가 한눈에) */
+.map-tag:not(.map-tag-free) { background: #fff; color: var(--color-ink); border-color: rgb(25 31 40 / .08); box-shadow: 0 2px 8px rgb(15 23 42 / .16); }
+.map-tag:not(.map-tag-free)::before { content: ''; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--tag); flex: none; }
+.map-tag:not(.map-tag-free)::after { background: #fff; border-right-color: rgb(25 31 40 / .08); border-bottom-color: rgb(25 31 40 / .08); }
+.map-tag-unknown { color: var(--color-ink-3) !important; }
+.map-hit.is-active .map-tag, .map-hit.is-active .map-tag:not(.map-tag-free) { --tag: var(--color-brand); background: var(--color-brand); color: #fff; border-color: #fff; box-shadow: 0 6px 18px rgb(107 31 87 / .4); }
+.map-hit.is-active .map-tag::before { display: none; }
+.map-hit.is-active .map-tag::after { background: var(--color-brand); border-color: #fff; }
+.map-cluster { box-shadow: 0 2px 10px rgb(15 23 42 / .16); border: 0 !important; }
+.map-hit.is-hover .map-cluster { background: var(--color-brand); }
+/* 지도 범례·카드 */
+.mv-legend { box-shadow: var(--sh-2); border: 0; }
+@media (prefers-reduced-motion: reduce) { .v-tool, .v-btn, .v-chip, .v-search-big { transition: none; } .v-tool:hover, .v-tool:active, .v-btn:active { transform: none; } }
+.mv-lbl.is-sel { box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px rgb(107 31 87 / .35), 0 8px 20px rgb(107 31 87 / .3); transform: translate(-50%, -50%) scale(1.06); }
+.v-tool .t .num, .v-tool .t .ft { display: block; }
+.v-tool .t .ft { margin-top: 0; }

@@ -38,7 +38,7 @@ const split = Astro.slots.has('map');
 const tileOrigin = split && MAP.enabled && MAP.url.startsWith('https://') ? new URL(MAP.url.replace(/\{[^}]+\}/g, '0')).origin : null;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? '미상';
-const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t) => t.slug))
+const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t) => t.slug).sort((a, b) => ['rent', 'parking', 'muin'].indexOf(a) - ['rent', 'parking', 'muin'].indexOf(b)))
   .flatMap((s) => s === 'rent' ? (RENT_HAS_PAGES ? RENT_SOURCES : []) : [{ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }])
   .filter((s) => s.name);
 if (Astro.props.sources) sources.splice(0, sources.length, ...Astro.props.sources);
