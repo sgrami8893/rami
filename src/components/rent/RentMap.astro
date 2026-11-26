@@ -6,6 +6,7 @@ import { MAP } from '../../config.ts';
 import { HAS_PAGES, periodText } from '../../lib/rent.ts';
 import Icon from '../Icon.astro';
 import RentPickBody from './RentPickBody.astro';
+import { HAS_BUILDINGS } from '../../lib/rent-buildings.ts';
 interface Props { focus?: { sido?: string; slug?: string; dong?: string | null } }
 const { focus = {} } = Astro.props;
 const show = MAP.enabled && HAS_PAGES;
@@ -22,7 +23,7 @@ const seg = 'relative flex min-h-11 min-w-[60px] cursor-pointer items-center jus
       </button>
     </div>
     <div class="relative min-h-0 flex-1">
-      <div class="map-canvas rent-map absolute inset-0" data-kind="rent" data-src="/geo/rent/" data-cfg={JSON.stringify(cfg)} data-focus={JSON.stringify({ ...focus, dong: focus.dong ?? undefined })}>
+      <div class="map-canvas rent-map absolute inset-0" data-kind="rent" data-src="/geo/rent/" data-bsrc={HAS_BUILDINGS ? '/geo/rent-b/' : undefined} data-cfg={JSON.stringify(cfg)} data-focus={JSON.stringify({ ...focus, dong: focus.dong ?? undefined })}>
         <p class="map-loading flex h-full items-center justify-center text-cap text-ink-3">지도 불러오는 중</p>
       </div>
       <div class="rm-toggles pointer-events-none absolute left-3 top-3 z-[1000] flex flex-wrap gap-2" hidden>
@@ -52,13 +53,13 @@ const seg = 'relative flex min-h-11 min-w-[60px] cursor-pointer items-center jus
         <p class="mt-1 flex items-center gap-1.5 text-[12px] text-ink-2"><span class="inline-block size-2.5 rounded-sm bg-[#E5E8EB] ring-1 ring-black/10" aria-hidden="true"></span>회색: 거래 적음 · {periodText()}</p>
         <p class="rm-legend-sr sr-only"></p>
       </div>
-      <div class="rm-card map-float absolute inset-x-3 bottom-3 z-[1001] p-4 lg:inset-x-auto lg:left-3 lg:w-[360px]" role="region" aria-label="고른 동네 요약" tabindex="-1" hidden>
+      <div class="rm-card map-float absolute inset-x-3 bottom-3 z-[1001] max-h-[min(72%,600px)] overflow-y-auto overscroll-contain p-4 lg:inset-x-auto lg:left-3 lg:w-[360px]" role="region" aria-label="고른 동네 요약" tabindex="-1" hidden>
         <button type="button" class="rp-close absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-ink-3 hover:bg-bg" aria-label="요약 닫기"><Icon name="x" size={20} /></button>
         <RentPickBody />
       </div>
     </div>
     <p class="map-note shrink-0 border-t border-line bg-card px-4 py-2 text-[length:calc(14px*var(--fs,1))] text-ink-3">
-      최근 12개월 실거래 중위값 · 경계: 행정안전부 도로명주소 법정동 경계{MAP.name && <> · 배경지도 {MAP.policyUrl ? <a href={MAP.policyUrl} class="underline" target="_blank" rel="noopener noreferrer">{MAP.name}</a> : MAP.name} 오픈플랫폼 이용</>}
+      최근 12개월 실거래 중위값{HAS_BUILDINGS && ' · 건물 위치: 행정안전부 주소정보'} · 경계: 행정안전부 도로명주소 법정동 경계{MAP.name && <> · 배경지도 {MAP.policyUrl ? <a href={MAP.policyUrl} class="underline" target="_blank" rel="noopener noreferrer">{MAP.name}</a> : MAP.name} 오픈플랫폼 이용</>}
     </p>
   </section>
 )}

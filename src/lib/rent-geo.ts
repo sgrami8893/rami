@@ -1,8 +1,9 @@
 // 전월세 지도(단계구분도) 데이터: 단순화한 법정동 경계(src/data/geo, scripts/geo/build-boundaries.py) + 전월세 통계를
 // 빌드 때 합쳐 정적 JSON(/geo/rent/*.json)으로 낸다. 통계를 새로 올리면 빌드만 다시 하면 된다(경계는 그대로).
 // 경계 출처: 도로명주소 기반 법정동 경계(행정안전부 주소정보, /about/#licenses). 좌표는 소수 5자리(약 1m)로 줄였다.
-// 표시 원칙: 사실 숫자(중위값·건수)만. 위험·안전 판정 없음. 지번·건물명·층·계약일 없음.
+// 표시 원칙: 사실 숫자(중위값·건수)만. 위험·안전 판정 없음. b = 건물별 이력이 있는 건물 수(이력은 /geo/rent-b/, rent-buildings.ts).
 import { stats, rentPath, hasDongPage, sidoShort, periodText, RENT_RULE, type RentArea } from './rent.ts';
+import { buildingCount } from './rent-buildings.ts';
 import type { SidoSlug } from '../../scripts/lib/regions.ts';
 
 type Geo = { type: 'FeatureCollection'; features: { type: 'Feature'; properties: Record<string, unknown>; geometry: unknown }[] };
@@ -39,7 +40,7 @@ export async function sggCollection() {
   const features = geo.features.map((f) => {
     const { sido, slug, l } = f.properties as { sido: SidoSlug; slug: string; l: number[] };
     const a = stats.areas.find((x) => x.dong === null && x.sido === sido && x.sigungu === slug);
-    return { ...f, properties: { f: fileOf(sido, slug), nm: a?.sigunguName ?? slug, sd: sidoShort(sido), l, n: a?.n ?? 0, h: a ? rentPath(sido, slug) : null, m: metrics(a) } };
+    return { ...f, properties: { f: fileOf(sido, slug), nm: a?.sigunguName ?? slug, sd: sidoShort(sido), l, n: a?.n ?? 0, h: a ? rentPath(sido, slug) : null, m: metrics(a), b: buildingCount(fileOf(sido, slug)) } };
   });
   return { type: 'FeatureCollection', period: periodText(), low: LOW_N, breaks: Object.fromEntries(METRICS.map((k, i) => [k, breaks(i)])), features };
 }
@@ -54,7 +55,7 @@ export async function emdCollection(file: string) {
   const features = geo.features.map((f) => {
     const { k, c, l } = f.properties as { k: string; c: string; l: number[] };
     const a = stats.areas.find((x) => x.dong === k && x.sido === sido && x.sigungu === slug);
-    return { ...f, properties: { k, c, l, n: a?.n ?? 0, h: a && hasDongPage(a) ? rentPath(sido, slug, k) : null, m: metrics(a) } };
+    return { ...f, properties: { k, c, l, n: a?.n ?? 0, h: a && hasDongPage(a) ? rentPath(sido, slug, k) : null, m: metrics(a), b: buildingCount(file, k) } };
   });
   return { type: 'FeatureCollection', features };
 }
