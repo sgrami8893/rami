@@ -48,3 +48,22 @@ export const toPoint = (l: ParkingLot) => ({
 });
 /** 세 요일 묶음(평일·토·공휴일)이 모두 24시간으로 확인된 곳('확인 필요'로 바꾼 00:00~00:00은 제외) */
 export const is24hLot = (l: ParkingLot) => (['weekday', 'sat', 'holiday'] as const).every((k) => l.hours[k] === '24h' && !l.ambiguousDays?.includes(k));
+
+/** 지도 위 지역 칩(RegionChips) 표: 고르면 그 지역 주차장 페이지로 이동(2026-11-26 '주차장도 전월세 지도와 같은 구성') */
+import { parkingDongs as _pd } from '../../scripts/lib/parking.ts';
+let _dongMemo: ReturnType<typeof _pd> | null = null;
+export function parkingNav(sido: SidoSlug, sg?: string | null, dong?: string | null) {
+  _dongMemo ??= _pd(lots);
+  const n = (x: number) => `${x.toLocaleString('ko-KR')}곳`;
+  return {
+    cur: { sido, sgg: sg ?? null, dong: dong ?? null },
+    label: { sido: sidoShort(sido), sgg: sg ? sigunguName(sido, sg) : null, dong: dong ?? null },
+    sidos: SIDOS.map((s) => ({ value: s, label: sidoShort(s), href: parkingPath(s) })),
+    sggs: [{ value: '', label: `${sidoShort(sido)} 전체`, href: parkingPath(sido) }, ...regionsOf(sido).map((r) => ({ value: r.sigungu, label: r.name, meta: n(r.lots.length), href: parkingPath(sido, r.sigungu) }))],
+    dongs: sg ? [{ value: '', label: `${sigunguName(sido, sg)} 전체`, href: parkingPath(sido, sg) }, ..._dongMemo.filter((d) => d.sido === sido && d.sigungu === sg).sort((a, b) => a.dong.localeCompare(b.dong, 'ko'))
+      .map((d) => ({ value: d.dong, label: d.dong, meta: n(d.lots.length), href: `${parkingPath(sido, sg)}${encodeURIComponent(d.dong)}/` }))] : [],
+  };
+}
+export type ParkingNav = ReturnType<typeof parkingNav>;
+/** 지도 위 조건 토글(목록의 [data-filter] 버튼과 같은 키) */
+export const PARKING_MAP_FILTERS = [{ key: 'free', label: '무료만' }, { key: 'open', label: '지금 운영' }, { key: '24h', label: '24시간' }];

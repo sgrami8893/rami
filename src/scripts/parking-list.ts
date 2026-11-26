@@ -2,12 +2,27 @@
 // 운영 상태는 공개된 운영시간으로 계산한 값이고 실제 개방 여부는 아니다(화면에 안내).
 import { isOpenAt, kstNow, type Hours } from '../../scripts/lib/hours.ts';
 import holidaysJson from '../data/holidays.json';
+import { onPage } from './soft-nav.ts';
 
 const holidays = new Set<string>(Object.entries(holidaysJson).filter(([k]) => /^\d{4}$/.test(k)).flatMap(([, v]) => v as string[]));
 
+// 지도 화면 안 이동(soft-nav)으로 다른 주차장 목록이 들어와도 다시 묶이게 onPage로 등록한다(한 번만).
+// 이전 목록에 건 문서 단위 이벤트·1분 타이머는 새 목록을 묶을 때 정리한다.
+let registered = false;
+let cleanup: (() => void) | null = null;
 export function initParkingList() {
+  if (registered) return;
+  registered = true;
+  onPage(bind);
+}
+function bind() {
   const list = document.getElementById('lot-list');
-  if (!list) return;
+  if (!list || list.dataset.bound) return;
+  list.dataset.bound = '1';
+  cleanup?.();
+  const ac = new AbortController();
+  let timer = 0;
+  cleanup = () => { ac.abort(); clearInterval(timer); };
   const rows = () => [...list.querySelectorAll<HTMLElement>('.lot')];
   const chips = [...document.querySelectorAll<HTMLButtonElement>('[data-filter]')];
   const sorts = [...document.querySelectorAll<HTMLButtonElement>('[data-sort]')];
@@ -79,7 +94,7 @@ export function initParkingList() {
   document.addEventListener('click', (e) => {
     const a = (e.target as HTMLElement).closest?.('a[href^="#"]') as HTMLAnchorElement | null;
     if (a) unclipFor(a.hash);
-  });
+  }, { signal: ac.signal });
 
   // 정렬: 무료(0) → 요금 낮은 순 → 요금 정보 없음은 맨 뒤. 같은 값은 이름순.
   const boxes = [...list.querySelectorAll<HTMLElement>('[data-lots]')];
@@ -115,5 +130,5 @@ export function initParkingList() {
 
   paintOpen(); apply();
   unclipFor(location.hash);
-  setInterval(() => { paintOpen(); apply(); }, 60_000);
+  timer = window.setInterval(() => { paintOpen(); apply(); }, 60_000);
 }

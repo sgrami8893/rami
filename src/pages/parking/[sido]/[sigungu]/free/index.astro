@@ -1,5 +1,6 @@
 ---
 // 시·군·구 무료주차장 허브. 색인 기준: 무료 5곳 이상 + 무료 비율 85% 이하(scripts/lib/parking.ts freeSigunguIndexable). 기준 미달은 noindex.
+import { parkingNav, PARKING_MAP_FILTERS as PF } from '../../../../../lib/parking.ts';
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
 import LotMore from '../../../../../components/parking/LotMore.astro';
@@ -37,7 +38,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
     <a href={base} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{r.name} 공영주차장 전체 {st.total}곳 · 요금 비교</a>
     <a href={freePath(sido)} class="flex min-h-11 items-center rounded-xl bg-bg px-4 text-body font-semibold text-ink-2 hover:text-brand">{sidoShort(sido)} 무료주차장 전체</a>
   </nav>
-  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${r.name} 무료주차장`} missing={free.length - pts.length} area={{ sido, sigungu: r.sigungu }} />}
+  {mapOn(pts) && <MapPanel slot="map" points={pts.map(toPoint)} label={`${r.name} 무료주차장`} missing={free.length - pts.length} area={{ sido, sigungu: r.sigungu }} tool="parking" nav={parkingNav(sido, r.sigungu)} filters={PF} />}
 </BaseLayout>
 
 <script>

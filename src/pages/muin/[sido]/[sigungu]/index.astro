@@ -176,7 +176,7 @@ const crumbs = [
   {REPORT_FORM.formId && <p class="pb-6 px-1 text-cap text-ink-3">정보가 실제와 다르면 각 기기 상세 페이지의 '정보 오류 제보'로 알려 주세요.</p>}
   <div class="band -mx-5 lg:mx-0 lg:rounded-lg" aria-hidden="true"></div>
   <GuideList flat limit={4} />
-  {mapOn(ks) && <MapPanel slot="map" points={validPoints(ks).map(kioskPoint)} label={`${st.sigunguName} 무인민원발급기`} missing={ks.length - validPoints(ks).length} area={{ sido, sigungu }} />}
+  {mapOn(ks) && <MapPanel slot="map" points={validPoints(ks).map(kioskPoint)} label={`${st.sigunguName} 무인민원발급기`} missing={ks.length - validPoints(ks).length} area={{ sido, sigungu }} tool="muin" />}
 </BaseLayout>
 
 <script>

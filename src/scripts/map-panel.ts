@@ -9,10 +9,12 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import { announce, copyText } from './copy.ts';
 import type * as Leaflet from 'leaflet';
 import { baseMap } from './map-base.ts';
+import { initSoftNav, takeView, setView } from './soft-nav.ts';
 
 type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-export interface MapApi { focus(id: string): void; hover(id: string | null): void; filter(ids: Set<string> | null): void; resize(): void }
+export interface MapApi { focus(id: string): void; hover(id: string | null): void; filter(ids: Set<string> | null): void; resize(): void;
+  /** 지금 지도 위치(도구 전환 때 이어 쓰기) */ view(): { lat: number; lng: number; zoom: number }; destroy(): void }
 
 const LG = window.matchMedia('(min-width: 1024px)');
 const enc = encodeURIComponent;
@@ -99,7 +101,8 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
   map.addLayer(cluster);
   const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
   const fit = () => (points.length === 1 ? map.setView(bounds.getCenter(), 16) : map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 }));
-  fit();
+  const kept = takeView(); // 지도 위 도구 전환이면 보던 위치 그대로
+  if (kept) map.setView([kept.lat, kept.lng], kept.zoom); else fit();
 
   const count = pane.querySelector('.map-count');
   const note = pane.querySelector<HTMLElement>('.map-filter-note');
@@ -127,15 +130,32 @@ async function mount(pane: HTMLElement): Promise<MapApi> {
       if (active && !shown.has(active)) select(null);
       const filtered = shown.size < points.length;
       if (count) count.textContent = filtered ? `조건에 맞는 ${shown.size}곳 표시` : `${points.length}곳 표시`;
-      if (note) { note.hidden = !filtered; note.textContent = `조건에 맞는 ${shown.size}곳만 보고 있어요`; }
+      if (note && !note.dataset.off) { note.hidden = !filtered; note.textContent = `조건에 맞는 ${shown.size}곳만 보고 있어요`; }
     },
     resize() { map.invalidateSize(); },
+    view() { const c = map.getCenter(); return { lat: c.lat, lng: c.lng, zoom: map.getZoom() }; },
+    destroy() { map.remove(); },
   };
 }
 
+// 지도 화면 안 이동(soft-nav)으로 지도 칸이 통째로 바뀌면(도구 전환·주차장 지역 이동) 이전 지도를 지우고 새 칸을 다시 묶는다.
+let inited = false;
+let teardown: (() => void) | null = null;
 export function initMapPanels() {
+  if (!inited) {
+    inited = true;
+    document.addEventListener('dnkk:unmount', () => { teardown?.(); teardown = null; });
+    document.addEventListener('dnkk:swap', (e) => { if ((e as CustomEvent<{ remount: boolean }>).detail.remount) setupPane(); });
+  }
+  setupPane();
+  initSoftNav();
+}
+function setupPane() {
   const pane = document.getElementById('map-pane');
-  if (!pane) return;
+  if (!pane || pane.dataset.bound) return;
+  pane.dataset.bound = '1';
+  const ac = new AbortController();
+  const sig = { signal: ac.signal };
   const rows = [...document.querySelectorAll<HTMLElement>('[data-map-id]')];
   document.documentElement.classList.add('has-map');
   document.querySelectorAll<HTMLElement>('[data-map-open], [data-map-locate]').forEach((b) => { b.hidden = false; });
@@ -143,6 +163,11 @@ export function initMapPanels() {
   let api: MapApi | null = null;
   let loading: Promise<MapApi> | null = null;
   let pendingFilter: Set<string> | null | undefined;
+  // 주차장 지도: 지역 칩(그 지역 페이지로 이동)과 조건 토글
+  void import('./map-region-nav.ts').then((m) => { m.initRegionNav(pane); m.initMapFilters(pane, ac.signal); });
+  teardown = () => { ac.abort(); api?.destroy(); document.documentElement.classList.remove('map-sheet-open'); };
+  // 지도 위 도구 전환: 새 지도가 지금 위치에서 시작하게
+  document.addEventListener('dnkk:keep-view', () => { if (api) setView(api.view()); }, sig);
   const ensure = () => (loading ??= mount(pane).then((a) => {
     api = a;
     if (pendingFilter !== undefined) a.filter(pendingFilter);
@@ -182,9 +207,9 @@ export function initMapPanels() {
   };
   document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => b.addEventListener('click', () => show(null, b)));
   pane.querySelector('[data-map-close]')?.addEventListener('click', () => closeSheet());
-  addEventListener('popstate', () => closeSheet(true));
+  addEventListener('popstate', () => closeSheet(true), sig);
   // 지도 화면 안 이동(soft-nav)으로 본문이 바뀌면 모바일 전체 화면 지도를 닫는다(주소 기록은 soft-nav가 이미 남김)
-  document.addEventListener('dnkk:swap', () => { if (isOpen()) { pane.removeAttribute('data-open'); pane.removeAttribute('role'); pane.removeAttribute('aria-modal'); document.documentElement.classList.remove('map-sheet-open'); opener = null; } document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => { b.hidden = false; b.addEventListener('click', () => show(null, b)); }); });
+  document.addEventListener('dnkk:swap', (ev) => { if ((ev as CustomEvent<{ remount: boolean }>).detail.remount) return; if (isOpen()) { pane.removeAttribute('data-open'); pane.removeAttribute('role'); pane.removeAttribute('aria-modal'); document.documentElement.classList.remove('map-sheet-open'); opener = null; } document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => { b.hidden = false; b.addEventListener('click', () => show(null, b)); }); }, sig);
   pane.addEventListener('keydown', (e) => {
     if (!isOpen()) return;
     if (e.key === 'Escape') { closeSheet(); return; }
@@ -199,7 +224,7 @@ export function initMapPanels() {
     if (LG.matches) { if (isOpen()) closeSheet(); ensure().catch(() => {}); }
     api?.resize();
   };
-  LG.addEventListener('change', onBreakpoint);
+  LG.addEventListener('change', onBreakpoint, sig);
   if (LG.matches) {
     // PC는 첫 화면부터 지도가 보인다. 본문 그리기를 막지 않도록 잠깐 미룬다.
     const idle = (window as unknown as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 50));
@@ -223,13 +248,13 @@ export function initMapPanels() {
     for (const r of rows) r.toggleAttribute('data-active', r.dataset.mapId === id);
     const row = id ? rows.find((r) => r.dataset.mapId === id) : null;
     if (row && LG.matches && row.offsetParent !== null) row.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  });
+  }, sig);
   // 목록 필터와 같은 조건으로 핀을 거른다(행이 hidden이면 지도에서도 뺀다. '더 보기'로 접힌 행은 조건에 맞으므로 그대로 둔다)
   const syncFilter = () => {
     const ids = new Set(rows.filter((r) => !r.hidden).map((r) => r.dataset.mapId!));
     const all = ids.size === rows.length ? null : ids;
     if (api) api.filter(all); else pendingFilter = all;
   };
-  document.addEventListener('list:filtered', syncFilter);
+  document.addEventListener('list:filtered', syncFilter, sig);
   if (rows.length) syncFilter(); // 목록 스크립트가 먼저 돌아 이미 걸러 둔 경우(주소의 ?filter= 등)
 }

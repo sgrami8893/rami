@@ -38,7 +38,9 @@ export async function baseMap(canvas: HTMLElement) {
     canvas.parentElement?.appendChild(note);
   });
   // 패널 크기가 바뀌면(모바일 전체 화면 열기, 창 크기 변경) 지도 크기를 다시 잰다
-  new ResizeObserver(() => map.invalidateSize()).observe(canvas);
+  const ro = new ResizeObserver(() => map.invalidateSize());
+  ro.observe(canvas);
+  map.on('unload', () => ro.disconnect()); // 지도 칸이 바뀌어 지울 때(soft-nav) 지운 지도를 다시 재지 않게
   return { L, map };
 }
 export type { Leaflet };

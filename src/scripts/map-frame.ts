@@ -44,10 +44,14 @@ export type Area = { sido: string; sgg?: string; dong?: string };
 /** 핀 지도용: 페이지 지역의 틀 + 한 단계 아래 경계(가는 선) + 이 페이지의 동 강조. 경계가 없으면 아무것도 그리지 않는다 */
 export async function areaFrame(L: typeof Leaflet, map: Leaflet.Map, a: Area) {
   const frame = createFrame(L, map);
+  const framePane = 'dnkk-frame';
+  let ghost: Leaflet.GeoJSON | null = null;
+  const unghost = () => { if (ghost) { map.removeLayer(ghost); ghost = null; } };
+  map.on('mouseout', unghost);
   if (a.sgg) {
     const [sg, emd] = await Promise.all([getGeo(`${AREA_SRC}sgg.json`), getGeo(`${AREA_SRC}emd/${a.sgg}.json`)]);
     const me = sg?.features.find((f) => f.properties.f === a.sgg);
-    if (!me) return;
+    if (!me || !document.contains(map.getContainer())) return; // 그사이 지도가 바뀌었으면 그만
     if (emd) {
       const isMe = (k: string) => Boolean(a.dong) && (k === a.dong || k.endsWith(` ${a.dong}`));
       const kids = L.geoJSON(emd as unknown as GeoJSON.FeatureCollection, {
@@ -58,8 +62,9 @@ export async function areaFrame(L: typeof Leaflet, map: Leaflet.Map, a: Area) {
           // 마우스를 올리면 동 이름(사용자 요청: 지도 위에서 지금 어디인지). 키보드 사용자는 목록·이동 경로로 같은 정보를 본다
           l.bindTooltip(String(f.properties.k), { sticky: true, direction: 'top', offset: [0, -12], className: 'rm-tip map-area-tip', opacity: 1 });
           if (!isMe(f.properties.k)) {
-            l.on('mouseover', () => { (l as Leaflet.Path).setStyle({ color: PICK, weight: 3, opacity: 1, fillColor: '#FFFFFF', fillOpacity: 0.12 }); ((l as Leaflet.Path).getElement() as Element | undefined)?.classList.add('rm-glow'); (l as Leaflet.Path).bringToFront(); });
-            l.on('mouseout', () => { kids.resetStyle(l); ((l as Leaflet.Path).getElement() as Element | undefined)?.classList.remove('rm-glow'); });
+            // 테두리는 별도 유령 선으로(도형을 맨 앞으로 옮기면 mouseout을 놓쳐 강조가 남는다)
+            l.on('mouseover', () => { unghost(); ghost = L.geoJSON(f.geometry, { pane: framePane, interactive: false, style: { color: PICK, weight: 3, opacity: 1, fill: false, lineJoin: 'round', className: 'rm-glow' } }).addTo(map); (l as Leaflet.Path).setStyle({ fillColor: '#FFFFFF', fillOpacity: 0.15 }); });
+            l.on('mouseout', () => { unghost(); kids.resetStyle(l); });
           }
         },
       }).addTo(map);
@@ -69,7 +74,7 @@ export async function areaFrame(L: typeof Leaflet, map: Leaflet.Map, a: Area) {
   } else {
     const [sd, sg] = await Promise.all([getGeo(`${AREA_SRC}sido.json`), getGeo(`${AREA_SRC}sgg.json`)]);
     const me = sd?.features.find((f) => f.properties.sido === a.sido);
-    if (!me) return;
+    if (!me || !document.contains(map.getContainer())) return;
     if (sg) {
       L.geoJSON({ type: 'FeatureCollection', features: sg.features.filter((f) => f.properties.f.startsWith(`${a.sido}__`)) } as unknown as GeoJSON.FeatureCollection, {
         interactive: false, style: { color: '#64748B', weight: 1.25, opacity: 0.55, fill: false, lineJoin: 'round' },
