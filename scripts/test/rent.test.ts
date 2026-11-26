@@ -112,3 +112,16 @@ test('동 색인: 시·군·구에 10건+ 동이 4곳 이상이어야', async ()
   const four = { ...three, areas: [...three.areas, mk('라동', 10)] };
   assert.equal(dongIndexable(four, four.areas[1]), true);
 });
+
+test('기준금리 3.25%(2026-11-26 인상) → 전환율 상한 5.25%', async () => {
+  const { BASE_RATE } = await import('../lib/rent-calc.ts');
+  assert.equal(BASE_RATE, 3.25);
+  assert.equal(conversionRate(), 5.25);
+});
+
+test('사이트맵 제외 경로는 페이지 noindex 기준과 같다', async () => {
+  const { rentNoindexPaths } = await import('../lib/rent.ts');
+  const mk = (dong: string | null, n: number) => ({ sido: 'seoul', sigungu: 'x', sigunguName: 'X구', dong, n, byType: {} }) as any;
+  const s = { from: '', to: '', generatedAt: '', isMock: false, areas: [mk(null, 20), mk('가동', 12), mk('나동', 5)] };
+  assert.deepEqual([...rentNoindexPaths(s)].sort(), ['/rent/seoul/x/', `/rent/seoul/x/${encodeURIComponent('가동')}/`]);
+});

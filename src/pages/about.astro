@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { SITE_NAME, DATA_SOURCES, REPORT_FORM, TOOLS, MAP } from '../config.ts';
 const parkingLive = TOOLS.find((t) => t.slug === 'parking')?.status === 'live';
+import { HAS_PAGES as rentLive, IS_MOCK as rentMock, periodText as rentPeriod } from '../lib/rent.ts';
 ---
 <BaseLayout title={`${SITE_NAME} 소개`} description={`${SITE_NAME} 서비스 소개, 데이터 출처와 면책 안내.`}>
   <article class="space-y-5 text-body text-ink-2">
@@ -14,6 +15,7 @@ const parkingLive = TOOLS.find((t) => t.slug === 'parking')?.status === 'live';
       <h2 class="font-bold text-ink">데이터 출처 및 갱신</h2>
       <p>무인민원발급기의 위치, 운영시간, 발급 가능 서류 정보는 <a href={DATA_SOURCES.muin.url} class="underline" rel="noopener noreferrer" target="_blank">{DATA_SOURCES.muin.name}</a>를 가공해 만들었으며, 월 1~2회 최신 데이터를 반영해요. 운영시간 문구를 해석해 요일별로 정리하는 과정에서 일부는 추정이 들어가며, 추정한 항목은 화면에 "일부 추정"으로 표시해요.</p>
       {parkingLive && <p class="mt-2"><a href="/parking/" class="underline">공영주차장</a>의 위치, 요금, 운영시간은 <a href={DATA_SOURCES.parking.url} class="underline" rel="noopener noreferrer" target="_blank">{DATA_SOURCES.parking.name}</a>(공공데이터포털 오픈 API)를 가공해 만들었어요. 원천 자료의 운영시간이 00:00~00:00으로 적힌 날은 24시간 운영인지 운영하지 않는 날인지 알 수 없어 '확인 필요'로 표시하고, 같은 관리번호가 겹친 자료는 하나로 정리하거나 주소로 나눠 보여 줘요. 요금 계산은 공개된 요금표로 낸 참고값이에요.</p>}
+      {rentLive && !rentMock && <p class="mt-2"><a href="/rent/" class="underline">빌라·오피스텔 전월세 시세</a>는 <a href={DATA_SOURCES.rentVilla.url} class="underline" rel="noopener noreferrer" target="_blank">{DATA_SOURCES.rentVilla.name}</a>와 <a href={DATA_SOURCES.rentOffi.url} class="underline" rel="noopener noreferrer" target="_blank">{DATA_SOURCES.rentOffi.name}</a>(공공데이터포털 오픈 API)를 법정동별로 집계해 만들었어요({rentPeriod()} 계약분). 개인 거래가 드러나지 않도록 지번·건물명·층·계약일은 저장하거나 보여 주지 않고, 3건 미만인 칸은 숨겨요. 신고 뒤 해제되거나 정정된 거래가 반영되지 않았을 수 있고, 시세는 참고용 통계라 개별 매물의 적정 가격이나 안전성을 판단하는 근거가 아니에요.</p>}
     </section>
     <section>
       <h2 class="font-bold text-ink">면책 안내</h2>

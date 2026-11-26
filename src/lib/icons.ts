@@ -22,6 +22,7 @@ export const ICONS = {
  "x": "<path d=\"M18 6l-12 12\" /> <path d=\"M6 6l12 12\" />",
  "direction-sign": "<path d=\"M3.32 12.774l7.906 7.905c.427 .428 1.12 .428 1.548 0l7.905 -7.905a1.095 1.095 0 0 0 0 -1.548l-7.905 -7.905a1.095 1.095 0 0 0 -1.548 0l-7.905 7.905a1.095 1.095 0 0 0 0 1.548z\" /> <path d=\"M8 12h7.5\" /> <path d=\"M12 8.5l3.5 3.5l-3.5 3.5\" />",
  "check": "<path d=\"M5 12l5 5l10 -10\" />",
+ "building": "<path d=\"M3 21l18 0\" /> <path d=\"M9 8l1 0\" /> <path d=\"M9 12l1 0\" /> <path d=\"M9 16l1 0\" /> <path d=\"M14 8l1 0\" /> <path d=\"M14 12l1 0\" /> <path d=\"M14 16l1 0\" /> <path d=\"M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16\" />",
  "search": "<path d=\"M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0\" /> <path d=\"M21 21l-6 -6\" />"
 } as const;
 export type IconName = keyof typeof ICONS;

@@ -22,8 +22,9 @@ export const HOUSE_RENT_BRACKETS = [
 export const OFFICETEL_RATE = { qualified: 0.004, other: 0.009 } as const;
 
 /** 한국은행 기준금리(연 %). 2026-11-26 금통위 결과에 따라 갱신할 것 */
-export const BASE_RATE = 3.0;
-export const BASE_RATE_CHECKED = '2026-11-25';
+// 2026-11-26 금융통화위원회 3.00% → 3.25% 인상(같은 날 확인). 전환율 상한 5.25%
+export const BASE_RATE = 3.25;
+export const BASE_RATE_CHECKED = '2026-11-26';
 export const CONVERSION = { cap: 10, spread: 2 } as const;
 
 /** 중개보수 계산용 거래금액(만원) */

@@ -11,6 +11,7 @@ import FontSizeMenu from '../components/FontSizeMenu.astro';
 import Sidebar from '../components/Sidebar.astro';
 import { kiosks } from '../lib/data.ts';
 import { PARKING_DATE } from '../lib/parking.ts';
+import { RENT_SOURCES, HAS_PAGES as RENT_HAS_PAGES } from '../lib/rent.ts';
 import { safeJsonLd } from '../lib/jsonld.ts';
 
 interface Props {
@@ -26,7 +27,7 @@ interface Props {
   sidebar?: boolean;
   /** 'white': 순백 캔버스(3차 개편 페이지). 섹션은 .band 띠로 나누고, PC 사이드바는 옅은 회색 + 세로 구분선. */
   canvas?: 'gray' | 'white';
-  /** 푸터 출처를 직접 지정(TOOLS에 없는 미리보기 도구용, 예: /rent/) */
+  /** 푸터 출처를 직접 지정(출처가 여러 개인 도구, 예: /rent/ 국토부 자료 2종) */
   sources?: { name: string; url: string; label: string; date: string }[];
 }
 const { title, description, noindex = false, jsonld = [], crumbs = [], wide = false, tool } = Astro.props;
@@ -38,11 +39,11 @@ const fullTitle = title; // 템플릿이 이미 완결된 제목이라 사이트
 const muinDate = kiosks.map((k) => k.baseDate).filter(Boolean).sort().at(-1) ?? '미상';
 // 출처: 도구 페이지는 그 도구의 출처만, 허브 공통 페이지는 운영 중인 도구 전체의 출처를 표기
 const sources = (tool ? [tool] : TOOLS.filter((t) => t.status === 'live').map((t) => t.slug))
-  .map((s) => ({ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }))
+  .flatMap((s) => s === 'rent' ? (RENT_HAS_PAGES ? RENT_SOURCES : []) : [{ ...DATA_SOURCES[s], label: s === 'parking' ? '수집일' : '기준일', date: s === 'muin' ? muinDate : s === 'parking' ? (PARKING_DATE ?? '미상') : '미상' }])
   .filter((s) => s.name);
 if (Astro.props.sources) sources.splice(0, sources.length, ...Astro.props.sources);
 const toolInfo = tool ? TOOLS.find((t) => t.slug === tool) : undefined;
-const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', waste: '대형폐기물', cert: '자격시험' };
+const TOOL_SHORT: Record<string, string> = { muin: '무인발급기', parking: '주차장', rent: '전월세', waste: '대형폐기물', cert: '자격시험' };
 ---
 <!doctype html>
 <html lang="ko">
