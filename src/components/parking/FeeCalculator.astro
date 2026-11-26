@@ -48,9 +48,13 @@ const free = l.fee.type === 'free';
 </section>
 
 <script>
-  const root = document.querySelector<HTMLElement>('.fee-calc');
-  const raw = root?.querySelector<HTMLTemplateElement>('#fee-data')?.dataset.json;
-  if (root && raw) {
+  import { onPage } from '../../scripts/soft-nav.ts';
+  // 지도 화면 안 이동(soft-nav)으로 상세가 바뀌어도 다시 연결한다
+  onPage(() => {
+    const root = document.querySelector<HTMLElement>('.fee-calc');
+    const raw = root?.querySelector<HTMLTemplateElement>('#fee-data')?.dataset.json;
+    if (!root || !raw || root.dataset.ready) return;
+    root.dataset.ready = '1';
     const data = JSON.parse(raw) as { key: string; label: string; text: string; ok: boolean; detail: string }[];
     const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-fee-key]')];
     const amt = root.querySelector('#fee-amount')!, lab = root.querySelector('#fee-label')!, det = root.querySelector('#fee-detail')!;
@@ -60,5 +64,5 @@ const free = l.fee.type === 'free';
       lab.textContent = d.label; amt.textContent = d.text; det.textContent = d.detail;
       amt.className = `mt-0.5 font-bold text-ink ${d.ok ? 'text-[length:calc(28px*var(--fs,1))]' : 'text-body'}`;
     }));
-  }
+  });
 </script>

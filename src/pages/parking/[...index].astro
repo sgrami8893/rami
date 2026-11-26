@@ -1,5 +1,6 @@
 ---
 // /parking/ 첫 화면. 주차장 데이터가 있을 때만 생성(src/lib/parking.ts 공개 조건).
+import Near from '../../components/v2/Near.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Icon from '../../components/Icon.astro';
 import MockBanner from '../../components/parking/MockBanner.astro';
@@ -10,6 +11,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
 <BaseLayout tool="parking" title={`수도권 공영주차장 ${lots.length.toLocaleString('ko-KR')}곳 | 무료 주차장 찾기`} description={`서울·경기·인천 공영주차장 ${lots.length.toLocaleString('ko-KR')}곳의 요금과 운영시간, 무료 주차장을 지역별로 찾아보세요. 공공데이터 기준 민간 정보 서비스예요.`} crumbs={crumbs} noindex={IS_MOCK}>
   <MockBanner />
   <h1 class="v-h1">수도권 공영주차장 {lots.length.toLocaleString('ko-KR')}곳</h1>
+  <Near class="mt-2" />
   <p class="mt-1 text-cap text-ink-3">서울·경기·인천 · 공공데이터 기준 요금·운영시간</p>
   <h2 class="v-cap">시·도를 고르세요</h2>
   <div class="v-list">

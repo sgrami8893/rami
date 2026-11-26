@@ -17,6 +17,8 @@ export interface Layer {
   /** 목록 필터와 같은 조건으로 거르기(null = 모두) */
   filter?(keys: Set<string> | null): void;
   resize(): void;
+  /** '내 주변': 내 위치 점(좌표는 지도 메모리에만) */
+  me?(pt: { lat: number; lng: number }): void;
   destroy(): void;
 }
 export type Ctx = {
@@ -58,6 +60,7 @@ function setup() {
   let loading: Promise<Layer> | null = null;
   let pendingFilter: Set<string> | null | undefined;
   let hoverRow: HTMLElement | null = null;
+  let pendingMe: { focus: Focus; pt: { lat: number; lng: number } } | null = null;
 
   // ---- 카드(모바일 전용. PC는 바로 이동) ----
   let cardKey: string | null = null;
@@ -98,6 +101,7 @@ function setup() {
     const l = await mod.mount(ctx);
     layer = l;
     if (pendingFilter !== undefined) l.filter?.(pendingFilter);
+    if (pendingMe) { l.focus(pendingMe.focus); l.me?.(pendingMe.pt); pendingMe = null; }
     return l;
   })().catch((err) => {
     console.error('[map]', err);
@@ -173,6 +177,13 @@ function setup() {
   document.addEventListener('list:filtered', syncFilter, sig);
   syncFilter();
 
+  // '내 주변'(near.ts): 지도를 내 동으로 옮기고 내 위치 점을 찍는다
+  document.addEventListener('map:near', (ev) => {
+    const d = (ev as CustomEvent<{ focus: Focus; pt: { lat: number; lng: number } }>).detail;
+    if (canvas.dataset.kind !== 'rent') return;
+    const run = (l: Layer) => { l.focus(d.focus); l.me?.(d.pt); };
+    if (layer) run(layer); else { canvas.dataset.focus = JSON.stringify(d.focus); pendingMe = d; if (LG.matches) ensure().catch(() => {}); }
+  }, sig);
   // 본문만 바뀐 이동(같은 지도 종류): 지도는 그대로 두고 초점만 옮긴다
   document.addEventListener('dnkk:swap', (ev) => {
     const d = (ev as CustomEvent<SwapDetail>).detail;

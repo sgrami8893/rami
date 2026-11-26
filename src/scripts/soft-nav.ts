@@ -21,7 +21,7 @@ export const takeView = () => { const v = keepView; keepView = null; return v; }
 export const setView = (v: { lat: number; lng: number; zoom: number } | null) => { keepView = v; };
 
 const kindOf = (doc: Document) => (doc.querySelector('#map-pane .map-canvas') as HTMLElement | null)?.dataset.kind || (doc.querySelector('#map-pane') ? 'pins' : '');
-const PATHS = /^\/($|rent\/|parking\/|muin\/)/;
+const PATHS = /^\/($|rent\/|parking\/)/; // 발급기(동결)는 옛 스크립트라 보통 이동
 
 async function load(url: URL): Promise<Document | null> {
   const k = keyOf(url);
@@ -36,13 +36,22 @@ async function load(url: URL): Promise<Document | null> {
 }
 
 
-/** 옮겨 온 노드 안의 모듈 스크립트: 처음 보는 것만 새 요소로 만들어 실행(같은 주소는 브라우저가 한 번만 실행) */
+/** 새 페이지의 모듈 스크립트(본문 밖 것 포함: 페이지 끝 <script>, 지도 칸 등): 처음 보는 것만 새 요소로 만들어 실행.
+ *  인라인 모듈(작은 스크립트는 Astro가 인라인으로 넣음)도 내용이 처음일 때만 한 번 실행한다(2026-11-26 '안 눌리는 버튼' 수정) */
+const seenInline = new Set<string>();
 function runScripts(root: ParentNode) {
-  root.querySelectorAll<HTMLScriptElement>('script[type="module"][src]').forEach((s) => {
-    const src = new URL(s.getAttribute('src')!, location.href).href;
-    if (loadedSrc.has(src)) return;
-    loadedSrc.add(src);
-    const n = document.createElement('script'); n.type = 'module'; n.src = src;
+  root.querySelectorAll<HTMLScriptElement>('script[type="module"]').forEach((s) => {
+    const n = document.createElement('script'); n.type = 'module';
+    const srcAttr = s.getAttribute('src');
+    if (srcAttr) {
+      const src = new URL(srcAttr, location.href).href;
+      if (loadedSrc.has(src)) return;
+      loadedSrc.add(src); n.src = src;
+    } else {
+      const t = s.textContent ?? '';
+      if (!t || seenInline.has(t)) return;
+      seenInline.add(t); n.textContent = t;
+    }
     document.body.append(n);
   });
 }
@@ -80,8 +89,7 @@ function swap(doc: Document, url: URL, push: boolean) {
   const canvas = doc.querySelector('#map-pane .map-canvas') as HTMLElement | null;
   const focus = canvas?.dataset.focus ? JSON.parse(canvas.dataset.focus) : null;
   document.dispatchEvent(new CustomEvent<SwapDetail>('dnkk:swap', { detail: { focus, url: url.href, remount } }));
-  runScripts(main);
-  if (remount) runScripts(document.getElementById('map-pane') ?? document);
+  runScripts(doc);
   return true;
 }
 
@@ -100,7 +108,7 @@ export async function navigate(url: URL, push = true) {
 export function initSoftNav() {
   if (started || !document.getElementById('map-pane') || !('pushState' in history)) return;
   started = true;
-  document.querySelectorAll<HTMLScriptElement>('script[type="module"][src]').forEach((s) => loadedSrc.add(new URL(s.getAttribute('src')!, location.href).href));
+  document.querySelectorAll<HTMLScriptElement>('script[type="module"]').forEach((s) => { const a = s.getAttribute('src'); if (a) loadedSrc.add(new URL(a, location.href).href); else if (s.textContent) seenInline.add(s.textContent); });
   current = keyOf(new URL(location.href));
   history.replaceState({ ...(history.state ?? {}), soft: 1, depth: 0 }, '');
 

@@ -1,0 +1,112 @@
+// '내 주변'(2026-11-26 사용자 '들어갈 때부터 내 주변이었으면, 어차피 브라우저가 허용할 거냐고 묻잖아').
+// 개인정보·위치정보 원칙
+// - 위치는 브라우저 위치 권한(사용자 동의 창)으로만 받는다. 좌표는 이 탭의 메모리에서만 쓰고
+//   서버 전송·주소(URL)·localStorage·분석 도구 어디에도 남기지 않는다. 거리·동 찾기는 모두 기기 안에서 계산한다.
+// - 받는 자료는 우리 정적 JSON뿐(경계·통계·주차장 목록 전체를 받아 기기에서 고름 → 어떤 동을 받았는지로 위치가 드러나지 않게 시·군·구 파일 단위).
+// - 지도를 내 위치로 옮기면 배경지도 조각을 브라우저가 브이월드에서 받는다(개인정보처리방침에 적음).
+// 표시는 사실 숫자만(중위값·거리). 위험·안전·추천 표현 없음.
+import { rentMode } from './v2-rent-mode.ts';
+
+type Pt = { lat: number; lng: number };
+type M = (number | null)[];
+type Geom = { type: 'Polygon'; coordinates: number[][][] } | { type: 'MultiPolygon'; coordinates: number[][][][] };
+type SggF = { properties: { f: string; nm: string; sd: string; n: number; h: string | null; m: M }; geometry: Geom };
+type DongF = { properties: { k: string; n: number; h: string | null; m: M }; geometry: Geom };
+export type Lot = { lat: number; lng: number; name: string; href: string; tag: string; fee: string; d: number };
+export type Near = { pt: Pt; sido: string; slug: string; sggName: string; sd: string; dong: string | null; n: number; m: M; href: string | null; low: number; lots: Lot[] };
+
+const inRing = (x: number, y: number, r: number[][]) => {
+  let c = false;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const [xi, yi] = r[i], [xj, yj] = r[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+};
+const inPoly = (p: Pt, g: Geom) => {
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+  return polys.some((rings) => inRing(p.lng, p.lat, rings[0]) && !rings.slice(1).some((h) => inRing(p.lng, p.lat, h)));
+};
+/** 두 점 사이 거리(m) */
+export const dist = (a: Pt, b: Pt) => {
+  const R = 6371000, toR = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * toR, dLng = (b.lng - a.lng) * toR;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+export const distText = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(1)}km`);
+
+/** 브라우저 위치 권한 → 좌표(실패·거부면 null). 정확도는 동네 수준이면 충분해서 저전력 모드 */
+export function locate(): Promise<Pt | null> {
+  if (!('geolocation' in navigator)) return Promise.resolve(null);
+  return new Promise((res) => navigator.geolocation.getCurrentPosition(
+    (p) => res({ lat: p.coords.latitude, lng: p.coords.longitude }),
+    () => res(null),
+    { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 },
+  ));
+}
+/** 이미 거부한 브라우저면 자동으로 묻지 않는다(묻는 창이 안 뜨고 실패만 함) */
+export async function permission(): Promise<'granted' | 'denied' | 'prompt' | 'unknown'> {
+  try { return (await navigator.permissions.query({ name: 'geolocation' as PermissionName })).state; } catch { return 'unknown'; }
+}
+
+let sggP: Promise<{ features: SggF[]; low: number } | null> | null = null;
+let lotsP: Promise<[number, number, string, string, string, string][]> | null = null;
+export async function findNear(pt: Pt): Promise<Near | null> {
+  sggP ??= fetch('/geo/rent/sgg.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  lotsP ??= fetch('/geo/parking.json').then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const sgg = await sggP;
+  const s = sgg?.features.find((f) => inPoly(pt, f.geometry));
+  if (!sgg || !s) return null; // 수도권 밖
+  const [sido, slug] = s.properties.f.split('__');
+  const emd = await fetch(`/geo/rent/${encodeURIComponent(s.properties.f)}.json`).then((r) => (r.ok ? r.json() as Promise<{ features: DongF[] }> : null)).catch(() => null);
+  const d = emd?.features.find((f) => inPoly(pt, f.geometry));
+  const lots = (await lotsP).map(([lat, lng, name, href, tag, fee]) => ({ lat, lng, name, href, tag, fee, d: dist(pt, { lat, lng }) }))
+    .filter((l) => l.d <= 3000).sort((a, b) => a.d - b.d).slice(0, 5);
+  const p = d?.properties ?? s.properties;
+  return { pt, sido, slug, sggName: s.properties.nm, sd: s.properties.sd, dong: d?.properties.k ?? null, n: p.n, m: p.m, href: p.h ?? s.properties.h, low: sgg.low, lots };
+}
+
+const short = (v: number) => { const e = Math.floor(v / 10000), r = v % 10000; return `${e ? `${e}억` : ''}${e && r ? ' ' : ''}${r || !e ? `${r.toLocaleString('ko-KR')}만` : ''}`; };
+const el = (tag: string, cls = '', text?: string) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+
+/** 결과 그리기(홈 카드·깊은 화면 패널 공통). 글자는 textContent만 */
+export function renderNear(box: HTMLElement, r: Near) {
+  const m = rentMode();
+  const o = m.t === 'v' ? 0 : 3;
+  const kind = m.t === 'v' ? '빌라' : '오피스텔';
+  const ok = r.n >= r.low;
+  const place = `${r.sd} ${r.sggName}${r.dong ? ` ${r.dong}` : ''}`;
+  const head = el('p', 'near-place'); head.append(el('span', 'k', '내 주변'), el('b', '', place));
+  const ans = el('div', 'v-ans-row');
+  const cell = (k: string, v: string) => { const d = el('div'); d.append(el('p', 'k', k), el('p', 'v', v)); return d; };
+  if (ok && (r.m[o] !== null || r.m[o + 1] !== null)) {
+    ans.append(cell(`${kind} 전세 중위`, r.m[o] !== null ? short(r.m[o]!) : '-'), cell(`${kind} 월세 중위`, r.m[o + 1] !== null && r.m[o + 2] !== null ? `${short(r.m[o + 2]!)}/${r.m[o + 1]}만` : '-'));
+  }
+  const note = el('p', 'note', ok ? `최근 12개월 실거래 ${r.n.toLocaleString('ko-KR')}건 기준` : `최근 12개월 거래가 ${r.n}건이라 숫자를 비교하지 않아요.`);
+  const card = el('div', 'v-ans near-card');
+  card.append(head);
+  if (ans.childElementCount) card.append(ans);
+  card.append(note);
+  if (r.href) { const a = el('a', 'v-btn sec mt-3 w-full', `${r.dong ?? r.sggName} 전월세 자세히`) as HTMLAnchorElement; a.href = r.href; card.append(a); }
+  const parts: HTMLElement[] = [card];
+  if (r.lots.length) {
+    parts.push(el('h2', 'v-cap', '가까운 공영주차장'));
+    const list = el('div', 'v-list');
+    for (const l of r.lots) {
+      const row = el('div', 'v-row');
+      const t = el('div', 't');
+      const a = el('a', 'n', l.name) as HTMLAnchorElement; a.href = l.href;
+      t.append(a, el('span', 's', `${l.fee} · ${l.tag}`));
+      const v = el('div', 'val', distText(l.d)); v.append(el('small', '', '직선거리'));
+      row.append(t, v);
+      list.append(row);
+    }
+    parts.push(list);
+  }
+  box.replaceChildren(...parts);
+  box.hidden = false;
+}
+
+/** 지도에도 알린다(지도는 그 동으로 옮기고 내 위치 점을 찍음. 좌표는 지도 메모리에만) */
+export const tellMap = (r: Near) => document.dispatchEvent(new CustomEvent('map:near', { detail: { focus: { sido: r.sido, slug: r.slug, dong: r.dong ?? undefined }, pt: r.pt } }));
