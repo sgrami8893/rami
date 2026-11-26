@@ -1,35 +1,109 @@
 ---
-// ① 위치 줄(2026-11-26 v2): 빵부스러기 겸 '유일한 지역 선택기'. 단계마다 누르면 같은 단계 지역 목록이 펼쳐진다(details, JS 없이 동작).
-// 예: 서울 ▾ › 마포구 ▾ › 망원동 ▾. 목록 맨 위 '…전체'는 한 단계 위 화면.
+// ① 위치 줄 v2.1(2026-11-26 사용자 '셀렉트창 길게 나열하면 금방 찾겠냐? 3×3으로 목록 주면서 검색 가능하게').
+// 예: 서울 ▾ › 마포구 ▾ › 망원동 ▾. 단계를 누르면 '고르기 판'이 열린다.
+// - 모바일: 아래에서 올라오는 시트(화면 80%까지), PC: 420px 팝오버.
+// - 판 안: 제목 + 닫기 / 검색칸(9개 넘을 때, 초성 'ㅁㅍ'도 됨, 입력 즉시 거름) / 최근 본 곳(이 기기에만 저장, 같은 단계만) / '…전체' / 3칸 격자.
+// - JS가 없어도 details로 열리고 링크 격자는 그대로 쓸 수 있다.
 import Icon from '../Icon.astro';
 export type PlaceItem = { label: string; href: string; meta?: string };
 export type PlaceLevel = { label: string; items: PlaceItem[]; all?: PlaceItem; current?: string };
 interface Props { levels: PlaceLevel[]; label?: string }
 const { levels, label = '지역 고르기' } = Astro.props;
+const NAME = ['시·도', '시·군·구', '동'];
 ---
-<nav class="v-place" aria-label={label}>
+<nav class="v-place" aria-label={label} data-place>
   {levels.map((lv, i) => (
     <>
       {i > 0 && <span class="sep" aria-hidden="true">›</span>}
-      <details class="v-pick">
-        <summary aria-label={`${lv.label}, 다른 지역 고르기`}>{lv.label}<Icon name="chevron-down" size={16} /></summary>
-        <div class="pop">
-          {lv.all && <a href={lv.all.href} class="all">{lv.all.label}</a>}
-          {lv.items.map((it) => <a href={it.href} aria-current={it.label === (lv.current ?? lv.label) ? 'page' : undefined}>{it.label}{it.meta && <small>{it.meta}</small>}</a>)}
+      <details class="v-pick" data-level={i}>
+        <summary aria-label={`${lv.label}, ${NAME[i] ?? '지역'} 고르기`}>{lv.label}<Icon name="chevron-down" size={16} /></summary>
+        <div class="pop" role="group" aria-label={`${NAME[i] ?? '지역'} 고르기`}>
+          <div class="pop-head">
+            <p class="pop-t">{NAME[i] ?? '지역'} 고르기 <small>{lv.items.length}곳</small></p>
+            <button type="button" class="pop-x" aria-label="닫기"><Icon name="x" size={20} /></button>
+          </div>
+          {lv.items.length > 9 && (
+            <label class="pop-q"><Icon name="search" size={18} /><span class="sr-only">{NAME[i] ?? '지역'} 이름으로 거르기</span>
+              <input type="search" autocomplete="off" placeholder={i === 2 ? '동 이름 또는 초성(예: ㅁㅇ)' : '이름 또는 초성(예: ㅁㅍ)'} data-pop-q /></label>
+          )}
+          <div class="pop-recent" data-pop-recent hidden><p class="pop-sub">최근 본 곳</p><div class="pop-rchips"></div></div>
+          {lv.all && <a href={lv.all.href} class="pop-all">{lv.all.label}<Icon name="chevron-right" size={16} /></a>}
+          <div class="pop-grid" data-pop-grid>
+            {lv.items.map((it) => <a href={it.href} data-nm={it.label} aria-current={it.label === (lv.current ?? lv.label) ? 'page' : undefined}><span>{it.label}</span>{it.meta && <small>{it.meta}</small>}</a>)}
+          </div>
+          <p class="pop-empty" data-pop-empty hidden>찾는 지역이 없어요. 이름 일부나 초성으로 다시 찾아 보세요.</p>
         </div>
       </details>
     </>
   ))}
 </nav>
 <script>
-  // 한 번에 하나만 펼치고, 바깥을 누르거나 Esc면 닫는다
+  import { onPage } from '../../scripts/soft-nav.ts';
+  // 초성: 가=0xAC00, 한 초성당 588자
+  const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+  const cho = (s: string) => [...s].map((c) => { const k = c.charCodeAt(0) - 0xac00; return k >= 0 && k < 11172 ? CHO[Math.floor(k / 588)] : c; }).join('');
+  const norm = (s: string) => s.replace(/[\s·]/g, '').toLowerCase();
+  const isCho = (s: string) => /^[ㄱ-ㅎ]+$/.test(s);
+  // 최근 본 곳: 이 브라우저에만, 지역 이름·주소(경로)만. 좌표 없음
+  const KEY = 'dnkk:recent:v1';
+  type R = { l: string; h: string; lv: number; t: string };
+  const read = (): R[] => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+  const tool = (h: string) => h.split('/')[1] ?? '';
+  const save = (r: R) => { try { const a = read().filter((x) => x.h !== r.h); a.unshift(r); localStorage.setItem(KEY, JSON.stringify(a.slice(0, 12))); } catch { /* 저장 못 해도 그만 */ } };
+
+  const closeAll = (except?: Element | null) => {
+    document.querySelectorAll<HTMLDetailsElement>('.v-pick[open]').forEach((d) => { if (d !== except) d.open = false; });
+    document.documentElement.classList.toggle('pick-open', !!document.querySelector('.v-pick[open]'));
+  };
   document.addEventListener('click', (e) => {
-    const inside = (e.target as Element).closest('.v-pick');
-    document.querySelectorAll<HTMLDetailsElement>('.v-pick[open]').forEach((d) => { if (d !== inside) d.open = false; });
+    const t = e.target as Element;
+    if (t.closest('.pop-x')) { const d = t.closest<HTMLDetailsElement>('.v-pick'); if (d) { d.open = false; d.querySelector('summary')?.focus(); } closeAll(); return; }
+    closeAll(t.closest('.v-pick'));
   });
+  document.addEventListener('dnkk:swap', () => document.documentElement.classList.remove('pick-open'));
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     const d = document.querySelector<HTMLDetailsElement>('.v-pick[open]');
-    if (d) { d.open = false; d.querySelector('summary')?.focus(); }
+    if (d) { d.open = false; closeAll(); d.querySelector('summary')?.focus(); }
+  });
+
+  onPage(() => {
+    const nav = document.querySelector<HTMLElement>('#main [data-place]');
+    if (!nav || nav.dataset.ready) return;
+    nav.dataset.ready = '1';
+    // 지금 화면을 최근 본 곳에 넣는다(가장 깊은 단계 중 고른 것)
+    const picks = [...nav.querySelectorAll<HTMLDetailsElement>('.v-pick')];
+    const cur = [...picks].reverse().map((d) => d.querySelector<HTMLAnchorElement>('[data-pop-grid] a[aria-current]')).find(Boolean);
+    if (cur) save({ l: cur.dataset.nm!, h: new URL(cur.href).pathname, lv: Number(cur.closest<HTMLElement>('.v-pick')!.dataset.level), t: tool(location.pathname) });
+    picks.forEach((d) => {
+      const lv = Number(d.dataset.level);
+      const q = d.querySelector<HTMLInputElement>('[data-pop-q]');
+      const links = [...d.querySelectorAll<HTMLAnchorElement>('[data-pop-grid] a')];
+      const empty = d.querySelector<HTMLElement>('[data-pop-empty]')!;
+      const hrefs = new Set(links.map((a) => new URL(a.href).pathname));
+      d.addEventListener('toggle', () => {
+        document.documentElement.classList.toggle('pick-open', !!document.querySelector('.v-pick[open]'));
+        if (!d.open) return;
+        // 최근 본 곳: 이 단계 목록에 있는 것만, 지금 것은 빼고
+        const rec = read().filter((r) => r.lv === lv && hrefs.has(r.h) && r.h !== location.pathname).slice(0, 6);
+        const box = d.querySelector<HTMLElement>('[data-pop-recent]')!;
+        box.hidden = !rec.length; box.dataset.has = rec.length ? '1' : '';
+        box.querySelector('.pop-rchips')!.replaceChildren(...rec.map((r) => { const a = document.createElement('a'); a.href = r.h; a.className = 'v-chip'; a.textContent = r.l; return a; }));
+        if (q && matchMedia('(min-width: 640px)').matches) q.focus(); // 모바일은 키보드가 판을 가리지 않게 자동 포커스 안 함
+        d.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest' });
+      });
+      q?.addEventListener('input', () => {
+        const v = norm(q.value);
+        let n = 0;
+        for (const a of links) {
+          const nm = norm(a.dataset.nm!);
+          const hit = !v || (isCho(v) ? cho(nm).includes(v) : nm.includes(v) || cho(nm).includes(v));
+          a.hidden = !hit; if (hit) n++;
+        }
+        empty.hidden = n > 0;
+        const rb = d.querySelector<HTMLElement>('[data-pop-recent]')!; rb.hidden = !!v || !rb.dataset.has;
+      });
+      q?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const first = links.find((a) => !a.hidden); if (first) { e.preventDefault(); first.click(); } } });
+    });
   });
 </script>

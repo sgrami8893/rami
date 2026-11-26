@@ -1,7 +1,6 @@
 ---
 // 비교 목록 틀(2026-11-26 v2): 머리(개수 + 정렬) · 줄들(slot, 각 줄은 [data-row]) · '더 보기'.
 // 정렬·더 보기는 v2-list.ts. JS가 없으면 모든 줄이 원래 순서로 보인다.
-import Icon from '../Icon.astro';
 export type SortOpt = { v: 'n' | 'lo' | 'hi' | 'nm' | 'as'; label: string };
 interface Props { count: string; sorts?: SortOpt[]; limit?: number; label: string; id?: string }
 const { count, sorts = [], limit = 10, label, id } = Astro.props;
@@ -9,13 +8,12 @@ const { count, sorts = [], limit = 10, label, id } = Astro.props;
 <section class="v-listbox" data-vlist data-limit={limit} aria-label={label} id={id}>
   <div class="v-listhead">
     <span class="v-count">{count}</span>
-    {sorts.length > 0 && (
-      <label class="v-sort"><span class="sr-only">정렬</span>
-        <select data-vsort>{sorts.map((s) => <option value={s.v}>{s.label}</option>)}</select>
-        <Icon name="chevron-down" size={16} />
-      </label>
-    )}
   </div>
+  {sorts.length > 1 && (
+    <div class="v-sortchips" role="group" aria-label="정렬" hidden>
+      {sorts.map((x, i) => <button type="button" data-vsort-v={x.v} aria-pressed={i === 0 ? 'true' : 'false'}>{x.label}</button>)}
+    </div>
+  )}
   <div class="v-list" data-rows><slot /></div>
   <button type="button" class="v-more" data-vmore hidden>더 보기</button>
 </section>
