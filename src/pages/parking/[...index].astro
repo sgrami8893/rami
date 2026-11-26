@@ -24,8 +24,8 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '공영주차장', href: '/p
       const rs = regionsOf(s); const n = rs.reduce((a, r) => a + r.lots.length, 0); const f = rs.reduce((a, r) => a + r.free, 0);
       return (
         <li class="flex min-h-14 items-center justify-between gap-3 py-3">
-          <a href={parkingPath(s)} class="text-[length:calc(19px*var(--fs,1))] font-semibold text-ink hover:text-brand">{sidoName(s)} <span class="text-cap font-normal text-ink-3">{n.toLocaleString("ko-KR")}곳</span></a>
-          <a href={freePath(s)} class="text-[length:calc(16px*var(--fs,1))] font-semibold text-brand">무료 {f.toLocaleString("ko-KR")}곳</a>
+          <a href={parkingPath(s)} class="flex min-h-11 items-center gap-1 text-[length:calc(19px*var(--fs,1))] font-semibold text-ink hover:text-brand">{sidoName(s)} <span class="text-cap font-normal text-ink-3">{n.toLocaleString("ko-KR")}곳</span></a>
+          <a href={freePath(s)} class="num flex min-h-11 items-center text-[length:calc(16px*var(--fs,1))] font-semibold text-brand">무료 {f.toLocaleString("ko-KR")}곳</a>
         </li>
       );
     })}

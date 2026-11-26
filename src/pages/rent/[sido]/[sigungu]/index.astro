@@ -43,7 +43,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '빌라·오피스텔 전월
     </table>
     <ShowMore target="rent-dongs" limit={10} label="나머지 동 보기" />
   </section>
-  <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} />
+  <RentCalculator deposit={main?.jeonse?.median ?? 10000} officetel={main === o} wolse={main?.wolse?.deposit && main.wolse.monthly ? { deposit: main.wolse.deposit.median, monthly: main.wolse.monthly.median } : undefined} />
   <AdSlot name="A" />
   <RentNotes />
   {RENT_MAP && <RentMap slot="map" focus={{ sido, slug: a.sigungu }} />}

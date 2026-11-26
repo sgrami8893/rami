@@ -58,7 +58,7 @@ const cards = SIDO_ORDER.map((s) => ({ s, regions: regionsIn(s) })).filter((x) =
   {cards.map(({ s, regions }) => (
     <section class="mt-8">
       <h2 class="mb-3 flex items-baseline justify-between px-1">
-        <a href={regionPath(s)} class="text-h2 font-bold text-ink hover:text-brand">{sidoName(s)}</a>
+        <a href={regionPath(s)} class="relative text-h2 font-bold text-ink hover:text-brand after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-['']">{sidoName(s)}</a>
         <span class="text-cap text-ink-3">{regions.reduce((a, r) => a + r.total, 0).toLocaleString('ko-KR')}곳</span>
       </h2>
       <div class="flex flex-wrap gap-2">
