@@ -96,7 +96,9 @@ const bar = (d: Dist | null | undefined, fmt: (v: number) => string, label: stri
         const v = parse(inp.value, j);
         if (v === null) { mine.hidden = true; out.textContent = inp.value.trim() ? '숫자로 적어 주세요(만 원 단위, 예: 23000 또는 2억 3000).' : `금액을 넣으면 이 동네 ${what} 거래 중 어디쯤인지 보여 드려요.`; return; }
         mine.hidden = false;
-        mine.style.left = `${Math.min(100, Math.max(0, ((v - x0) / (x1 - x0)) * 100))}%`;
+        const left = Math.min(100, Math.max(0, ((v - x0) / (x1 - x0)) * 100));
+        mine.style.left = `${left}%`;
+        mine.dataset.edge = left < 15 ? 'l' : left > 85 ? 'r' : ''; // 양 끝에서는 금액 글자를 안쪽으로 붙여 상자 밖으로 안 나가게
         mine.querySelector('b')!.textContent = fmt(v);
         const b = band >= 0 ? bands[band] : null;
         if (b && !b.q) { out.textContent = `${b.l} 구간은 아직 분포 자료가 없어 위치는 계산하지 않아요(다음 자료 갱신부터 보여 드려요). 지금은 이 구간 ${what} 중위는 ${fmt(b.m)}이에요.`; return; }

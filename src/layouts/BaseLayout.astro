@@ -67,8 +67,13 @@ const crumbLd = crumbs.length > 1 ? [{ '@context': 'https://schema.org', '@type'
     <meta property="og:locale" content="ko_KR" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta property="og:image" content={new URL('/og.png', Astro.site).href} />
+    {/* 공유 미리보기 이미지: 도구 화면은 도구별, 나머지는 공통. 바꿀 때 ?v= 를 올려 메신저 캐시를 피한다(원본: 프로젝트 파일 brand-v1/og-src.html) */}
+    <meta property="og:image" content={new URL(`/${tool ? `og-${tool}` : 'og'}.png?v=2`, Astro.site).href} />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${SITE_NAME} ${tool === 'rent' ? '빌라·오피스텔 전월세 시세' : tool === 'parking' ? '공영주차장 요금 비교' : tool === 'muin' ? '무인민원발급기 위치' : '우리 동네 생활 정보'}`} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta name="twitter:image" content={new URL(`/${tool ? `og-${tool}` : 'og'}.png?v=2`, Astro.site).href} />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} 가이드`} href="/rss.xml" />
     {Astro.url.pathname === '/' && SITE_VERIFICATION.google && <meta name="google-site-verification" content={SITE_VERIFICATION.google} />}
