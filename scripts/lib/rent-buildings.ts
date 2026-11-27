@@ -58,3 +58,17 @@ export function buildBuildings(all: Deal[], coord: (code: string, dong: string, 
   for (const f of files.values()) f.b.sort((a, b) => `${a[0]}/${a[1]}/${a[2]}`.localeCompare(`${b[0]}/${b[1]}/${b[2]}`, 'ko'));
   return { from, to, files: [...files.values()], buildings: groups.size, located, deals: deals.length - noJibun - unknown, noJibun, unknown };
 }
+
+/** 지난번 건물 파일의 좌표로 찾기(2026-11-27, 자동 갱신용). 주소정보 DB가 없는 곳(GitHub Actions)에서도
+ *  이미 좌표를 찾은 건물은 그대로 쓰고, 새로 나타난 건물만 좌표 없이 남는다(PC에서 다시 돌리면 채워짐). */
+export function prevCoords(files: Pick<BuildingFile, 'sido' | 'b'>[]) {
+  const m = new Map<string, [number, number]>();
+  for (const f of files) for (const r of f.b) if (r[6] !== null && r[7] !== null) m.set(`${f.sido}|${r[0]}|${r[1]}|${r[2]}`, [r[6], r[7]]);
+  return {
+    size: m.size,
+    lookup(code: string, dong: string, jibun: string): [number, number] | null {
+      const r = regionOfDeal(code, dong);
+      return r ? m.get(`${r.sido}|${r.sigungu}|${dong}|${jibun}`) ?? null : null;
+    },
+  };
+}

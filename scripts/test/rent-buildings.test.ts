@@ -65,3 +65,19 @@ test('내비게이션용DB 건물 파일(지번 없음, 도로명 + 좌표)도 �
   const j = parseJusoLine(['1144012400', '서울특별시', '마포구', '망원동', '', '0', '412', '7', '114403113012', '0', '25', '0'].join('|'))!;
   assert.equal(j.jibun, '412-7'); assert.equal(j.road, b.road); assert.equal(j.xy, null);
 });
+
+test('지난번 건물 파일 좌표 이어받기(자동 갱신)', async () => {
+  const { prevCoords } = await import('../lib/rent-buildings.ts');
+  const p = prevCoords([{ sido: 'seoul', b: [['gangnam-gu', '역삼동', '123-4', 'A빌라', 0, 2010, 37.5, 127.03, []], ['gangnam-gu', '역삼동', '5', '', 0, 0, null, null, []]] }]);
+  assert.equal(p.size, 1);
+  assert.deepEqual(p.lookup('11680', '역삼동', '123-4'), [37.5, 127.03]);
+  assert.equal(p.lookup('11680', '역삼동', '5'), null);
+  assert.equal(p.lookup('11650', '역삼동', '123-4'), null); // 다른 구
+});
+
+test('캐시용 슬림 항목: 층·계약일 제거', async () => {
+  const { slimItem } = await import('../lib/rent.ts');
+  const s = slimItem({ sggCd: '11680', umdNm: '역삼동', dealYear: '2026', dealMonth: '10', dealDay: '3', floor: '4', deposit: '1,000', monthlyRent: '50', excluUseAr: '30', jibun: '1', mhouseNm: 'A', contractTerm: '26.01~28.01' });
+  assert.equal('floor' in s, false); assert.equal('dealDay' in s, false); assert.equal('contractTerm' in s, false);
+  assert.equal(s.deposit, '1,000'); assert.equal(s.mhouseNm, 'A');
+});
