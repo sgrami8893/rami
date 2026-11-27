@@ -15,6 +15,7 @@ npm test              # 데이터 파이프라인 테스트
 ## 설정 한 곳: `src/config.ts`
 - `SITE_NAME`(동네콕콕), `PROD_URL`(https://dongnekokkok.kr), `TOOLS`(허브에 노출할 도구, `soon`은 링크 없이 "준비 중")
 - `SITE_URL`은 빌드 환경변수 `SITE_URL`로 덮어쓴다. 정식 도메인이 아닌 주소로 빌드하면 **모든 페이지 noindex + robots.txt 전체 차단**(임시 주소가 검색에 잡히지 않게).
+- `PUBLIC_JUSO_KEY`: 행안부 주소검색 API 승인키(business.juso.go.kr). Cloudflare Pages 환경변수에만 넣고 코드·채팅에는 쓰지 않는다. 있으면 빌드 때 주소 검색 칸이 켜진다. 키를 바꾸면 재배포해야 반영된다. 개발키 유효기간 2027-02-25 → 그 전에 운영키로 교체.
 - 애드센스 `ADSENSE`, 오류 제보 구글 폼 `REPORT_FORM`, 문의 메일 `CONTACT_EMAIL`, 출처 `DATA_SOURCES`는 공개 전 채울 것.
 
 ## Cloudflare Pages
