@@ -22,6 +22,8 @@ type SggFC = { features: Feat<SggP>[]; low: number; breaks: Record<string, numbe
 
 const COLORS = ['#FDF0C4', '#FBCB7A', '#F59A4E', '#E4634A', '#B23A5B', '#6B1F57'];
 const LOWC = '#E3E6EA';
+/** 첫 화면 범위에서 뺄 먼 섬 지역 */
+const FAR = new Set(['incheon__ongjin-gun']);
 const DIM = { fillColor: '#DDE1E6', fillOpacity: 0.28, color: '#FFFFFF', weight: 1, opacity: 0.9 };
 const short = (v: number) => (v >= 10000 ? `${(Math.round(v / 1000) / 10).toString()}억` : `${v.toLocaleString('ko-KR')}만`);
 const fmt = (v: number, k: 'j' | 'w') => (k === 'j' ? short(v) : `월 ${v}만`);
@@ -240,11 +242,16 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       if (d) { map.fitBounds((d as unknown as Leaflet.Polygon).getBounds(), { padding: [64, 64], maxZoom: 14, animate }); return; }
     }
     if (level() === 'sgg' || level() === 'dong') { const s = sggByF.get(fileOf()!); if (s) b = (s as unknown as Leaflet.Polygon).getBounds(); }
-    else if (level() === 'sido') {
-      for (const [f, lyr] of sggByF) if (sidoOf(f) === focus.sido) { const bb = (lyr as unknown as Leaflet.Polygon).getBounds(); b = b ? b.extend(bb) : L.latLngBounds(bb.getSouthWest(), bb.getNorthEast()); }
+    else {
+      // 수도권·시도 첫 화면: 먼 섬(옹진군: 백령·연평 등)은 범위 계산에서 뺀다. 넣으면 서해로 치우쳐 서울·경기가 오른쪽에 작게 보인다(2026-11-27 사용자)
+      for (const [f, lyr] of sggByF) {
+        if (FAR.has(f) || (level() === 'sido' && sidoOf(f) !== focus.sido)) continue;
+        const bb = (lyr as unknown as Leaflet.Polygon).getBounds(); b = b ? b.extend(bb) : L.latLngBounds(bb.getSouthWest(), bb.getNorthEast());
+      }
     }
     if (!b) b = sggLayer.getBounds();
-    map.fitBounds(b, { padding: [24, 24], animate });
+    // 왼쪽 위 범례·오른쪽 아래 확대 버튼에 가리지 않게 여백
+    map.fitBounds(b, level() === 'home' || level() === 'sido' ? { paddingTopLeft: [24, 56], paddingBottomRight: [48, 16], animate } : { padding: [24, 24], animate });
   };
 
   const drawSel = () => {

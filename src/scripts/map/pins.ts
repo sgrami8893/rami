@@ -86,15 +86,17 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     if (!active) {
       const b = sel.getBounds();
       for (const p of points) b.extend([p.lat, p.lng]);
-      map.fitBounds(b, { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
+      map.fitBounds(land(b), { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
     }
   };
+  // 첫 화면 범위: 서해 먼 섬(옹진군, 동경 126.35도 서쪽)까지 넣으면 육지가 작게 보여서 잘라 낸다(2026-11-27 사용자)
+  const land = (b: Leaflet.LatLngBounds) => (b.getWest() < 126.35 && b.getEast() > 126.6 ? L.latLngBounds([b.getSouth(), 126.35], [b.getNorth(), b.getEast()]) : b);
   const fit = () => {
     const f = active ? byId.get(active) : null;
     if (f) { map.setView([f.lat, f.lng], 16); return; }
     if (!points.length) return;
     const b = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-    if (points.length === 1) map.setView(b.getCenter(), 16); else map.fitBounds(b, { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
+    if (points.length === 1) map.setView(b.getCenter(), 16); else map.fitBounds(land(b), { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
   };
   fit();
   void drawArea();
