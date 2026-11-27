@@ -6,7 +6,8 @@ import 'leaflet/dist/leaflet.css';
 import type * as Leaflet from 'leaflet';
 
 export type Cfg = { url: string; attribution: string; maxZoom: number };
-export const AREA: [[number, number], [number, number]] = [[36.8, 124.5], [38.4, 128.0]];
+// 동쪽을 넉넉히(129.6): 넓은 PC 화면에서 지도 범위 제한 때문에 수도권이 오른쪽으로 밀리던 문제(2026-11-27)
+export const AREA: [[number, number], [number, number]] = [[36.6, 124.5], [38.5, 129.6]];
 export type { Leaflet };
 
 export async function createMap(canvas: HTMLElement) {
