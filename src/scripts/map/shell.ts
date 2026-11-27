@@ -55,6 +55,14 @@ function setup() {
   document.documentElement.classList.add('has-map');
   const showPills = () => document.querySelectorAll<HTMLElement>('[data-map-open]').forEach((b) => { b.hidden = false; });
   showPills();
+  // 아래로 스크롤하면 알약을 숨기고, 위로 올리거나 맨 아래면 다시(2026-11-27 '지도 버튼이 문장을 가려')
+  let lastY = scrollY;
+  addEventListener('scroll', () => {
+    const y = scrollY, end = y + innerHeight >= document.documentElement.scrollHeight - 8;
+    if (Math.abs(y - lastY) < 6) return;
+    document.documentElement.classList.toggle('pill-tuck', y > lastY && y > 40 && !end);
+    lastY = y;
+  }, { passive: true, ...sig });
 
   let layer: Layer | null = null;
   let loading: Promise<Layer> | null = null;
@@ -110,7 +118,7 @@ function setup() {
     if (el) { el.textContent = '지도를 불러오지 못했어요. 목록을 이용해 주세요.'; el.classList.add('is-err'); }
     throw err;
   }));
-  teardown = () => { ac.abort(); layer?.destroy(); document.documentElement.classList.remove('map-sheet-open', 'has-map'); };
+  teardown = () => { ac.abort(); layer?.destroy(); document.documentElement.classList.remove('map-sheet-open', 'has-map', 'pill-tuck'); };
 
   // ---- 모바일 전체 화면 ----
   let opener: HTMLElement | null = null;

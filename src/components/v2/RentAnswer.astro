@@ -14,7 +14,7 @@ const T = [['v', 'villa', '빌라'], ['o', 'officetel', '오피스텔']] as cons
         <>
           <div class="v-ans-row">
             <div><p class="k">전세 중위</p><p class="v num">{s.jeonse ? amt(s.jeonse.median) : '-'}</p></div>
-            <div><p class="k">월세 중위 <span class="font-normal">(보증금/월)</span></p><p class="v num">{s.wolse?.deposit && s.wolse.monthly ? <>{amt(s.wolse.deposit.median)}<small> / </small>{s.wolse.monthly.median}<small>만</small></> : '-'}</p></div>
+            <div><p class="k">월세 중위 <span class="font-normal">(보증금/월)</span></p><p class="v num">{s.wolse?.deposit && s.wolse.monthly ? <><span class="nw">{amt(s.wolse.deposit.median)}<small> /</small></span> <span class="nw">{s.wolse.monthly.median}<small>만</small></span></> : '-'}</p></div>
           </div>
           <p class="note">{compare[k] ? `${compare[k]} · ` : ''}{label} {s.n.toLocaleString('ko-KR')}건 · {periodShort()} 실거래</p>
         </>

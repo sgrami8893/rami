@@ -111,9 +111,9 @@ export function renderNear(box: HTMLElement, r: Near, tool: NearTool = 'home') {
   const place = `${r.sd} ${r.sggName}${r.dong ? ` ${r.dong}` : ''}`;
   const head = el('p', 'near-place'); head.append(el('span', 'k', '내 주변'), el('b', '', place));
   const ans = el('div', 'v-ans-row');
-  const cell = (k: string, v: string) => { const d = el('div'); d.append(el('p', 'k', k), el('p', 'v', v)); return d; };
+  const cell = (k: string, v: string | string[]) => { const d = el('div'), p = el('p', 'v'); (Array.isArray(v) ? v : [v]).forEach((x, i) => { if (i) p.append(' '); p.append(el('span', 'nw', x)); }); d.append(el('p', 'k', k), p); return d; };
   if (ok && (r.m[o] !== null || r.m[o + 1] !== null)) {
-    ans.append(cell(`${kind} 전세 중위`, r.m[o] !== null ? short(r.m[o]!) : '-'), cell(`${kind} 월세 중위`, r.m[o + 1] !== null && r.m[o + 2] !== null ? `${short(r.m[o + 2]!)}/${r.m[o + 1]}만` : '-'));
+    ans.append(cell(`${kind} 전세 중위`, r.m[o] !== null ? short(r.m[o]!) : '-'), cell(`${kind} 월세 중위`, r.m[o + 1] !== null && r.m[o + 2] !== null ? [`${short(r.m[o + 2]!)} /`, `${r.m[o + 1]}만`] : '-'));
   }
   const note = el('p', 'note', ok ? `최근 12개월 실거래 ${r.n.toLocaleString('ko-KR')}건 기준` : `최근 12개월 거래가 ${r.n}건이라 숫자를 비교하지 않아요.`);
   const card = el('div', 'v-ans near-card');

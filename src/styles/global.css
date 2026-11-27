@@ -650,6 +650,13 @@ html[data-rt="o"]:not([data-rk="w"]) .v-row .sw-wrap .sw.rm-oj, html[data-rt="o"
 body:has([data-bottom-bar]) .v-pill:not(.mv-back) { bottom: calc(92px + env(safe-area-inset-bottom)); }
 @media (max-width: 359px) { .v-ans .v { font-size: calc(22px * var(--fs, 1)); } .v-ans .v small { font-size: calc(14px * var(--fs, 1)); } }
 .v-ans .v.num { white-space: normal; word-break: keep-all; }
+/* 보증금 / 월세는 '/' 뒤에서만 끊는다(2026-11-27 '1억 / 1,000만/30만' 어색한 줄바꿈). 칸이 좁으면 칸째로 다음 줄 */
+.v-ans .v .nw { white-space: nowrap; }
+.v-ans-row > div { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+/* 모바일 지도 알약: 아래로 읽어 내릴 땐 비켜 주고(글을 가리지 않게), 위로 올리거나 맨 끝이면 다시 나온다 */
+.v-pill:not(.mv-back) { transition: transform .2s ease, opacity .2s ease, visibility 0s linear 0s; }
+html.pill-tuck .v-pill:not(.mv-back):not(:focus-visible) { transform: translate(-50%, calc(100% + 28px)); opacity: 0; visibility: hidden; transition: transform .2s ease, opacity .2s ease, visibility 0s linear .2s; }
+@media (prefers-reduced-motion: reduce) { .v-pill:not(.mv-back) { transition: none !important; } }
 
 /* 지도 로딩(브랜드 B): 0.5초 안에 뜨면 아무것도 안 보이고, 넘으면 콕 핀이 내려앉는다 */
 .map-loading{position:absolute;inset:0;z-index:450;pointer-events:none;background:rgb(242 244 246/.55);opacity:0;animation:ml-in .2s ease-out .5s forwards}
