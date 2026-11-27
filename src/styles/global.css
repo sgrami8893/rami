@@ -753,3 +753,24 @@ html.pill-tuck .v-pill:not(.mv-back):not(:focus-visible) { transform: translate(
   html.msheet[data-sheet="card"] .map-pane .leaflet-bottom { display: none; }
 }
 @media (max-width: 1023px) and (prefers-reduced-motion: reduce) { html.msheet #main { transition: none; } }
+
+/* 건물 알약(지도, 동 단계) + 모바일 건물 카드(2026-11-27 제미나이 13:45 합의) */
+.mv-bpin-wrap { background: none; border: 0; }
+.mv-bpin { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 9999px;
+  background: #fff; color: #6B1F57; font-size: 13px; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; cursor: pointer;
+  box-shadow: 0 1px 2px rgb(25 31 40 / .12), 0 4px 12px rgb(25 31 40 / .18); }
+.mv-bpin::before { content: ''; position: absolute; inset: -7px -4px; } /* 누르는 칸 44px */
+.mv-bpin.is-grp { background: #F7EAF1; color: #6B1F57; }
+.mv-bpin.is-on { background: #6B1F57; color: #fff; transform: translate(-50%, -50%) scale(1.12); }
+.leaflet-marker-icon.mv-bpin-wrap:focus-visible { outline: none; }
+.leaflet-marker-icon.mv-bpin-wrap:focus-visible .mv-bpin { outline: 2px solid #191F28; outline-offset: 2px; }
+@media (max-width: 1023px) {
+  html.msheet.bld-card [data-bf-hide] { display: none !important; }
+  html.msheet.bld-card #rent-bld .bld-hist { padding-top: 0; }
+  html.msheet.bld-card #tab-bld, html.msheet.bld-card #rent-bld, html.msheet.bld-card [data-tabs] { margin-top: 0 !important; padding-top: 0 !important; }
+  html.msheet.bld-card #main > :not([data-bf-hide], .sh-handle, .sh-peek, .v-place) { margin-top: 0; padding-top: 0; }
+  html.msheet.bld-card #rent-bld .bld-hist .v-back { margin-top: -4px; }
+}
+
+#rent-bld .bld-hist h3:focus { outline: none; }
+#rent-bld .bld-hist h3:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; border-radius: 6px; }

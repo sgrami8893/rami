@@ -8,7 +8,7 @@ import { onPage } from './soft-nav.ts';
 
 export const BLD_MIN = 3;
 type Unit = { area: number; deals: { m: number; dep: number; mon: number }[] };
-export type Bld = { id: string; file: string; dong: string; jibun: string; name: string; t: 0 | 1 | 2; by: number; lat: number | null; lng: number | null; units: Unit[]; n: number; last: number };
+export type Bld = { id: string; file: string; dong: string; jibun: string; name: string; t: 0 | 1 | 2; by: number; lat: number | null; lng: number | null; units: Unit[]; n: number; last: number; recent: number };
 type Raw = { from: string; to: string; b: [string, string, string, 0 | 1 | 2, number, number | null, number | null, number[][]][] };
 export type BldFile = { from: string; span: number; list: Bld[] };
 
@@ -23,9 +23,12 @@ export function loadBld(src: string, file: string): Promise<BldFile | null> {
     const list = raw.b.map(([dong, jibun, name, t, by, lat, lng, us]) => {
       const units = us.map((u) => { const deals = []; for (let i = 1; i + 2 < u.length; i += 3) deals.push({ m: u[i], dep: u[i + 1], mon: u[i + 2] }); return { area: u[0], deals }; });
       const all = units.flatMap((u) => u.deals);
-      return { id: bldId(file, dong, jibun, t), file, dong, jibun, name, t, by, lat, lng, units, n: all.length, last: Math.max(...all.map((d) => d.m)) } as Bld;
-    }).filter((b) => b.n >= BLD_MIN).sort((a, b) => b.last - a.last || b.n - a.n);
+      return { id: bldId(file, dong, jibun, t), file, dong, jibun, name, t, by, lat, lng, units, n: all.length, last: Math.max(...all.map((d) => d.m)), recent: 0, _all: all } as Bld & { _all: Unit['deals'] };
+    }).filter((b) => b.n >= BLD_MIN);
     const span = (Number(raw.to.slice(0, 4)) - Number(raw.from.slice(0, 4))) * 12 + Number(raw.to.slice(5, 7)) - Number(raw.from.slice(5, 7));
+    // 요즘 거래 많은 순(최근 3개월 계약 건수, '요즘 거래 많은 건물'과 같은 기준) → 최근 계약 → 3년 건수
+    for (const b of list) { b.recent = b._all.filter((d) => d.m > span - 3).length; delete (b as Partial<typeof b>)._all; }
+    list.sort((a, b) => b.recent - a.recent || b.last - a.last || b.n - a.n);
     return { from: raw.from, span: Math.max(1, span), list };
   }).catch(() => { cache.delete(file); return null; }));
   return cache.get(file)!;
@@ -41,7 +44,7 @@ const dealText = (d: { dep: number; mon: number }) => (d.mon ? `월세 ${short(d
 
 function chart(f: BldFile, deals: Unit['deals'], kind: 'j' | 'w', area: number) {
   const NS = 'http://www.w3.org/2000/svg';
-  const W = 340, H = 180, l = 46, r = 12, t = 12, bt = 28;
+  const W = 340, H = 160, l = 46, r = 12, t = 12, bt = 28;
   const val = (d: Unit['deals'][number]) => (kind === 'j' ? d.dep : d.mon);
   let lo = Math.min(...deals.map(val)), hi = Math.max(...deals.map(val));
   if (lo === hi) { lo = Math.max(0, lo * 0.8); hi = hi * 1.2 || 1; } else { const p = (hi - lo) * 0.15; lo = Math.max(0, lo - p); hi += p; }
@@ -65,16 +68,16 @@ function chart(f: BldFile, deals: Unit['deals'], kind: 'j' | 'w', area: number) 
   return svg;
 }
 
-function showHistory(box: HTMLElement, f: BldFile, b: Bld, back: () => void) {
+function showHistory(box: HTMLElement, f: BldFile, b: Bld, back: () => void, backLabel = '← 건물 목록') {
   const units = new Map<number, Unit['deals']>();
   for (const u of b.units) { const k = Math.round(u.area); units.set(k, [...(units.get(k) ?? []), ...u.deals]); }
   const areas = [...units.entries()].sort((a, c) => c[1].length - a[1].length || a[0] - c[0]);
   let area = areas[0][0];
   const pickKind = (ds: Unit['deals']) => (ds.filter((d) => d.mon === 0).length >= ds.filter((d) => d.mon > 0).length ? 'j' : 'w');
   let kind: 'j' | 'w' = pickKind(units.get(area)!);
-  const btn = h('button', 'v-back', '← 건물 목록'); btn.type = 'button'; btn.addEventListener('click', back);
+  const btn = h('button', 'v-back', backLabel); btn.type = 'button'; btn.addEventListener('click', back);
   const title = h('h3', 'mt-1 text-h2 font-bold leading-snug text-ink', b.name || '이름 없는 건물'); title.tabIndex = -1;
-  const meta = h('p', 'mt-0.5 text-cap text-ink-3', `지번 ${b.jibun} · ${TYPE[b.t]}${b.by ? ` · ${b.by}년 지음` : ''} · 최근 3년 ${b.n}건`);
+  const meta = h('p', 'mt-0.5 text-cap text-ink-3', `지번 ${b.jibun} · ${TYPE[b.t]}${b.by ? ` · ${b.by}년 지음` : ''} · 최근 3년 ${b.n}건${b.recent ? ` · 최근 3개월 ${b.recent}건` : ''}`);
   const ctl = h('div', 'mt-3 flex flex-wrap items-center gap-2');
   const seg = h('div', 'v-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', '전세·월세');
   const kb = (['j', 'w'] as const).map((k) => { const x = h('button', '', k === 'j' ? '전세' : '월세'); x.type = 'button'; x.addEventListener('click', () => { kind = k; draw(); }); seg.append(x); return x; });
@@ -130,16 +133,26 @@ function mountTab() {
   let list: Bld[] = [];
   let shown = STEP;
   let lastId: string | null = null;
+  // 지도에서 겹친 알약(같은 자리 여러 건물)을 최대로 확대해도 안 풀리면 그 건물들만 목록으로
+  let group: Set<string> | null = null;
+  const grp = h('div', 'mt-3 flex flex-wrap items-center gap-2'); grp.hidden = true;
+  const grpT = h('p', 'text-cap font-semibold text-ink-2');
+  const grpX = h('button', 'v-chip', '전체 건물 보기'); grpX.type = 'button';
+  grpX.addEventListener('click', () => { group = null; shown = STEP; draw(); q.focus(); });
+  grp.append(grpT, grpX);
+  q.closest('label')?.after(grp);
   const draw = () => {
     const term = q.value.replace(/\s+/g, '');
-    const hits = term ? list.filter((b) => `${b.name}${b.jibun}`.replace(/\s+/g, '').includes(term)) : list;
+    const base = group ? list.filter((b) => group!.has(b.id)) : list;
+    grp.hidden = !group; grpT.textContent = group ? `지도에서 고른 자리 ${base.length}곳` : '';
+    const hits = term ? base.filter((b) => `${b.name}${b.jibun}`.replace(/\s+/g, '').includes(term)) : base;
     ul.replaceChildren(...hits.slice(0, shown).map((b) => {
       const row = h('div', 'v-row'); row.dataset.bid = b.id;
       const t = h('div', 't');
       const name = h('button', 'n text-left', b.name || '이름 없는 건물'); name.type = 'button';
       name.addEventListener('click', () => open(b));
       name.addEventListener('mouseenter', () => document.dispatchEvent(new CustomEvent('rent:bld-hover', { detail: b.id })));
-      t.append(name, h('span', 's', `${b.jibun} · ${TYPE[b.t]} · 3년 ${b.n}건`));
+      t.append(name, h('span', 's', `${b.jibun} · ${TYPE[b.t]}${b.recent ? ` · 최근 3개월 ${b.recent}건` : ''} · 3년 ${b.n}건`));
       const d = lastDeal(b);
       const v = h('div', 'val'); v.append(document.createTextNode(dealText(d)), h('small', '', `${ymText(f!.from, b.last)} 계약`));
       row.append(t, v);
@@ -160,7 +173,7 @@ function mountTab() {
     if (!f) return;
     lastId = b.id;
     listBox.hidden = true; hist.hidden = false;
-    showHistory(hist, f, b, back);
+    showHistory(hist, f, b, back, document.documentElement.classList.contains('msheet') ? `← ${dong} 전체` : '← 건물 목록');
     document.dispatchEvent(new CustomEvent('rent:bld-focus', { detail: { id: b.id, lat: b.lat, lng: b.lng } }));
   };
   q.addEventListener('input', () => { shown = STEP; draw(); });
@@ -183,5 +196,15 @@ function mountTab() {
     open(b);
   };
   document.addEventListener('rent:bld-open', onOpen);
+  const onGroup = (e: Event) => {
+    if (!document.contains(root)) { document.removeEventListener('rent:bld-group', onGroup); return; }
+    const ids = (e as CustomEvent<string[]>).detail.filter((id) => list.some((b) => b.id === id));
+    if (!ids.length) return;
+    document.querySelector<HTMLElement>('[role="tab"][aria-controls="tab-bld"]')?.click();
+    if (!hist.hidden) { hist.hidden = true; hist.replaceChildren(); listBox.hidden = false; document.dispatchEvent(new CustomEvent('rent:bld-focus', { detail: null })); }
+    group = new Set(ids); q.value = ''; shown = STEP; draw();
+    announce(`지도에서 고른 자리의 건물 ${ids.length}곳을 보여 줘요.`);
+  };
+  document.addEventListener('rent:bld-group', onGroup);
 }
 export function initBldTab() { onPage(mountTab); }

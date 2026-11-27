@@ -95,6 +95,8 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   const dongStyle = (p: DongP): Leaflet.PathOptions => {
     const v = valueOf(p);
     const sel = focus.dong === p.k;
+    // 동 단계(건물 알약이 주인공)는 칸을 옅게: 알약·배경지도가 묻히지 않게
+    if (level() === 'dong') return { fillColor: colorOf(v), fillOpacity: sel ? 0.25 : 0.3, color: '#FFFFFF', weight: 1.5, opacity: 1 };
     return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : sel ? 0.75 : 0.5, color: '#FFFFFF', weight: 1.5, opacity: 1 };
   };
 
@@ -138,6 +140,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     } else if (dongLayer) {
       for (const [, lyr] of dongByK) {
         const p = lyr.feature.properties;
+        if (level() === 'dong' && focus.dong === p.k) continue; // 고른 동 이름은 위치 줄에 있고, 이름표가 건물 알약을 가린다
         const v = valueOf(p);
         addLabel(p.l, p.k, v === null ? null : fmt(v, k), (focus.dong === p.k ? 1e9 : 0) + p.n, v === null, colorOf(v), focus.dong === p.k);
       }
@@ -264,36 +267,69 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     if (d) selLine = outline(d.feature.geometry, true).addTo(lines);
   };
 
-  // ---- 건물 점(동 단계 + '건물별 거래' 탭) ----
+  // ---- 건물 알약(동 단계에서 항상, 2026-11-27 사용자 '건물별 거래 활용이 어려워' → 제미나이 13:45 합의) ----
+  // - 흰 알약 'N건'(최근 3년 계약 건수). 3건 미만 건물은 원래대로 안 찍는다(목록 기준과 같음).
+  // - 화면에서 44px 안에 겹치는 건물은 'N곳' 한 알약으로 묶는다. 누르면 그 범위로 확대, 최대로 확대해도 같은 자리면 시트에 그 건물들 목록.
+  // - 건물이 많은 동은 화면에 보이는 알약을 거래 많은 순 20개(묶음 포함)까지만. 확대하면 더 보인다.
+  type B = import('../rent-bld.ts').Bld;
   const bldGroup = L.layerGroup().addTo(map);
-  const bldMarkers = new Map<string, Leaflet.CircleMarker>();
-  let bldOn = false;
-  const drawBld = async () => {
+  const bldMarkers = new Map<string, Leaflet.Marker>();
+  let bldList: B[] = [];
+  let activeBld: string | null = null;
+  const BLD_CAP = 20, BLD_R = 44;
+  const layoutBld = () => {
     bldGroup.clearLayers(); bldMarkers.clear();
-    if (!bldOn || level() !== 'dong' || !bsrc) return;
+    if (!bldList.length || level() !== 'dong') return;
+    const view = map.getBounds().pad(0.05);
+    const groups: { pt: Leaflet.Point; items: B[] }[] = [];
+    for (const b of bldList) { // 이미 요즘 거래 많은 순
+      if (!view.contains([b.lat!, b.lng!])) continue;
+      const pt = map.latLngToContainerPoint([b.lat!, b.lng!]);
+      const g = groups.find((x) => x.pt.distanceTo(pt) < BLD_R);
+      if (g) g.items.push(b); else groups.push({ pt, items: [b] });
+    }
+    const shown = groups.slice(0, BLD_CAP);
+    const ag = activeBld ? groups.find((g) => g.items.some((b) => b.id === activeBld)) : null;
+    if (ag && !shown.includes(ag)) shown.push(ag);
+    shown.forEach((g, i) => {
+      const one = g.items.length === 1, b = g.items[0];
+      const on = g.items.some((x) => x.id === activeBld);
+      const label = one ? `${b.n}건` : `${g.items.length}곳`;
+      const name = one ? `${b.name || '이름 없는 건물'}, 최근 3년 전월세 ${b.n}건` : `건물 ${g.items.length}곳 묶음`;
+      const ll = one ? L.latLng(b.lat!, b.lng!) : L.latLngBounds(g.items.map((x) => [x.lat!, x.lng!] as [number, number])).getCenter();
+      const m = L.marker(ll, { keyboard: true, title: name, zIndexOffset: on ? 3000 : 1000 - i,
+        icon: L.divIcon({ className: 'mv-bpin-wrap', iconSize: [0, 0], html: `<span class="mv-bpin${one ? '' : ' is-grp'}${on ? ' is-on' : ''}">${esc(label)}</span>` }) });
+      m.on('add', () => { const el = m.getElement(); el?.setAttribute('role', 'button'); el?.setAttribute('aria-label', name); });
+      m.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        if (one) { document.dispatchEvent(new CustomEvent('rent:bld-open', { detail: b.id })); return; }
+        const bb = L.latLngBounds(g.items.map((x) => [x.lat!, x.lng!] as [number, number]));
+        const same = bb.getNorthEast().distanceTo(bb.getSouthWest()) < 3;
+        if (same || map.getZoom() >= map.getMaxZoom()) { document.dispatchEvent(new CustomEvent('rent:bld-group', { detail: g.items.map((x) => x.id) })); return; }
+        map.fitBounds(bb, { padding: [72, 72], maxZoom: map.getMaxZoom(), animate: !reduced() });
+      });
+      if (LG.matches && one) m.bindTooltip(b.name || b.jibun, { direction: 'top', offset: [0, -18], className: 'rm-tip' });
+      m.addTo(bldGroup);
+      for (const x of g.items) bldMarkers.set(x.id, m);
+    });
+  };
+  map.on('moveend zoomend', () => { if (bldList.length) layoutBld(); });
+  const drawBld = async () => {
+    bldList = [];
+    if (level() !== 'dong' || !bsrc) { layoutBld(); return; }
     const { loadBld } = await import('../rent-bld.ts');
     const f = await loadBld(bsrc, fileOf()!);
-    if (!f || !bldOn) return;
-    for (const b of f.list) {
-      if (b.dong !== focus.dong || b.lat === null || b.lng === null) continue;
-      const m = L.circleMarker([b.lat, b.lng], { radius: 8, color: '#FFFFFF', weight: 2, fillColor: '#B23A5B', fillOpacity: 1, className: 'mv-bld' });
-      m.bindTooltip(b.name || b.jibun, { direction: 'top', offset: [0, -8], className: 'rm-tip' });
-      m.on('click', (e) => { L.DomEvent.stopPropagation(e); document.dispatchEvent(new CustomEvent('rent:bld-open', { detail: b.id })); });
-      m.addTo(bldGroup); bldMarkers.set(b.id, m);
-    }
-  };
-  let activeBld: string | null = null;
-  const setBldActive = (id: string | null) => {
-    activeBld = id;
-    for (const [k, m] of bldMarkers) m.setStyle(k === id ? { fillColor: '#6B1F57', radius: 11, weight: 3 } : { fillColor: '#B23A5B', radius: 8, weight: 2 });
+    if (!f || level() !== 'dong') return;
+    bldList = f.list.filter((b) => b.dong === focus.dong && b.lat !== null && b.lng !== null);
+    layoutBld();
   };
   const ac = new AbortController();
   const sig = { signal: ac.signal };
-  document.addEventListener('v:tab', (e) => { bldOn = (e as CustomEvent<string>).detail === 'bld'; void drawBld(); }, sig);
   document.addEventListener('rent:bld-focus', (e) => {
     const d = (e as CustomEvent<{ id: string; lat: number | null; lng: number | null } | null>).detail;
-    setBldActive(d?.id ?? null);
-    if (d?.lat != null && d.lng != null) map.setView([d.lat, d.lng], Math.max(map.getZoom(), 16), { animate: true });
+    activeBld = d?.id ?? null;
+    if (d?.lat != null && d.lng != null) map.setView([d.lat, d.lng], Math.max(map.getZoom(), 17), { animate: !reduced() });
+    layoutBld();
   }, sig);
   document.addEventListener('rent:bld-hover', (e) => {
     const id = (e as CustomEvent<string>).detail;
@@ -307,7 +343,6 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     sggLayer.setStyle((f) => sggStyle((f as Feat<SggP>).properties));
     await drawDongs();
     drawSel(); drawLabels(); drawLegend(); fit(animate);
-    bldOn = !!document.querySelector('[role="tab"][aria-controls="tab-bld"][aria-selected="true"]');
     void drawBld();
   };
   document.addEventListener('rent:mode', restyle, sig);
@@ -338,7 +373,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     resize() { map.invalidateSize(); if (!touched) fit(false); },
     reveal() {
       // 고른 건물 > 고른 동 순으로, 지금 보이는 칸(가장자리 12% 안쪽) 밖이면 그쪽으로 옮긴다
-      const m = activeBld ? bldMarkers.get(activeBld) : null;
+      const m = activeBld ? bldMarkers.get(activeBld) : null; // 묶음이어도 그 알약 자리
       const d = focus.dong ? dongByK.get(focus.dong) : null;
       const at = m ? m.getLatLng() : d ? (d as unknown as Leaflet.Polygon).getBounds().getCenter() : null;
       if (at && !map.getBounds().pad(-0.12).contains(at)) map.panTo(at, { animate: !reduced() });

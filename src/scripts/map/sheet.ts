@@ -51,7 +51,11 @@ export function mountSheet(o: Opts) {
     if (!p) return;
     const h1 = main().querySelector('h1')?.textContent?.trim() ?? '';
     // 지금 보이는 답 칸 첫 값(전월세는 고른 종류의 전세 중위, 주차장은 전체 곳 수)
-    const cell = [...main().querySelectorAll<HTMLElement>('.v-ans .k')].find((k) => k.getClientRects().length > 0);
+    // 보이는 칸 중 값이 있는 것. 전월세는 지금 고른 전세/월세 칸을 먼저(전세 거래가 없는 동은 월세가 나오게)
+    const val = (k: HTMLElement) => k.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const cells = [...main().querySelectorAll<HTMLElement>('.v-ans .k')].filter((k) => k.getClientRects().length > 0 && val(k) && val(k) !== '-');
+    const deal = [...main().querySelectorAll<HTMLElement>('[aria-pressed="true"], [aria-checked="true"], [aria-selected="true"]')].map((e) => e.textContent?.trim()).find((t) => t === '전세' || t === '월세');
+    const cell = cells.find((k) => deal && k.textContent?.includes(deal)) ?? cells[0];
     const k = cell?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     const v = cell?.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     p.innerHTML = '';
