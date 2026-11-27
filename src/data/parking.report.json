@@ -1,19 +1,19 @@
 {
- "fetchedAt": "2026-11-26T00:29:37.344Z",
+ "fetchedAt": "2026-11-27T03:50:07.142Z",
  "nationalTotal": 19012,
- "capitalArea": 4741,
+ "capitalArea": 4739,
  "bySido": {
-  "gyeonggi": 2883,
+  "gyeonggi": 2881,
   "seoul": 856,
   "incheon": 1002
  },
  "feeType": {
   "free": 1815,
   "paid": 2584,
-  "mixed": 342
+  "mixed": 340
  },
  "kind": {
-  "public": 4647,
+  "public": 4645,
   "private": 94
  },
  "noCoord": 55,
@@ -25,6 +25,12 @@
   "max": "2026-11-18"
  },
  "duplicateIds": 82,
+ "duplicateExactRemoved": 2,
+ "duplicateSplit": 174,
+ "hoursAmbiguousDetail": {
+  "ok": 1134,
+  "zeroToZero": 1545
+ },
  "mapping": {
   "mode": "english",
   "missingOptional": [],
