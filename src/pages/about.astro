@@ -29,7 +29,7 @@ import { HAS_PAGES as rentLive, IS_MOCK as rentMock, periodText as rentPeriod } 
         <li>아이콘: Tabler Icons (Copyright (c) 2020-2024 Paweł Kuna), MIT License — <a href="/licenses/tabler-icons-MIT.txt" class="underline">라이선스 전문</a></li>
         <li>지도 라이브러리: Leaflet 1.9.4 (Copyright (c) 2010-2023 Volodymyr Agafonkin, Copyright (c) 2010-2011 CloudMade), BSD 2-Clause License — <a href="/licenses/leaflet-BSD-2-Clause.txt" class="underline">라이선스 전문</a></li>
         <li>지도 핀 묶음: Leaflet.markercluster 1.5.3 (Copyright 2012 David Leaver), MIT License — <a href="/licenses/leaflet-markercluster-MIT.txt" class="underline">라이선스 전문</a></li>
-        <li>법정동 경계(전월세 지도): 행정안전부 도로명주소 기반 시·군·구·읍면동·리 경계 자료를 단순화해 써요. 경계는 실제와 조금 다를 수 있어요.</li>
+        <li>법정동 경계(지도): 행정안전부 도로명주소 안내시스템(juso.go.kr)의 「구역의 도형」 전체분(2026년 11월 기준) 중 시·군·구·읍면동·리 경계를 좌표 변환·단순화해 써요. 경계는 실제와 조금 다를 수 있어요.</li>
         {MAP.enabled && MAP.policyUrl && <li>배경지도: <a href={MAP.policyUrl} class="underline" rel="noopener noreferrer" target="_blank">{MAP.name}</a> 오픈 API를 이용해 만들었어요. 지도 이미지는 브라우저가 해당 기관에서 직접 받아 보여 주며, 이 사이트에 저장하지 않아요(공간정보 오픈플랫폼 이용약관).</li>}
       </ul>
       <p class="mt-2 text-cap text-ink-3">아이콘·그래픽은 MIT 라이선스만 쓰고, 코드 라이브러리는 BSD·ISC 같은 자유 라이선스까지 쓰며 이 페이지에 고지해요.</p>

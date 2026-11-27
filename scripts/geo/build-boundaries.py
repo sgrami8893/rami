@@ -5,8 +5,8 @@
   - 읍·면은 전월세 자료가 '공도읍 마정리'처럼 리 단위라, 그 읍·면에 리 단위 거래가 있으면 리 경계로 바꿔 넣는다.
   - 경계 공유선을 지키는 단순화(topojson toposimplify)로 동 사이 틈·겹침이 생기지 않게 한다.
   - 좌표는 소수 5자리(약 1m)로 줄인다. 라벨 위치는 polylabel(도형 안쪽 점).
-도구: pyshp(MIT), shapely(BSD-3), topojson(BSD-3). 화면 번들에는 들어가지 않는 빌드 도구.
-쓰는 법: pip install pyshp shapely topojson
+도구: pyshp(MIT), shapely(BSD-3), topojson(BSD-3), pyproj(MIT). 화면 번들에는 들어가지 않는 빌드 도구.
+쓰는 법: pip install pyshp shapely topojson pyproj
          python3 scripts/geo/build-boundaries.py <압축 푼 폴더> <rent-lawd 코드표 JSON>
 코드표 JSON은 node로 만든다(README의 '경계 갱신' 참고): {"11110": ["seoul", "jongno-gu"], ...}
 """
@@ -23,14 +23,37 @@ lawd = json.load(open(LAWD, encoding='utf-8'))
 rent = json.load(open(os.path.join(os.path.dirname(OUT), 'rent-stats.json'), encoding='utf-8'))
 rent_keys = {(a['sido'], a['sigungu'], a['dong']) for a in rent['areas'] if a['dong']}
 
+# 두 가지 입력을 받는다(2026-11-27):
+#  - 예전 자료: 소문자 필드(emd_cd, 이름), WGS84, UTF-8
+#  - 행안부 도로명주소 '구역의 도형 전체분'(TL_SCCO_EMD/LI): 대문자 필드(EMD_CD, EMD_ENG_NM, EMD_KOR_NM), UTM-K(EPSG:5179, .prj 없음), CP949
+#    → 한글 이름 필드를 찾아 쓰고, 좌표가 경위도 범위 밖이면 EPSG:5179 → WGS84로 바꾼다.
+_tf = None
+def to_wgs(g):
+    global _tf
+    if _tf is None:
+        from pyproj import Transformer
+        _tf = Transformer.from_crs(5179, 4326, always_xy=True)
+    from shapely.ops import transform
+    return transform(_tf.transform, g)
+
 def read(kind):
     out = []
     for p in glob.glob(os.path.join(SRC, '**', '*.shp'), recursive=True):
-        r = shapefile.Reader(p, encoding='utf-8')
-        if r.fields[1][0] != kind: continue
+        if 'GEMD' in os.path.basename(p).upper(): continue  # 행정동(TL_SCCO_GEMD)도 EMD_CD를 쓰지만 우리는 법정동만
+        r = None
+        for enc in ('utf-8', 'cp949'):
+            try:
+                r = shapefile.Reader(p, encoding=enc); [x for x in r.iterRecords()]; break
+            except Exception: r = None
+        if r is None or not r.fields[1:] or r.fields[1][0].lower() != kind or not len(r): continue
+        names = [f[0] for f in r.fields[1:]]
+        ni = next((i for i, f in enumerate(names) if f.upper().endswith('KOR_NM')), 1)
+        projected = r.bbox[2] > 180
         for sr in r.iterShapeRecords():
             if sr.shape.shapeType == 0: continue  # 빈 도형(일부 리)
-            out.append((sr.record[0], sr.record[1], make_valid(shape(sr.shape.__geo_interface__))))
+            g = make_valid(shape(sr.shape.__geo_interface__))
+            if projected: g = make_valid(to_wgs(g))
+            out.append((sr.record[0], sr.record[ni], g))
     return out
 
 emd = read('emd_cd'); li = read('li_cd')

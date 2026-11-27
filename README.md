@@ -40,7 +40,7 @@ CSV 파일은 커밋하지 않는다(.gitignore). `npm run mock-data`는 가상 
 경계 SHP(도로명주소 기반 시·군·구/읍면동/리, WGS84)를 압축 해제한 폴더로 다시 만든다. 통계만 바뀌면 빌드만 하면 된다(/geo/rent/*.json은 빌드 때 합침).
 
 ```
-pip install pyshp shapely topojson
+pip install pyshp shapely topojson pyproj
 node -e "import('./scripts/lib/rent-lawd.ts').then(m=>{const o={};for(const l of m.LAWD){const r=m.regionOfDeal(l.code,'X');if(r)o[l.code]=[r.sido,r.sigungu]};console.log(JSON.stringify(o))})" > lawd.json
 python3 scripts/geo/build-boundaries.py <경계 폴더> lawd.json   # → src/data/geo/sgg.json, src/data/geo/emd/*.json
 ```
