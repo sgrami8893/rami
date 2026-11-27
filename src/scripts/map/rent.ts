@@ -8,7 +8,7 @@
 // '내 예산' 결과가 있으면(rent:budget) 처음 화면의 시·군·구를 예산 안 동네 수로 칠한다.
 // 사실 숫자만(중위값·건수), 위험·안전 판정 없음. 화면에 넣는 글자는 textContent·esc()만.
 import type * as Leaflet from 'leaflet';
-import { createMap, placeLabels, esc, LG, meIcon } from './base.ts';
+import { createMap, placeLabels, esc, LG, meIcon, reduced } from './base.ts';
 import type { Ctx, Focus, Layer, Pick } from './shell.ts';
 import { rentMode } from '../v2-rent-mode.ts';
 import { announce } from '../copy.ts';
@@ -282,7 +282,9 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       m.addTo(bldGroup); bldMarkers.set(b.id, m);
     }
   };
+  let activeBld: string | null = null;
   const setBldActive = (id: string | null) => {
+    activeBld = id;
     for (const [k, m] of bldMarkers) m.setStyle(k === id ? { fillColor: '#6B1F57', radius: 11, weight: 3 } : { fillColor: '#B23A5B', radius: 8, weight: 2 });
   };
   const ac = new AbortController();
@@ -334,6 +336,13 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     },
     // 모바일은 지도 화면이 열리면서 크기가 바뀐다: 아직 손대지 않았으면 새 크기로 다시 맞춘다(첫 화면이 확대돼 잘려 보이던 문제)
     resize() { map.invalidateSize(); if (!touched) fit(false); },
+    reveal() {
+      // 고른 건물 > 고른 동 순으로, 지금 보이는 칸(가장자리 12% 안쪽) 밖이면 그쪽으로 옮긴다
+      const m = activeBld ? bldMarkers.get(activeBld) : null;
+      const d = focus.dong ? dongByK.get(focus.dong) : null;
+      const at = m ? m.getLatLng() : d ? (d as unknown as Leaflet.Polygon).getBounds().getCenter() : null;
+      if (at && !map.getBounds().pad(-0.12).contains(at)) map.panTo(at, { animate: !reduced() });
+    },
     destroy() { ac.abort(); map.remove(); },
   };
 }

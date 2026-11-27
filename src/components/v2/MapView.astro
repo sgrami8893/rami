@@ -30,7 +30,8 @@ const src = kind === 'rent' ? '최근 12개월 실거래 중위값 · 경계: �
         <p class="map-loading flex h-full flex-col items-center justify-center gap-2 text-cap text-ink-3" role="status"><svg class="ml-pin" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><defs><linearGradient id="mlgr" x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#6B1F57"/><stop offset="1" stop-color="#B23A5B"/></linearGradient></defs><path d="M12 23.2 8.7 19.4H6.4A4.4 4.4 0 0 1 2 15V6.4A4.4 4.4 0 0 1 6.4 2h11.2A4.4 4.4 0 0 1 22 6.4V15a4.4 4.4 0 0 1-4.4 4.4h-2.3Z" fill="url(#mlgr)"/><circle cx="12" cy="10.7" r="4" fill="#fff"/><circle class="ml-dot" cx="12" cy="10.7" r="1.7" fill="#F59A4E"/></svg><span class="ml-t">지도 불러오는 중</span></p>
       </div>
       {kind === 'rent' && (
-        <div class="mv-legend" hidden>
+        <button type="button" class="mv-legend-btn" aria-expanded="false" aria-controls="mv-legend"><i aria-hidden="true"></i>색 기준</button>
+        <div class="mv-legend" id="mv-legend" hidden>
           <p class="mv-legend-t"></p>
           <div class="mv-legend-bar" aria-hidden="true"></div>
           <p class="mv-legend-ends"><span class="mv-legend-lo"></span><span class="mv-legend-hi"></span></p>
