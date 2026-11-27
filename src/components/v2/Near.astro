@@ -1,5 +1,5 @@
 ---
-// '내 주변'(2026-11-26). auto면 화면에 들어올 때 바로 브라우저 위치 권한을 묻는다(홈). 아니면 작은 '내 주변' 버튼(깊은 화면).
+// '내 주변'(2026-11-26, 2026-11-27 바뀜: 자동 표시 없음, 버튼을 눌렀을 때만 위치를 묻는다). auto는 이제 '눈에 띄는 큰 버튼'(홈), 아니면 작은 칩(깊은 화면).
 // 좌표는 기기 안에서만 쓴다(src/scripts/near.ts). 거부·실패면 조용히 원래 화면 그대로.
 import Icon from '../Icon.astro';
 interface Props { auto?: boolean; class?: string; tool?: 'home' | 'rent' | 'parking' }
@@ -13,7 +13,7 @@ const { auto = false, class: cls = '', tool = 'home' } = Astro.props;
 </div>
 <script>
   import { onPage } from '../../scripts/soft-nav.ts';
-  import { locate, permission, findNear, renderNear, tellMap, geoHelp, lastGeoErr, type Near, type NearTool } from '../../scripts/near.ts';
+  import { locate, findNear, renderNear, tellMap, geoHelp, lastGeoErr, type Near, type NearTool } from '../../scripts/near.ts';
   let last: Near | null = null; // 이 탭 메모리에만
   onPage(() => {
     document.querySelectorAll<HTMLElement>('[data-near-root]').forEach((root) => {
@@ -54,9 +54,9 @@ const { auto = false, class: cls = '', tool = 'home' } = Astro.props;
       };
       btn.addEventListener('click', () => { void run(true); });
       document.addEventListener('rent:mode', () => { if (last && document.contains(box) && !box.hidden) renderNear(box, last, tool); });
-      if (last) { show(last); return; }
+      // 어느 화면이든 처음엔 전체를 보여 주고 '내 주변'은 버튼을 눌렀을 때만(2026-11-27 사용자 '지역 선택해도 내 주변 나오는 건 헷갈려',
+      // '위치 동의했어도 바로 내 주변보다는 전체를'). 위치 허용 창도 버튼을 누를 때 뜬다. 이미 허용돼 있으면 한 번 눌러 바로 보인다
       btn.hidden = false;
-      if (root.dataset.auto) void permission().then((p) => { if (p !== 'denied') void run(false); });
     });
   });
 </script>

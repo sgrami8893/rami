@@ -18,7 +18,7 @@ import Fold from '../../../../../components/v2/Fold.astro';
 import MapPill from '../../../../../components/v2/MapPill.astro';
 import Icon from '../../../../../components/Icon.astro';
 import { RENT_MAP, RENT_SOURCES, stats, DONG_PAGES, rentPath, dongIndexable, IS_MOCK, rentDescription, type RentArea } from '../../../../../lib/rent.ts';
-import { rentPlace } from '../../../../../lib/rent-view.ts';
+import { rentPlace, amt } from '../../../../../lib/rent-view.ts';
 import { HAS_BUILDINGS, buildingSplit } from '../../../../../lib/rent-buildings.ts';
 import { fileOf } from '../../../../../lib/rent-geo.ts';
 import { SIDO, type SidoSlug } from '../../../../../../scripts/lib/regions.ts';
@@ -34,7 +34,8 @@ const cmp = (t: 'villa' | 'officetel') => {
   const x = a.byType[t]?.jeonse?.median, y = sg.byType[t]?.jeonse?.median;
   if (!x || !y) return undefined;
   const d = Math.round(((x - y) / y) * 100);
-  return Math.abs(d) < 3 ? `${a.sigunguName} 전세 중위와 비슷해요` : `${a.sigunguName} 전세 중위보다 약 ${Math.abs(d)}% ${d > 0 ? '높아요' : '낮아요'}`;
+  // 2026-11-27 '약 46% 높아요'가 판정어처럼 읽힌다는 점검: 시·군·구 숫자와 차이(부호 붙은 %)만 적는다
+  return `${a.sigunguName} 전체 전세 중위 ${amt(y)}(이 동네 ${Math.abs(d) < 3 ? '차이 3% 안쪽' : `${d > 0 ? '+' : '−'}${Math.abs(d)}%`})`;
 };
 const file = fileOf(sido, a.sigungu);
 const bs = HAS_BUILDINGS ? buildingSplit(file, dong) : { many: 0, few: 0 };
