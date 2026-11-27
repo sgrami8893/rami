@@ -9,7 +9,7 @@ import Icon from '../components/Icon.astro';
 import '../styles/fonts/pretendard/pretendard.css'; // Pretendard Variable 동적 서브셋(OFL), 자체 호스팅
 import '../styles/global.css';
 import fontPreload from '../styles/fonts/pretendard/PretendardVariable.subset.91.woff2?url';
-import { MAP, SITE_NAME, SITE_URL, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
+import { JUSO, MAP, SITE_NAME, SITE_URL, ADSENSE, DATA_SOURCES, TOOLS, NOINDEX_ALL, SITE_VERIFICATION, type ToolSlug } from '../config.ts';
 import Logo from '../components/Logo.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SearchSheet from '../components/v2/SearchSheet.astro';
@@ -95,7 +95,7 @@ const crumbLd = crumbs.length > 1 ? [{ '@context': 'https://schema.org', '@type'
       <nav aria-label="도구" class="v-tools">
         {liveTools.map((t) => <a href={t.path} aria-current={tool === t.slug ? 'page' : undefined}>{SHORT[t.slug] ?? t.name}</a>)}
       </nav>
-      <button type="button" class="v-hsearch" data-sheet-open aria-haspopup="dialog"><Icon name="search" size={18} />동네·지역 이름으로 찾기</button>
+      <button type="button" class="v-hsearch" data-sheet-open aria-haspopup="dialog"><Icon name="search" size={18} />{JUSO.enabled ? '동네 이름·주소로 찾기' : '동네·지역 이름으로 찾기'}</button>
       <button type="button" class="v-hbtn s" data-sheet-open aria-haspopup="dialog" aria-label="검색·글자 크기"><Icon name="search" size={22} /></button>
     </header>
     {split ? (

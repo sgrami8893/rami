@@ -296,7 +296,7 @@ body { font-size: calc(16px * var(--fs)); }
 .v-place .pop-empty { padding: 16px 4px; font-size: calc(14px * var(--fs, 1)); color: var(--color-ink-2); }
 /* 모바일: 아래에서 올라오는 시트 + 어두운 배경 */
 @media (max-width: 639px) {
-  .v-place .pop { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 82vh; max-height: 82dvh; border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .v-place .pop { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: 520px; margin: 0 auto; max-height: 82vh; max-height: 82dvh; border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
   html.pick-open::after { content: ''; position: fixed; inset: 0; z-index: 65; background: rgb(15 23 42 / .4); }
   html.pick-open { overflow: hidden; }
 }
@@ -736,7 +736,8 @@ html.pill-tuck .v-pill:not(.mv-back):not(:focus-visible) { transform: translate(
   /* 위치 줄: 접힘·반에선 지도 위에 떠 있는 카드, 펼침에선 시트 맨 위 */
   html.msheet:not([data-sheet="full"]) #main .v-place { position: fixed; top: 60px; left: 12px; right: 12px; z-index: 25; visibility: visible; margin: 0; padding: 2px 6px;
     background: var(--color-card); border-radius: 16px; box-shadow: 0 2px 12px rgb(25 31 40 / .14); }
-  html.msheet:not([data-sheet="full"]) #main .v-place .pop { left: -12px; width: calc(100vw - 24px); max-height: min(520px, calc(100dvh - 140px)); }
+  /* 지역 고르기 판: 시트(#main, z 20) 안에 있어서 어두운 배경(z 65) 아래로 깔려 눌리지 않던 문제(2026-11-27 사용자) → 열려 있는 동안 시트를 배경 위로 */
+  html.msheet.pick-open #main { z-index: 70; }
   html.msheet[data-sheet="full"] #main .v-place { margin-top: 0; }
   /* 지도 위 조작: 위치 줄 아래에 */
   html.msheet .map-pane .leaflet-top .leaflet-control { margin-top: 64px; }
@@ -751,6 +752,9 @@ html.pill-tuck .v-pill:not(.mv-back):not(:focus-visible) { transform: translate(
   html.msheet .mv-card { position: fixed; left: 0; right: 0; bottom: var(--bb, 0px); border: 0; border-radius: 20px 20px 0 0; padding: 20px 20px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 24px rgb(25 31 40 / .14); }
   html.msheet[data-sheet] .map-pane .leaflet-control-zoom { display: block; }
   html.msheet[data-sheet="card"] .map-pane .leaflet-bottom { display: none; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  html.msheet:not([data-sheet="full"]) #main .v-place .pop { left: -6px; width: min(420px, calc(100vw - 24px)); max-height: min(520px, calc(100dvh - 140px)); }
 }
 @media (max-width: 1023px) and (prefers-reduced-motion: reduce) { html.msheet #main { transition: none; } }
 

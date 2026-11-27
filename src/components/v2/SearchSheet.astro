@@ -11,11 +11,11 @@ const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', p
   <div class="v-sheet-box" role="dialog" aria-modal="true" aria-labelledby="v-sheet-h">
     <h2 id="v-sheet-h" class="sr-only">검색과 글자 크기</h2>
     <div class="v-sheet-top">
-      <label class="v-input"><Icon name="search" size={20} class="text-ink-3" /><span class="sr-only">동네·지역 이름</span>
-        <input id="v-q" type="search" autocomplete="off" placeholder="동네·지역 이름 또는 초성 (예: 망원동, ㅁㅇ)" /></label>
+      <label class="v-input"><Icon name="search" size={20} class="text-ink-3" /><span class="sr-only">{JUSO.enabled ? '동네 이름이나 주소' : '동네·지역 이름'}</span>
+        <input id="v-q" type="search" autocomplete="off" placeholder={JUSO.enabled ? '동네 이름·초성·도로명 주소 (예: 망원동, 월드컵로 10)' : '동네·지역 이름 또는 초성 (예: 망원동, ㅁㅇ)'} /></label>
       <button type="button" class="v-hbtn" data-sheet-close aria-label="닫기"><Icon name="x" size={22} /></button>
     </div>
-    <p id="v-s-msg" class="mt-4 text-cap text-ink-3" aria-live="polite">시·군·구나 동 이름을 넣어 보세요. 초성(ㅁㅇ)도 돼요. 지금은 서울·경기·인천만 있어요.</p>
+    <p id="v-s-msg" class="mt-4 text-cap text-ink-3" aria-live="polite">{JUSO.enabled ? '시·군·구나 동 이름, 도로명·지번 주소(예: 월드컵로 10)를 넣어 보세요. 초성(ㅁㅇ)도 돼요. 지금은 서울·경기·인천만 있어요.' : '시·군·구나 동 이름을 넣어 보세요. 초성(ㅁㅇ)도 돼요. 지금은 서울·경기·인천만 있어요.'}</p>
     <div id="v-s-recent" class="mt-3" hidden><p class="text-[length:calc(13px*var(--fs,1))] font-bold text-ink-3">최근 본 곳</p><div class="v-s-rchips mt-1.5 flex flex-wrap gap-1.5"></div></div>
     <div id="v-s-res" class="v-sres mt-1"></div>
     {JUSO.enabled && <div id="v-s-addr" class="v-sres mt-3" hidden><p class="v-s-addr-h">주소로 찾은 동네</p><div class="v-s-addr-list"></div><p class="v-s-addr-src">주소 검색: 행정안전부 도로명주소 검색 API</p></div>}
@@ -67,7 +67,7 @@ const SIZES = [{ v: 'm', label: '보통', px: 16 }, { v: 'l', label: '크게', p
       .sort((a, b) => Number(!norm(a[0]).startsWith(v)) - Number(!norm(b[0]).startsWith(v)) || a[0].length - b[0].length).slice(0, 30);
     if (sheet.dataset.juso) void import('../../scripts/addr-search.ts').then((m) => m.addrSearch(q.value, rows!, pref, LABEL));
     msg.hidden = hits.length > 0;
-    if (!hits.length) msg.textContent = '찾는 지역이 없어요. 시·군·구 이름(예: 분당 → 성남시)이나 동 이름으로 찾아 보세요.';
+    if (!hits.length) msg.textContent = sheet.dataset.juso && /\d/.test(v) ? '주소로 찾는 중이에요. 결과가 아래에 나와요.' : '찾는 지역이 없어요. 시·군·구 이름(예: 분당 → 성남시)이나 동 이름으로 찾아 보세요.';
     res.replaceChildren(...hits.map(([n, c, , h]) => {
       const key = h[pref] ? pref : (['r', 'p', 'm'] as const).find((x) => h[x])!;
       // 한 줄: 이름·지역(지금 도구로 가는 큰 링크) + 다른 도구 작은 링크
