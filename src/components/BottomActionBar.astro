@@ -7,7 +7,7 @@ import { kakaoTo, kakaoSearch, naverSearch } from '../lib/format.ts';
 interface Props { name: string; address: string; lat: number | null; lng: number | null; label?: string }
 const { name, address, lat, lng, label = '길찾기·주소 복사' } = Astro.props;
 const byCoords = lat !== null && lng !== null;
-const kakao = byCoords ? kakaoTo(name, lat!, lng!) : kakaoSearch(address);
+const kakao = byCoords ? kakaoTo(name, lat!, lng!) : kakaoSearch(address || name); // 주소가 비어도 이름으로 검색
 ---
 <!-- 푸터 뒤에 바 높이만큼 여백: 마지막 내용이 바에 가려지지 않게 -->
 <div aria-hidden="true" class="h-[calc(96px+env(safe-area-inset-bottom))] lg:hidden"></div>
@@ -16,11 +16,11 @@ const kakao = byCoords ? kakaoTo(name, lat!, lng!) : kakaoSearch(address);
     <a href={kakao} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-[1.3] items-center justify-center rounded-2xl bg-brand text-[18px] font-bold text-white hover:brightness-95">
       {byCoords ? '카카오맵 길찾기' : '카카오맵에서 보기'}
     </a>
-    <a href={naverSearch(address, name)} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-bg text-[18px] font-bold text-ink-2 hover:brightness-[0.97]">
+    <a href={naverSearch(address, name).replace(/%20$/, '')} target="_blank" rel="noopener noreferrer" class="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-bg text-[18px] font-bold text-ink-2 hover:brightness-[0.97]">
       네이버 지도
     </a>
-    <button type="button" data-copy={address} class="flex h-[52px] w-[52px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-bg text-ink-2 hover:text-brand" aria-label="주소 복사">
+    {address && <button type="button" data-copy={address} class="flex h-[52px] w-[52px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-bg text-ink-2 hover:text-brand" aria-label="주소 복사">
       <Icon name="copy" size={18} /><span class="text-[13px] font-semibold">주소 복사</span>
-    </button>
+    </button>}
   </div>
 </div>

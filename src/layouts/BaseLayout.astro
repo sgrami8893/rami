@@ -112,7 +112,8 @@ const crumbLd = crumbs.length > 1 ? [{ '@context': 'https://schema.org', '@type'
       <SiteFooter sources={sources} muin={tool === 'muin'} />
     </div>
     )}
-    <slot name="bottom" />
+    {/* 하단 고정 바 자리: 화면 이동(soft-nav) 때 본문과 함께 바꾼다(목록→상세로 와도 길찾기 바가 나오게) */}
+    <div id="v-bottom"><slot name="bottom" /></div>
     <SearchSheet tool={tool} />
   </body>
 </html>

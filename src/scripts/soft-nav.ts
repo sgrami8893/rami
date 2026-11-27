@@ -66,6 +66,9 @@ function swap(doc: Document, url: URL, push: boolean) {
     const pane = document.getElementById('map-pane'), np = doc.getElementById('map-pane');
     if (pane && np) { document.dispatchEvent(new CustomEvent('dnkk:unmount')); pane.replaceWith(document.importNode(np, true)); }
   }
+  // 하단 고정 바(상세의 카카오맵·네이버 지도·주소 복사)도 새 화면 것으로. 예전엔 본문만 바뀌어 바가 빠지거나 남았다(2026-11-27 사용자 제보)
+  const bot = document.getElementById('v-bottom'), nbot = doc.getElementById('v-bottom');
+  if (bot) bot.replaceChildren(...(nbot ? [...nbot.childNodes].map((n) => document.importNode(n, true)) : []));
   // 머리말 도구 메뉴의 '지금 도구' 표시와 문서 정보
   // 홈('/')은 어느 도구도 아님(전월세로 떨어지면 안 됨: 2026-11-26 맥락 이탈 점검)
   const tool = url.pathname.split('/')[1] ?? '';
