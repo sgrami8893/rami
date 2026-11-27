@@ -12,7 +12,7 @@
     "update-data": "node scripts/build-data.ts",
     "mock-data": "node scripts/mock-data.ts",
     "fetch-parking": "node --env-file-if-exists=.env scripts/fetch-parking.ts",
-    "fetch-rent": "node --env-file-if-exists=.env scripts/fetch-rent.ts",
+    "fetch-rent": "node --max-old-space-size=6144 --env-file-if-exists=.env scripts/fetch-rent.ts",
     "mock-rent": "node scripts/mock-rent.ts",
     "check-data": "node scripts/check-data.ts",
     "test": "node --test scripts/test/*.test.ts"

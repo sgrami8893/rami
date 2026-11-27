@@ -97,6 +97,9 @@ export function parseJusoLine(line: string): JusoRow | null {
 }
 
 // ===== 파일 훑기 =====
+/** 수도권이 아닌 시·도 파일(전국 DB를 통째로 풀어 둔 경우). 이름에 시·도가 없는 파일은 읽는다(2026-11-27, 메모리·시간 절약) */
+const OTHER_SIDO = /busan|daegu|gwangju|daejeon|ulsan|sejong|gangwon|chungbuk|chungnam|chungcheong|jeonbuk|jeonnam|jeolla|gyeongbuk|gyeongnam|gyeongsang|jeju/i;
+export const isCapitalFile = (name: string) => !OTHER_SIDO.test(name.replace(/^.*[\\/]/, ''));
 async function txtFiles(dir: string): Promise<string[]> {
   let out: string[] = [];
   let ents;
@@ -104,7 +107,7 @@ async function txtFiles(dir: string): Promise<string[]> {
   for (const e of ents) {
     const p = join(dir, e.name);
     if (e.isDirectory()) out = out.concat(await txtFiles(p));
-    else if (/\.txt$/i.test(e.name)) out.push(p);
+    else if (/\.txt$/i.test(e.name) && isCapitalFile(e.name)) out.push(p);
   }
   return out.sort();
 }
@@ -166,6 +169,7 @@ export async function loadJusoGeo(dir: string, need: Set<string>, log: (s: strin
   let linked = 0;
   for (const p of pending) { const xy = roadXY.get(p.road); if (xy) { put(p.k, p.lk, xy); linked++; } }
   log(`  도로명 건물 좌표 ${roadXY.size.toLocaleString('ko-KR')}곳, 지번에 이은 것 ${linked.toLocaleString('ko-KR')}건`);
+  roadXY.clear(); pending.length = 0; // 큰 임시 표는 바로 비운다
   return {
     files, rows, withXY,
     lookup(code5, dong, jibun) {
