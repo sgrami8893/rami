@@ -14,12 +14,17 @@
 //         건물 좌표는 .cache/juso/ 에 풀어 둔 주소정보 '내비게이션용DB'(.txt)에서 찾는다(없으면 좌표 없이 목록만).
 // 4) 주소 파일 점검(선택):       npm run fetch-rent -- --geo-check   (.cache/juso/ 첫 줄들을 어떻게 읽었는지 보여 줌)
 // 옵션: --months 37  --delay 200  --refresh(캐시 무시)  --reprobe(개편 지역 새 코드 다시 찾기)  --force(안전장치 무시)
+//       --fresh 3(최근 몇 개월을 새로 받을지, 기본 2. 자동 갱신은 신고 기한 30일을 넉넉히 덮도록 3)
+//       --apt-auto(아파트 API를 한 번 시험해 활용신청이 승인돼 있으면 --apt처럼 아파트도 받음. 자동 갱신용)
+// 자동 갱신(.github/workflows/data-refresh.yml): GitHub Actions가 매주 이 스크립트를 --fresh 3 --apt-auto 로 돌린다.
+//   주소정보 DB가 없으므로 건물 좌표는 지난번 src/data/rent-buildings/ 파일에서 이어받는다(새 건물만 좌표 없음).
+//   캐시(.cache/rent)에는 RENT_FIELD 필드만 남긴다(층·계약일 없음).
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { parsePage, redact, type Page } from './lib/parking-api.ts';
 import { LAWD, PROBE_RANGES } from './lib/rent-lawd.ts';
-import { normalizeDeal, missingFields, aggregate, type Deal, type HouseType } from './lib/rent.ts';
-import { buildBuildings, neededPlaces, BUILDING_MONTHS } from './lib/rent-buildings.ts';
+import { normalizeDeal, missingFields, aggregate, slimItem, type Deal, type HouseType } from './lib/rent.ts';
+import { buildBuildings, neededPlaces, prevCoords, BUILDING_MONTHS, type BuildingFile } from './lib/rent-buildings.ts';
 import { loadJusoGeo, parseJusoLine, utmkToWgs84 } from './lib/juso-geo.ts';
 
 /** 엔드포인트. 오피스텔은 포털 15126475 페이지에서 확인(2026-11-25). 연립다세대(RH)는 같은 규칙으로 추정 → --sample로 확인 */
@@ -33,7 +38,7 @@ export const RENT_API: Record<HouseType, string> = {
 const args = process.argv.slice(2);
 const flag = (n: string) => args.includes(n);
 const opt = (n: string, d: number) => { const i = args.indexOf(n); return i >= 0 ? Number(args[i + 1]) : d; };
-const MONTHS = opt('--months', BUILDING_MONTHS + 1), DELAY = opt('--delay', 200), ROWS = 1000;
+const MONTHS = opt('--months', BUILDING_MONTHS + 1), DELAY = opt('--delay', 200), ROWS = 1000, FRESH = Math.max(1, opt('--fresh', 2));
 const CACHE = '.cache/rent', JUSO = '.cache/juso', BOUT = 'src/data/rent-buildings', OUT = 'src/data/rent-stats.json', REPORT = 'src/data/rent.report.json', DEBUG_DIR = 'scripts/fixtures/out';
 const KEY = (process.env.DATA_GO_KR_KEY ?? '').trim();
 // process.exit()는 윈도우에서 fetch 연결이 닫히는 중에 libuv 오류(UV_HANDLE_CLOSING)를 낼 수 있어 쓰지 않는다.
@@ -86,6 +91,11 @@ const TYPES: HouseType[] = ['villa', 'officetel', ...(process.argv.includes('--a
 async function discoverCodes(verbose = false): Promise<string[]> {
   const file = `${CACHE}/codes.json`;
   if (existsSync(file) && !flag('--reprobe') && !verbose) return JSON.parse(await readFile(file, 'utf8'));
+  // 캐시가 없으면(자동 갱신 첫 실행) 지난번 요약 파일에 남은 코드를 쓴다
+  if (!flag('--reprobe') && !verbose && existsSync(REPORT)) {
+    const prev = JSON.parse(await readFile(REPORT, 'utf8')).discoveredCodes;
+    if (Array.isArray(prev) && prev.length) { await mkdir(CACHE, { recursive: true }); await writeFile(file, JSON.stringify(prev)); return prev; }
+  }
   const known = new Set(LAWD.map((l) => l.code));
   const ym = ymList(2)[0];
   const found: string[] = [];
@@ -170,8 +180,12 @@ async function main() {
 
   // 전체 수집(월별 캐시)
   await mkdir(CACHE, { recursive: true });
+  if (flag('--apt-auto') && !TYPES.includes('apt')) {
+    try { await getPage('apt', '11680', ymList(2)[0], 1, 1); TYPES.push('apt'); console.log('아파트 API 사용 가능 → 아파트도 받아요'); }
+    catch (e) { console.log(`아파트 API는 건너뛰어요(활용신청 전이거나 오류): ${redact((e as Error).message, KEY).slice(0, 120)}`); }
+  }
   const months = ymList(MONTHS);
-  const fresh = new Set(months.slice(-2));
+  const fresh = new Set(months.slice(-FRESH));
   const deals: Deal[] = [];
   let calls = 0, bad = 0, raw = 0;
   const extra = await discoverCodes();
@@ -182,7 +196,7 @@ async function main() {
     const file = `${CACHE}/${t}-${l.code}-${ym}.json`;
     let items: Record<string, unknown>[];
     if (existsSync(file) && !fresh.has(ym) && !flag('--refresh')) items = JSON.parse(await readFile(file, 'utf8'));
-    else { items = await getMonth(t, l.code, ym); calls++; await writeFile(file, JSON.stringify(items)); await sleep(DELAY); }
+    else { items = (await getMonth(t, l.code, ym)).map(slimItem); calls++; await writeFile(file, JSON.stringify(items)); await sleep(DELAY); }
     if (items[0] && missingFields(items[0]).length) fail(`필수 필드를 찾지 못했어요(${t}): ${missingFields(items[0]).join(', ')}. --sample 결과를 전달해 주세요.`);
     for (const it of items) { raw++; const d = normalizeDeal(it, t, l.code); if (d) deals.push(d); else bad++; }
     process.stdout.write(`\r  ${t} ${l.code} ${ym} · 누적 ${raw.toLocaleString('ko-KR')}건 · 새 호출 ${calls}`);
@@ -208,13 +222,18 @@ async function main() {
   const need = neededPlaces(deals);
   console.log(`\n건물 위치 찾는 중: 지번 ${need.size.toLocaleString('ko-KR')}곳 (${JUSO}/)`);
   const geo = await loadJusoGeo(JUSO, need, (s) => console.log(s));
-  if (!geo.files.length) console.log(`  ${JUSO}/ 에 주소 파일이 없어 좌표 없이 만들어요(지도 핀 없이 동네별 건물 목록만 보여요).`);
-  const bld = buildBuildings(deals, (c, d, j) => geo.lookup(c, d, j));
+  // 지난번 건물 파일 좌표(주소 DB가 없을 때·DB에서 못 찾은 지번의 대체). 아래에서 예전 파일을 지우기 전에 읽는다
+  const { readdir: rd, unlink } = await import('node:fs/promises');
+  const prevFiles: BuildingFile[] = [];
+  for (const f of await rd(BOUT).catch(() => [] as string[])) if (/\.json$/.test(f)) { try { prevFiles.push(JSON.parse(await readFile(`${BOUT}/${f}`, 'utf8'))); } catch { /* 깨진 파일은 무시 */ } }
+  const prev = prevCoords(prevFiles);
+  if (!geo.files.length) console.log(`  ${JUSO}/ 에 주소 파일이 없어 지난번 건물 파일 좌표 ${prev.size.toLocaleString('ko-KR')}곳을 이어받아요(새 건물은 좌표 없이 목록만).`);
+  let fromPrev = 0;
+  const bld = buildBuildings(deals, (c, d, j) => { const a = geo.lookup(c, d, j); if (a) return a; const b = prev.lookup(c, d, j); if (b) fromPrev++; return b; });
   await mkdir(BOUT, { recursive: true });
   const bsizes: Record<string, number> = {};
   // 깃허브 웹 업로드 한도(파일당 25MB): 22MB를 넘으면 시·군·구 단위로 나눠 seoul-1.json, seoul-2.json … 으로 쓴다(2026-11-27, 아파트 포함 대비).
   // 사이트는 rent-buildings/*.json 을 모두 읽어 sido 값으로 합치므로 이름은 상관없다. 예전 파일은 지운다.
-  const { readdir: rd, unlink } = await import('node:fs/promises');
   for (const old of await rd(BOUT).catch(() => [] as string[])) if (/\.json$/.test(old)) await unlink(`${BOUT}/${old}`);
   const LIMIT = 22 * 1024 * 1024;
   for (const f of bld.files) {
@@ -232,7 +251,7 @@ async function main() {
     for (const [i, b] of parts.entries()) await writeFile(`${BOUT}/${f.sido}-${i + 1}.json`, JSON.stringify({ ...f, b }));
     console.log(`  ${f.sido}: ${Math.round(whole.length / 1024 / 1024)}MB라 ${parts.length}개 파일로 나눴어요(${f.sido}-1.json …). 모두 올려 주세요.`);
   }
-  const bReport = { period: [bld.from, bld.to], buildings: bld.buildings, located: bld.located, deals: bld.deals, noJibun: bld.noJibun, jusoFiles: geo.files.length, jusoRows: geo.rows, fileKB: bsizes };
+  const bReport = { period: [bld.from, bld.to], buildings: bld.buildings, located: bld.located, deals: bld.deals, noJibun: bld.noJibun, jusoFiles: geo.files.length, jusoRows: geo.rows, coordLookupsFromPrevious: fromPrev, fileKB: bsizes };
 
   await writeFile(OUT, JSON.stringify(stats));
   await writeFile(REPORT, JSON.stringify({ ...report, buildings: bReport }, null, 1));
