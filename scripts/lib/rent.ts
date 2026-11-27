@@ -45,6 +45,10 @@ export function missingFields(item: Record<string, unknown>) {
   return RENT_REQUIRED.filter((f) => pick(item, f) === undefined);
 }
 
+/** 같은 문자열(코드·동·연월)은 하나만 메모리에 둔다(수백만 건 수집 시 메모리 절약, 2026-11-27) */
+const POOL = new Map<string, string>();
+const intern = (s: string) => { const p = POOL.get(s); if (p !== undefined) return p; POOL.set(s, s); return s; };
+
 /** API 항목 1건 → Deal. 금액·면적이 이상하면 null(보고서에 건수로 남김). */
 export function normalizeDeal(item: Record<string, unknown>, type: HouseType, fallbackCode = ''): Deal | null {
   const code = String(pick(item, 'code') ?? fallbackCode).trim().slice(0, 5);
@@ -57,7 +61,7 @@ export function normalizeDeal(item: Record<string, unknown>, type: HouseType, fa
   const ur = String(pick(item, 'usedRight') ?? '').trim();
   const by = num(pick(item, 'buildYear'));
   return {
-    type, code, dong, ym: `${y}-${String(m).padStart(2, '0')}`, deposit, monthly, area,
+    type, code: intern(code), dong: intern(dong), ym: intern(`${y}-${String(m).padStart(2, '0')}`), deposit, monthly, area,
     buildYear: by > 1900 ? by : null,
     renewal: ct === '신규' ? 'new' : ct === '갱신' ? 'renew' : null,
     usedRight: ur === '사용' ? true : ur ? false : null,

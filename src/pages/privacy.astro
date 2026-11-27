@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { SITE_NAME, CONTACT_EMAIL, CONTACT_READY, MAP, REPORT_FORM, JUSO, FEEDBACK } from '../config.ts';
+import Email from '../components/Email.astro';
+import { SITE_NAME, CONTACT_READY, PRIVACY_OFFICER, MAP, REPORT_FORM, JUSO, FEEDBACK } from '../config.ts';
 // 항목 번호는 실제로 켜진 기능만 세어 매긴다(방침과 실제 동작 일치)
 const hasReport = Boolean(REPORT_FORM.formId);
 let no = 2;
@@ -61,9 +62,15 @@ const keepY = Math.round(FEEDBACK.retentionDays / 365);
       <h2 class="font-bold text-ink">{nJuso}. 주소 검색</h2>
       <p>검색 창에 도로명·지번 주소를 넣으면, 이용자의 브라우저가 입력한 검색어를 {JUSO.name}(행정안전부)로 직접 보내 주소를 찾아요. 이때 검색어와 IP 주소·브라우저 정보 같은 접속 정보가 해당 기관에 전달될 수 있어요. 사이트는 검색어와 결과를 서버로 보내거나 저장하지 않고, 찾은 주소의 동네 페이지로 연결만 해요. 제공기관의 정책은 <a href={JUSO.policyUrl} class="underline" rel="noopener noreferrer" target="_blank">{JUSO.policyUrl}</a>에서 확인할 수 있어요.</p>
     </section>)}
-    <section>
-      <h2 class="font-bold text-ink">{nContact}. 문의처</h2>
-      <p>서비스 이용 및 개인정보 관련 문의: {CONTACT_READY ? CONTACT_EMAIL : <a href="/contact/" class="underline">의견·문의 페이지</a>}</p>
+    <section id="officer">
+      <h2 class="font-bold text-ink">{nContact}. 개인정보 보호책임자와 문의처</h2>
+      <p>개인정보 처리에 관한 문의, 열람·정정·삭제·처리정지 요구, 불만 처리는 아래로 연락해 주세요. 늦지 않게 답하고 처리할게요.</p>
+      <ul class="mt-2 list-disc space-y-1 pl-5">
+        <li>개인정보 보호책임자: {PRIVACY_OFFICER}</li>
+        <li>이메일: {CONTACT_READY ? <Email /> : '준비 중'}</li>
+        <li>또는 <a href="/contact/" class="underline">의견·문의 페이지</a></li>
+      </ul>
+      <p class="mt-2">개인정보 침해에 대한 상담이 필요하면 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118), 개인정보분쟁조정위원회(www.kopico.go.kr, 1833-6972)에 문의할 수 있어요.</p>
     </section>
     <p class="text-cap text-ink-3">시행일: {effective}</p>
   </article>
