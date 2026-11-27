@@ -212,11 +212,25 @@ async function main() {
   const bld = buildBuildings(deals, (c, d, j) => geo.lookup(c, d, j));
   await mkdir(BOUT, { recursive: true });
   const bsizes: Record<string, number> = {};
+  // 깃허브 웹 업로드 한도(파일당 25MB): 22MB를 넘으면 시·군·구 단위로 나눠 seoul-1.json, seoul-2.json … 으로 쓴다(2026-11-27, 아파트 포함 대비).
+  // 사이트는 rent-buildings/*.json 을 모두 읽어 sido 값으로 합치므로 이름은 상관없다. 예전 파일은 지운다.
+  const { readdir: rd, unlink } = await import('node:fs/promises');
+  for (const old of await rd(BOUT).catch(() => [] as string[])) if (/\.json$/.test(old)) await unlink(`${BOUT}/${old}`);
+  const LIMIT = 22 * 1024 * 1024;
   for (const f of bld.files) {
-    const text = JSON.stringify(f);
-    bsizes[f.sido] = Math.round(text.length / 1024);
-    if (text.length > 24 * 1024 * 1024) console.log(`  ⚠ ${f.sido}.json 이 24MB를 넘어요(깃허브 웹 업로드 한도 25MB). --months 를 줄여 주세요.`);
-    await writeFile(`${BOUT}/${f.sido}.json`, text);
+    const whole = JSON.stringify(f);
+    bsizes[f.sido] = Math.round(whole.length / 1024);
+    if (whole.length <= LIMIT) { await writeFile(`${BOUT}/${f.sido}.json`, whole); continue; }
+    const bySgg = new Map<string, typeof f.b>();
+    for (const r of f.b) bySgg.set(r[0], [...(bySgg.get(r[0]) ?? []), r]);
+    const parts: (typeof f.b)[] = [[]]; let size = 0;
+    for (const rows of bySgg.values()) {
+      const n = JSON.stringify(rows).length;
+      if (size + n > LIMIT && parts.at(-1)!.length) { parts.push([]); size = 0; }
+      parts.at(-1)!.push(...rows); size += n;
+    }
+    for (const [i, b] of parts.entries()) await writeFile(`${BOUT}/${f.sido}-${i + 1}.json`, JSON.stringify({ ...f, b }));
+    console.log(`  ${f.sido}: ${Math.round(whole.length / 1024 / 1024)}MB라 ${parts.length}개 파일로 나눴어요(${f.sido}-1.json …). 모두 올려 주세요.`);
   }
   const bReport = { period: [bld.from, bld.to], buildings: bld.buildings, located: bld.located, deals: bld.deals, noJibun: bld.noJibun, jusoFiles: geo.files.length, jusoRows: geo.rows, fileKB: bsizes };
 

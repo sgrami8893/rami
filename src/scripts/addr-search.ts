@@ -5,6 +5,21 @@
 type Row = [string, string, string, { r?: string; p?: string; m?: string }];
 type Juso = { roadAddr: string; jibunAddr: string; siNm: string; sggNm: string; emdNm: string };
 const looksLikeAddr = (s: string) => /\d/.test(s) || /(로|길)\s*$/.test(s.trim()) || /(로|길)\s*\d/.test(s);
+type Res = { results?: { common?: { errorCode?: string }; juso?: Juso[] | null } };
+/** JSONP(행안부가 교차 출처 호출용으로 주는 addrLinkApiJsonp.do). 응답은 우리 콜백 하나만 부르고, 8초 넘으면 버린다 */
+let jn = 0;
+function jsonp(q: Record<string, string>): Promise<Res> {
+  return new Promise((res) => {
+    const cb = `__dnkkJuso${++jn}`, s = document.createElement('script');
+    const done = (v: Res) => { delete (window as unknown as Record<string, unknown>)[cb]; s.remove(); clearTimeout(t); res(v); };
+    const t = window.setTimeout(() => done({}), 8000);
+    (window as unknown as Record<string, unknown>)[cb] = (v: { returnXml?: string } & Res) => done(v);
+    const u = new URL('https://business.juso.go.kr/addrlink/addrLinkApiJsonp.do');
+    u.search = new URLSearchParams({ ...q, callback: cb }).toString();
+    s.src = u.href; s.referrerPolicy = 'origin'; s.onerror = () => done({});
+    document.head.append(s);
+  });
+}
 let timer = 0, seq = 0;
 const cache = new Map<string, Juso[]>();
 
@@ -21,10 +36,14 @@ export function addrSearch(raw: string, rows: Row[], pref: 'r' | 'p' | 'm', LABE
     let list = cache.get(kw);
     if (!list) {
       try {
-        const u = new URL('https://business.juso.go.kr/addrlink/addrLinkApi.do');
-        u.search = new URLSearchParams({ confmKey: key, currentPage: '1', countPerPage: '8', keyword: kw, resultType: 'json' }).toString();
-        const r = await fetch(u, { referrerPolicy: 'origin', credentials: 'omit' });
-        const j = await r.json() as { results?: { common?: { errorCode?: string }; juso?: Juso[] | null } };
+        const q = { confmKey: key, currentPage: '1', countPerPage: '8', keyword: kw, resultType: 'json' };
+        let j: Res;
+        try {
+          const u = new URL('https://business.juso.go.kr/addrlink/addrLinkApi.do');
+          u.search = new URLSearchParams(q).toString();
+          const r = await fetch(u, { referrerPolicy: 'origin', credentials: 'omit' });
+          j = await r.json() as Res;
+        } catch { j = await jsonp(q); } // 브라우저 교차 출처가 막히면 API가 제공하는 JSONP 주소로
         list = j.results?.common?.errorCode === '0' ? (j.results.juso ?? []) : [];
       } catch { list = []; }
       cache.set(kw, list);
