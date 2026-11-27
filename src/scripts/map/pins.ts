@@ -85,7 +85,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     const rings = (g: GeoJSON.Geometry) => (g.type === 'Polygon' ? [g.coordinates[0]] : g.type === 'MultiPolygon' ? g.coordinates.map((p) => p[0]) : []);
     const world = [[118, 30], [136, 30], [136, 44], [118, 44], [118, 30]]; // 지도 범위보다 넉넉히(가장자리가 회색 판으로 보이지 않게)
     L.geoJSON({ type: 'Polygon', coordinates: [world, ...rings(target)] } as GeoJSON.Polygon, { interactive: false, style: { stroke: false, fillColor: '#191F28', fillOpacity: 0.07 } }).addTo(map);
-    if (parent) L.geoJSON(parent as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#4E5968', weight: 1.5, opacity: 0.6, fill: false, className: 'rm-edge' } }).addTo(map);
+    if (parent) L.geoJSON(parent as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#6B1F57', weight: 1.5, opacity: 0.45, fill: false, className: 'rm-edge' } }).addTo(map);
     const sel = L.geoJSON(target as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#6B1F57', weight: 2.5, opacity: 1, fillColor: '#6B1F57', fillOpacity: 0.05, className: 'rm-sel' } }).addTo(map);
     // 목록 화면은 고른 지역 전체(경계 + 핀)가 보이게 맞춘다. 상세 화면(active)은 그 핀 자리 그대로
     if (!active) {
