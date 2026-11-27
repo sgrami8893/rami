@@ -42,7 +42,7 @@ const TYPE = ['빌라', '오피스텔', '아파트'];
       // 건물 목록을 아직 못 받았으면 받은 뒤 주소의 #bld= 로 연다
       history.replaceState(history.state, '', `#bld=${encodeURIComponent(id)}`);
       document.dispatchEvent(new CustomEvent('rent:bld-open', { detail: id }));
-      document.getElementById('tab-bld')?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      if (!document.documentElement.classList.contains('msheet')) document.getElementById('tab-bld')?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
   });
 </script>

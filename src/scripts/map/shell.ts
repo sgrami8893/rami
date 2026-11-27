@@ -133,8 +133,31 @@ function setup() {
   sheet = mountSheet({ signal: ac.signal, initial, settle: (s) => { if (s === 'full' || s === 'card') return; ensure().then((l) => { l.resize(); l.reveal?.(); }).catch(() => {}); } });
   if (sheetOn()) ensure().catch(() => {});
   LG.addEventListener('change', () => { if (sheetOn()) ensure().catch(() => {}); }, sig);
-  // 지도 건물 점을 누르면: 시트를 반으로 올리고 그 건물 이력(건물별 거래 탭)을 시트 맨 위에
-  document.addEventListener('rent:bld-open', () => {
+  // 건물 카드(2026-11-27 제미나이 13:45 합의): 모바일 시트에서 건물 하나를 열면 시트 내용을 통째로 '이 건물'로(반 높이).
+  // 동 페이지 나머지는 숨겼다가 '← 동 전체'(rent:bld-focus null)로 돌아온다. 본문 HTML은 그대로, 숨김 표시만.
+  const unfocus = () => {
+    document.documentElement.classList.remove('bld-card');
+    document.querySelectorAll('[data-bf-hide]').forEach((e) => e.removeAttribute('data-bf-hide'));
+  };
+  document.addEventListener('rent:bld-focus', (ev) => {
+    if (!sheetOn()) return;
+    const d = (ev as CustomEvent<{ id: string } | null>).detail;
+    const m = document.getElementById('main')!;
+    unfocus();
+    if (d) {
+      const hist = m.querySelector<HTMLElement>('#rent-bld .bld-hist');
+      for (let el: HTMLElement | null = hist; el && el !== m; el = el.parentElement) {
+        for (const sib of el.parentElement?.children ?? []) {
+          if (sib !== el && !sib.matches('.sh-handle, .v-place')) sib.setAttribute('data-bf-hide', '');
+        }
+      }
+      document.documentElement.classList.add('bld-card');
+    }
+    sheet?.set('half');
+    requestAnimationFrame(() => { m.scrollTop = 0; });
+  }, sig);
+  // 겹친 알약 목록(rent:bld-group): 시트를 반으로 올리고 건물 목록을 맨 위에
+  document.addEventListener('rent:bld-group', () => {
     if (!sheetOn()) return;
     sheet?.set('half');
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -231,6 +254,7 @@ function setup() {
     closeSheet(true); closeCard(); showPills();
     hoverRow = null;
     if (d.focus) { canvas.dataset.focus = JSON.stringify(d.focus); if (layer) layer.focus(d.focus); }
+    unfocus();
     sheet?.swapped();
     syncFilter();
   }, sig);
