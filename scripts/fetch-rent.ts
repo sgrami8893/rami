@@ -15,6 +15,7 @@
 // 4) 주소 파일 점검(선택):       npm run fetch-rent -- --geo-check   (.cache/juso/ 첫 줄들을 어떻게 읽었는지 보여 줌)
 // 옵션: --months 37  --delay 200  --refresh(캐시 무시)  --reprobe(개편 지역 새 코드 다시 찾기)  --force(안전장치 무시)
 //       --fresh 3(최근 몇 개월을 새로 받을지, 기본 2. 자동 갱신은 신고 기한 30일을 넉넉히 덮도록 3)
+//       --max-minutes 180(이 시간이 지나면 새 호출을 멈추고 실패로 끝냄. 받은 달은 캐시에 남음. 자동 갱신용)
 //       --apt-auto(아파트 API를 한 번 시험해 활용신청이 승인돼 있으면 --apt처럼 아파트도 받음. 자동 갱신용)
 // 자동 갱신(.github/workflows/data-refresh.yml): GitHub Actions가 매주 이 스크립트를 --fresh 3 --apt-auto 로 돌린다.
 //   주소정보 DB가 없으므로 건물 좌표는 지난번 src/data/rent-buildings/ 파일에서 이어받는다(새 건물만 좌표 없음).
@@ -38,7 +39,8 @@ export const RENT_API: Record<HouseType, string> = {
 const args = process.argv.slice(2);
 const flag = (n: string) => args.includes(n);
 const opt = (n: string, d: number) => { const i = args.indexOf(n); return i >= 0 ? Number(args[i + 1]) : d; };
-const MONTHS = opt('--months', BUILDING_MONTHS + 1), DELAY = opt('--delay', 200), ROWS = 1000, FRESH = Math.max(1, opt('--fresh', 2));
+const MONTHS = opt('--months', BUILDING_MONTHS + 1), DELAY = opt('--delay', 200), ROWS = 1000, FRESH = Math.max(1, opt('--fresh', 2)), MAX_MIN = opt('--max-minutes', 0);
+const STARTED = Date.now();
 const CACHE = '.cache/rent', JUSO = '.cache/juso', BOUT = 'src/data/rent-buildings', OUT = 'src/data/rent-stats.json', REPORT = 'src/data/rent.report.json', DEBUG_DIR = 'scripts/fixtures/out';
 const KEY = (process.env.DATA_GO_KR_KEY ?? '').trim();
 // process.exit()는 윈도우에서 fetch 연결이 닫히는 중에 libuv 오류(UV_HANDLE_CLOSING)를 낼 수 있어 쓰지 않는다.
@@ -196,7 +198,10 @@ async function main() {
     const file = `${CACHE}/${t}-${l.code}-${ym}.json`;
     let items: Record<string, unknown>[];
     if (existsSync(file) && !fresh.has(ym) && !flag('--refresh')) items = JSON.parse(await readFile(file, 'utf8'));
-    else { items = (await getMonth(t, l.code, ym)).map(slimItem); calls++; await writeFile(file, JSON.stringify(items)); await sleep(DELAY); }
+    else {
+      // 자동 갱신 시간 제한: 받은 달은 캐시에 남아 있으니 다음 실행이 이어서 받는다
+      if (MAX_MIN && Date.now() - STARTED > MAX_MIN * 60_000) fail(`${MAX_MIN}분 안에 다 받지 못했어요(새 호출 ${calls}회). 받은 달은 저장돼 있어 다음 실행에서 이어 받아요`);
+      items = (await getMonth(t, l.code, ym)).map(slimItem); calls++; await writeFile(file, JSON.stringify(items)); await sleep(DELAY); }
     if (items[0] && missingFields(items[0]).length) fail(`필수 필드를 찾지 못했어요(${t}): ${missingFields(items[0]).join(', ')}. --sample 결과를 전달해 주세요.`);
     for (const it of items) { raw++; const d = normalizeDeal(it, t, l.code); if (d) deals.push(d); else bad++; }
     process.stdout.write(`\r  ${t} ${l.code} ${ym} · 누적 ${raw.toLocaleString('ko-KR')}건 · 새 호출 ${calls}`);
