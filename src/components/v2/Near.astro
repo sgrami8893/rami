@@ -8,11 +8,12 @@ const { auto = false, class: cls = '', tool = 'home' } = Astro.props;
 <div class={`near-wrap ${cls}`} data-near-root data-tool={tool} data-auto={auto ? '1' : undefined}>
   <button type="button" class={auto ? 'v-btn sec mt-3 w-full' : 'v-chip'} data-near-btn hidden><Icon name="map-pin" size={18} />내 주변 보기</button>
   <p class="near-status mt-2 text-cap text-ink-3" role="status" hidden></p>
+  <div class="near-help" role="alert" hidden></div>
   <section class="near-box mt-3" aria-label="내 주변" hidden></section>
 </div>
 <script>
   import { onPage } from '../../scripts/soft-nav.ts';
-  import { locate, permission, findNear, renderNear, tellMap, type Near, type NearTool } from '../../scripts/near.ts';
+  import { locate, permission, findNear, renderNear, tellMap, geoHelp, lastGeoErr, type Near, type NearTool } from '../../scripts/near.ts';
   let last: Near | null = null; // 이 탭 메모리에만
   onPage(() => {
     document.querySelectorAll<HTMLElement>('[data-near-root]').forEach((root) => {
@@ -22,14 +23,30 @@ const { auto = false, class: cls = '', tool = 'home' } = Astro.props;
       const status = root.querySelector<HTMLElement>('.near-status')!;
       const box = root.querySelector<HTMLElement>('.near-box')!;
       const say = (t: string) => { status.textContent = t; status.hidden = !t; };
+      const help = root.querySelector<HTMLElement>('.near-help')!;
+      const REGION: Record<string, [string, string]> = { rent: ['/rent/', '시·도부터 고르기'], parking: ['/parking/', '시·도부터 고르기'] };
+      // 위치 실패 안내: 이유(거부·꺼짐·시간 초과)와 이 기기·브라우저에 맞는 단계 + 다시 시도 + 위치 없이 찾는 길
+      const showHelp = () => {
+        const h = geoHelp(lastGeoErr ?? 'denied');
+        const el = (t: string, c?: string, txt?: string) => { const e = document.createElement(t); if (c) e.className = c; if (txt) e.textContent = txt; return e; };
+        const ol = el('ol', 'nh-steps'); h.steps.forEach((x) => ol.append(el('li', '', x)));
+        const acts = el('div', 'nh-acts');
+        const retry = el('button', 'v-btn sec nh-retry', '다시 시도') as HTMLButtonElement; retry.type = 'button';
+        retry.addEventListener('click', () => { help.hidden = true; void run(true); });
+        const search = el('button', 'v-chip', '동네 이름으로 찾기') as HTMLButtonElement; search.type = 'button'; search.dataset.sheetOpen = '';
+        acts.append(retry, search);
+        const reg = REGION[tool]; if (reg && location.pathname !== reg[0]) { const a = el('a', 'v-chip', reg[1]) as HTMLAnchorElement; a.href = reg[0]; acts.append(a); }
+        help.replaceChildren(el('p', 'nh-t', h.title), ol, ...(h.note ? [el('p', 'nh-note', h.note)] : []), el('p', 'nh-alt', '위치 없이도 동네 이름이나 지역으로 바로 찾을 수 있어요.'), acts);
+        help.hidden = false;
+      };
       const tool = (root.dataset.tool || 'home') as NearTool;
       const show = (r: Near) => { renderNear(box, r, tool); btn.hidden = true; say(''); if (root.dataset.auto || tool === 'parking') tellMap(r); };
       const run = async (fromClick: boolean) => {
         if (last) { show(last); return; }
-        btn.disabled = true; say('내 위치를 확인하고 있어요.');
+        btn.disabled = true; help.hidden = true; say('내 위치를 확인하고 있어요.');
         const pt = await locate();
         btn.disabled = false;
-        if (!pt) { say(fromClick ? '위치를 확인하지 못했어요. 브라우저 설정에서 이 사이트의 위치 권한을 허용하면 볼 수 있어요.' : ''); btn.hidden = false; return; }
+        if (!pt) { say(''); if (fromClick) showHelp(); btn.hidden = false; return; }
         say('가까운 동네를 찾고 있어요.');
         const r = await findNear(pt);
         if (!r) { say('지금 위치는 서울·경기·인천 밖이라 보여 드릴 동네 정보가 없어요.'); btn.hidden = false; return; }

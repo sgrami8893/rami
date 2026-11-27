@@ -37,14 +37,43 @@ export const dist = (a: Pt, b: Pt) => {
 };
 export const distText = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(1)}km`);
 
-/** 브라우저 위치 권한 → 좌표(실패·거부면 null). 정확도는 동네 수준이면 충분해서 저전력 모드 */
+/** 위치를 못 받은 이유(안내 문구를 이유별로 다르게): 거부 · 위치 서비스 꺼짐/신호 없음 · 시간 초과 · 지원 안 함 */
+export type GeoErr = 'denied' | 'off' | 'timeout' | 'unsupported';
+export let lastGeoErr: GeoErr | null = null;
+/** 브라우저 위치 권한 → 좌표(실패·거부면 null, 이유는 lastGeoErr). 정확도는 동네 수준이면 충분해서 저전력 모드 */
 export function locate(): Promise<Pt | null> {
-  if (!('geolocation' in navigator)) return Promise.resolve(null);
+  lastGeoErr = null;
+  if (!('geolocation' in navigator) || !isSecureContext) { lastGeoErr = 'unsupported'; return Promise.resolve(null); }
   return new Promise((res) => navigator.geolocation.getCurrentPosition(
     (p) => res({ lat: p.coords.latitude, lng: p.coords.longitude }),
-    () => res(null),
+    (e) => { lastGeoErr = e.code === 1 ? 'denied' : e.code === 3 ? 'timeout' : 'off'; res(null); },
     { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 },
   ));
+}
+
+/** 기기·브라우저별로 위치를 켜는 단계(UA로 대략 구분, 틀려도 '그 밖' 안내가 같이 보임) */
+export function geoHelp(err: GeoErr): { title: string; steps: string[]; note?: string } {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua);
+  const samsung = /SamsungBrowser/.test(ua);
+  const edge = /Edg\//.test(ua);
+  const iosChrome = ios && /CriOS/.test(ua);
+  const mac = /Macintosh/.test(ua) && !ios;
+  if (err === 'timeout') return { title: '위치를 찾는 데 시간이 너무 걸렸어요', steps: ['와이파이를 켜면 위치를 더 빨리 찾아요.', '실내 깊은 곳이면 창가로 옮겨 다시 시도해 보세요.'] };
+  if (err === 'unsupported') return { title: '이 브라우저에서는 위치를 쓸 수 없어요', steps: ['크롬·사파리·삼성 인터넷 같은 기본 브라우저로 열어 보세요.', '앱 안에서 연 화면(카카오톡 등)이면 오른쪽 위 메뉴에서 \'다른 브라우저로 열기\'를 눌러 주세요.'] };
+  if (err === 'off') {
+    if (ios) return { title: '휴대폰 위치 서비스가 꺼져 있어요', steps: ['설정 앱 → 개인정보 보호 및 보안 → 위치 서비스를 켜 주세요.', `같은 화면 아래 ${iosChrome ? 'Chrome' : 'Safari 웹 사이트'} → '앱을 사용하는 동안'을 골라 주세요.`, '돌아와서 \'다시 시도\'를 눌러 주세요.'] };
+    if (android) return { title: '휴대폰 위치가 꺼져 있어요', steps: ['화면 맨 위에서 아래로 쓸어내려 \'위치\'를 켜 주세요.', '돌아와서 \'다시 시도\'를 눌러 주세요.'] };
+    return { title: '컴퓨터 위치 서비스가 꺼져 있어요', steps: mac ? ['시스템 설정 → 개인정보 보호 및 보안 → 위치 서비스를 켜고, 쓰는 브라우저도 켜 주세요.', '돌아와서 \'다시 시도\'를 눌러 주세요.'] : ['Windows 설정 → 개인 정보 및 보안 → 위치에서 \'위치 서비스\'를 켜 주세요.', '돌아와서 \'다시 시도\'를 눌러 주세요.'], note: '데스크톱은 와이파이로 위치를 잡아서 동네가 조금 다르게 나올 수 있어요.' };
+  }
+  // denied
+  if (iosChrome) return { title: '위치 권한이 꺼져 있어요', steps: ['설정 앱 → Chrome → 위치 → \'앱을 사용하는 동안\'을 골라 주세요.', '크롬으로 돌아와 \'다시 시도\'를 누르고, 묻는 창에서 \'허용\'을 눌러 주세요.'] };
+  if (ios) return { title: '위치 권한이 꺼져 있어요', steps: ['주소창 왼쪽 \'가가\'(또는 ᴀA) 버튼 → 웹 사이트 설정 → 위치 → \'허용\'을 골라 주세요.', '그래도 안 되면 설정 앱 → 개인정보 보호 및 보안 → 위치 서비스 → Safari 웹 사이트 → \'앱을 사용하는 동안\'.', '돌아와서 \'다시 시도\'를 눌러 주세요.'] };
+  if (samsung) return { title: '위치 권한이 꺼져 있어요', steps: ['아래 메뉴(≡) → 설정 → 사이트 및 다운로드 → 사이트 권한 → 위치에서 이 사이트를 허용해 주세요.', '돌아와서 \'다시 시도\'를 눌러 주세요.'] };
+  if (android) return { title: '위치 권한이 꺼져 있어요', steps: ['주소창 왼쪽 아이콘(자물쇠나 조절 모양) → 권한 → 위치 → \'허용\'을 골라 주세요.', '휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 위치도 \'앱 사용 중에만 허용\'인지 확인해 주세요.', '돌아와서 \'다시 시도\'를 눌러 주세요.'] };
+  if (edge) return { title: '위치 권한이 꺼져 있어요', steps: ['주소창 왼쪽 자물쇠 → 이 사이트에 대한 권한 → 위치 → \'허용\'.', '페이지를 새로 고친 뒤 \'다시 시도\'를 눌러 주세요.'] };
+  return { title: '위치 권한이 꺼져 있어요', steps: ['주소창 왼쪽 아이콘(자물쇠나 조절 모양) → 사이트 설정(권한) → 위치 → \'허용\'.', '페이지를 새로 고친 뒤 \'다시 시도\'를 눌러 주세요.'] };
 }
 /** 이미 거부한 브라우저면 자동으로 묻지 않는다(묻는 창이 안 뜨고 실패만 함) */
 export async function permission(): Promise<'granted' | 'denied' | 'prompt' | 'unknown'> {

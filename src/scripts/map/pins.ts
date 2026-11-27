@@ -53,6 +53,42 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   const clearHover = () => { hoverEl?.classList.remove('is-hover'); hoverEl = null; };
   map.on('zoomstart movestart', clearHover);
 
+  // 지역 틀(2026-11-27 사용자 '지역 고르면 경계 보이면 낫지 않아?'): 고른 시·도/시·군·구/동 경계를 흰 선 + 자두빛 번짐으로,
+  // 바깥은 아주 옅게 어둡게. 핀 아래 칸(overlayPane)에 그려 핀 가독성은 그대로, 누를 수 없는 선(interactive false).
+  type Area = { sido: string; slug?: string; dong?: string | null };
+  const area = JSON.parse(canvas.dataset.area || 'null') as Area | null;
+  const drawArea = async () => {
+    if (!area) return;
+    type FC = { features: { properties: Record<string, string>; geometry: GeoJSON.Geometry }[] };
+    const get = (u: string) => fetch(u).then((r) => (r.ok ? (r.json() as Promise<FC>) : null)).catch(() => null);
+    let target: GeoJSON.Geometry | null = null, parent: GeoJSON.Geometry | null = null;
+    if (area.slug) {
+      const sgg = await get('/geo/area/sgg.json');
+      const sg = sgg?.features.find((f) => f.properties.f === `${area.sido}__${area.slug}`)?.geometry ?? null;
+      if (area.dong) {
+        const emd = await get(`/geo/area/emd/${area.sido}__${area.slug}.json`);
+        target = emd?.features.find((f) => f.properties.k === area.dong)?.geometry ?? null;
+        parent = sg;
+        if (!target) { target = sg; parent = null; } // 동 경계가 없으면 시·군·구로
+      } else target = sg;
+    } else {
+      const sd = await get('/geo/area/sido.json');
+      target = sd?.features.find((f) => f.properties.sido === area.sido)?.geometry ?? null;
+    }
+    if (!target) return;
+    // 바깥 옅게: 수도권을 넉넉히 덮는 사각형에 고른 지역을 구멍으로
+    const rings = (g: GeoJSON.Geometry) => (g.type === 'Polygon' ? [g.coordinates[0]] : g.type === 'MultiPolygon' ? g.coordinates.map((p) => p[0]) : []);
+    const world = [[124, 36], [129, 36], [129, 39], [124, 39], [124, 36]];
+    L.geoJSON({ type: 'Polygon', coordinates: [world, ...rings(target)] } as GeoJSON.Polygon, { interactive: false, style: { stroke: false, fillColor: '#191F28', fillOpacity: 0.07 } }).addTo(map);
+    if (parent) L.geoJSON(parent as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#FFFFFF', weight: 2, opacity: 0.85, fill: false, className: 'rm-edge' } }).addTo(map);
+    const sel = L.geoJSON(target as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#FFFFFF', weight: 3, opacity: 1, fillColor: '#6B1F57', fillOpacity: 0.05, className: 'rm-sel' } }).addTo(map);
+    // 목록 화면은 고른 지역 전체(경계 + 핀)가 보이게 맞춘다. 상세 화면(active)은 그 핀 자리 그대로
+    if (!active) {
+      const b = sel.getBounds();
+      for (const p of points) b.extend([p.lat, p.lng]);
+      map.fitBounds(b, { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
+    }
+  };
   const fit = () => {
     const f = active ? byId.get(active) : null;
     if (f) { map.setView([f.lat, f.lng], 16); return; }
@@ -61,6 +97,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     if (points.length === 1) map.setView(b.getCenter(), 16); else map.fitBounds(b, { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
   };
   fit();
+  void drawArea();
   if (active) { const m = markers.get(active); if (m) cluster.zoomToShowLayer(m, () => paint(active!)); }
 
   let meMarker: Leaflet.Marker | null = null;
