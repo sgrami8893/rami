@@ -2,6 +2,7 @@
 // 전월세 시·군·구(v2): "이 지역 안에서 어디가 싸고 어디가 비싸요?" ① 위치 줄 ② 답 카드 ③ [빌라|오피스텔][전세|월세] + 동 목록(거래 많은 순) ④ 접힘.
 import Near from '../../../../components/v2/Near.astro';
 import { rentOg } from '../../../../lib/og.ts';
+import RentSummary from '../../../../components/rent/RentSummary.astro';
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/rent/MockBanner.astro';
 import MapView from "../../../../components/v2/MapView.astro";
@@ -37,6 +38,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   <VList label={`${a.sigunguName} 동별 전월세 중위값`} count={`동 ${main.length}곳`} sorts={[{ v: 'n', label: '거래 많은 순' }, { v: 'lo', label: '낮은 순' }, { v: 'hi', label: '높은 순' }, { v: 'nm', label: '이름순' }]}>
     {main.map((d) => <RentRow a={d} name={d.dong!} href={hasDongPage(d) ? rentPath(sido, a.sigungu, d.dong) : null} />)}
   </VList>
+  <RentSummary a={a} place={a.sigunguName} dongs={dongs} />
   <div class="v-folds">
     {few.length > 0 && (
       <Fold title={`거래 ${LOW_N}건 미만인 동 ${few.length}곳`}>

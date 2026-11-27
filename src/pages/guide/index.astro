@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { LIFE_GUIDES, lifePath, LIFE_BASE } from '../../lib/guides-life.ts';
+import { GUIDES, guidePath } from '../../lib/guides.ts';
+import { breadcrumb, itemList } from '../../lib/jsonld.ts';
+const crumbs = [{ name: '홈', href: '/' }, { name: '생활 가이드', href: LIFE_BASE }];
+const abs = (p: string) => new URL(p, Astro.site).href;
+const groups = [
+  { t: '전월세', items: LIFE_GUIDES.filter((g) => g.tool === 'rent').map((g) => ({ title: g.title, d: g.summary, href: lifePath(g) })) },
+  { t: '주차', items: LIFE_GUIDES.filter((g) => g.tool === 'parking').map((g) => ({ title: g.title, d: g.summary, href: lifePath(g) })) },
+  { t: '무인민원발급기', items: GUIDES.slice(0, 4).map((g) => ({ title: g.title, d: g.summary, href: guidePath(g) })).concat([{ title: '무인민원발급기 가이드 전체 보기', d: '', href: '/muin/guide/' }]) },
+];
+---
+<BaseLayout title="생활 가이드 | 전입신고·확정일자, 전월세 전환, 계약 서류, 주차 감면" description="전월세 계약과 이사, 공영주차장, 무인민원발급기를 쓸 때 알아 두면 좋은 내용을 법령과 공식 안내를 바탕으로 정리했어요." crumbs={crumbs}
+  jsonld={[breadcrumb(crumbs.map((c) => ({ name: c.name, url: abs(c.href) }))), itemList(LIFE_GUIDES.map((g) => ({ name: g.title, url: abs(lifePath(g)) })))]}>
+  <h1 class="v-h1">생활 가이드</h1>
+  <p class="mt-1 text-body text-ink-2">이사·계약·주차·서류 발급 때 알아 두면 좋은 내용을 법령과 공식 안내를 바탕으로 정리했어요.</p>
+  {groups.map((gr) => (
+    <section class="mt-6">
+      <h2 class="v-cap" style="margin-top:0">{gr.t}</h2>
+      <ul class="divide-y divide-line">
+        {gr.items.map((x) => <li><a href={x.href} class="block min-h-[48px] py-4 hover:[&>b]:text-brand"><b class="text-body font-bold text-ink">{x.title}</b>{x.d && <span class="mt-1 block text-cap text-ink-2">{x.d}</span>}</a></li>)}
+      </ul>
+    </section>
+  ))}
+</BaseLayout>
