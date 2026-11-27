@@ -7,6 +7,7 @@
 // 모바일: '지도' 알약(data-map-open) → 전체 화면 대화상자, '목록'·뒤로 가기·Esc로 닫는다.
 import { initSoftNav, type SwapDetail } from '../soft-nav.ts';
 import { LG, reduced } from './base.ts';
+import { mountSheet, sheetOn, type SheetState } from './sheet.ts';
 
 export type Focus = Record<string, string | undefined>;
 export type Pick = { key: string; title: string; sub?: string; value?: string; note?: string; href?: string | null; linkLabel?: string };
@@ -17,6 +18,8 @@ export interface Layer {
   /** 목록 필터와 같은 조건으로 거르기(null = 모두) */
   filter?(keys: Set<string> | null): void;
   resize(): void;
+  /** 고른 동·건물·핀이 지금 보이는 칸 밖이면 옮겨 온다(모바일 시트 높이가 바뀐 뒤) */
+  reveal?(): void;
   /** '내 주변': 내 위치 점(좌표는 지도 메모리에만) */
   me?(pt: { lat: number; lng: number }, lots?: { lat: number; lng: number; name: string; href: string; tag: string; tone: string }[]): void;
   destroy(): void;
@@ -72,7 +75,9 @@ function setup() {
 
   // ---- 카드(모바일 전용. PC는 바로 이동) ----
   let cardKey: string | null = null;
-  const closeCard = () => { if (card) card.hidden = true; cardKey = null; };
+  // 모바일 시트(sheet.ts). 아래 closeCard·fillCard가 쓰므로 먼저 선언
+  let sheet: ReturnType<typeof mountSheet> | null = null;
+  const closeCard = () => { if (card) card.hidden = true; cardKey = null; sheet?.card(false); };
   const fillCard = (p: Pick, kb = false) => {
     if (!card) return;
     const set = (sel: string, t?: string | null) => { const el = card.querySelector<HTMLElement>(sel); if (el) { el.textContent = t ?? ''; el.hidden = !t; } };
@@ -80,6 +85,7 @@ function setup() {
     const a = card.querySelector<HTMLAnchorElement>('.mv-card-link');
     if (a) { a.hidden = !p.href; if (p.href) a.href = p.href; const lb = p.linkLabel ?? '자세히 보기'; if (a.firstChild?.nodeType === 3) a.firstChild.textContent = lb; a.setAttribute('aria-label', p.linkLabel ? lb : `${p.title} 자세히 보기`); }
     card.hidden = false; cardKey = p.key;
+    sheet?.card(true);
     if (kb) card.focus();
   };
   card?.querySelector('.mv-card-close')?.addEventListener('click', closeCard);
@@ -89,7 +95,7 @@ function setup() {
   const ctx: Ctx = {
     pane, canvas,
     pick(p, kb) {
-      if (LG.matches && p.href) { void import('../soft-nav.ts').then((m) => m.navigate(new URL(p.href!, location.href))); return; }
+      if ((LG.matches || (sheetOn() && canvas.dataset.kind === 'rent')) && p.href) { void import('../soft-nav.ts').then((m) => m.navigate(new URL(p.href!, location.href))); return; }
       if (cardKey === p.key && !card?.hidden) { closeCard(); return; }
       fillCard(p, kb);
     },
@@ -118,7 +124,32 @@ function setup() {
     if (el) { el.textContent = '지도를 불러오지 못했어요. 목록을 이용해 주세요.'; el.classList.add('is-err'); }
     throw err;
   }));
-  teardown = () => { ac.abort(); layer?.destroy(); document.documentElement.classList.remove('map-sheet-open', 'has-map', 'pill-tuck'); };
+  teardown = () => { ac.abort(); sheet?.destroy(); layer?.destroy(); document.documentElement.classList.remove('map-sheet-open', 'has-map', 'pill-tuck'); };
+
+  const initial = (): SheetState => {
+    if (canvas.dataset.kind === 'rent') { try { return JSON.parse(canvas.dataset.focus || '{}').dong ? 'half' : 'peek'; } catch { return 'peek'; } }
+    return canvas.dataset.focusId ? 'half' : 'peek';
+  };
+  sheet = mountSheet({ signal: ac.signal, initial, settle: (s) => { if (s === 'full' || s === 'card') return; ensure().then((l) => { l.resize(); l.reveal?.(); }).catch(() => {}); } });
+  if (sheetOn()) ensure().catch(() => {});
+  LG.addEventListener('change', () => { if (sheetOn()) ensure().catch(() => {}); }, sig);
+  // 지도 건물 점을 누르면: 시트를 반으로 올리고 그 건물 이력(건물별 거래 탭)을 시트 맨 위에
+  document.addEventListener('rent:bld-open', () => {
+    if (!sheetOn()) return;
+    sheet?.set('half');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const t = document.getElementById('tab-bld'), m = document.getElementById('main')!;
+      if (t) m.scrollTop += t.getBoundingClientRect().top - m.getBoundingClientRect().top - 52;
+    }));
+  }, sig);
+  document.addEventListener('rent:mode', () => sheet?.refreshPeek(), sig);
+  // 모바일 '색 기준' 알약: 범례를 접어 두고 누르면 편다(펼친 범례가 동 이름표를 가리지 않게)
+  const lgBtn = pane.querySelector<HTMLButtonElement>('.mv-legend-btn');
+  lgBtn?.addEventListener('click', () => {
+    const open = lgBtn.getAttribute('aria-expanded') !== 'true';
+    lgBtn.setAttribute('aria-expanded', String(open));
+    pane.querySelector('.mv-legend')?.classList.toggle('is-open', open);
+  }, sig);
 
   // ---- 모바일 전체 화면 ----
   let opener: HTMLElement | null = null;
@@ -199,7 +230,8 @@ function setup() {
     if (d.remount) return;
     closeSheet(true); closeCard(); showPills();
     hoverRow = null;
-    if (d.focus) { if (layer) layer.focus(d.focus); else canvas.dataset.focus = JSON.stringify(d.focus); }
+    if (d.focus) { canvas.dataset.focus = JSON.stringify(d.focus); if (layer) layer.focus(d.focus); }
+    sheet?.swapped();
     syncFilter();
   }, sig);
 }

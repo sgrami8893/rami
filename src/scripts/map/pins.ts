@@ -142,6 +142,10 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [48, 48], maxZoom: 16 }); else map.setView([pt.lat, pt.lng], 15);
     },
     resize() { map.invalidateSize(); },
+    reveal() {
+      const p = active ? byId.get(active) : null;
+      if (p && !map.getBounds().pad(-0.12).contains([p.lat, p.lng])) map.panTo([p.lat, p.lng]);
+    },
     destroy() { map.remove(); },
   };
 }
