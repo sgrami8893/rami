@@ -1,0 +1,305 @@
+---
+// 의견 보내기(2026-11-27 사용자 '사용자 의견을 받을 창구'). 바닥글 맨 위의 가벼운 진입점 + 그 자리에서 펼쳐지는 폼.
+// - 팝업·떠 있는 버튼 없음: 누르면 바로 아래로 펼쳐지고, 본문을 가리지 않는다.
+// - 보낸 페이지(주소·제목)는 보낼 때 자동으로 붙는다. 필수는 의견 본문뿐, 이메일은 선택(적으면 동의 칸이 나타남).
+// - 봇 차단은 Cloudflare Turnstile(대부분 보이지 않음, 필요할 때만 체크 상자). 스크립트는 폼을 펼칠 때 처음 불러온다.
+// - FEEDBACK.enabled(빌드 환경변수 PUBLIC_TURNSTILE_SITE_KEY)가 꺼져 있으면 아무것도 그리지 않는다.
+import Icon from './Icon.astro';
+import { FEEDBACK } from '../config.ts';
+interface Props { open?: boolean }
+const { open = false } = Astro.props;
+const uid = open ? 'fbp' : 'fbf';
+const kinds = [
+  { v: 'wrong', t: '정보가 틀려요' },
+  { v: 'hard', t: '쓰기 불편해요' },
+  { v: 'wish', t: '이런 게 있으면 좋겠어요' },
+  { v: 'etc', t: '기타' },
+];
+---
+{FEEDBACK.enabled && (
+<section class:list={['fb', open && 'fb-page']} data-fb data-sitekey={FEEDBACK.siteKey} aria-labelledby={`${uid}-h`}>
+  {open ? (
+    <h2 id={`${uid}-h`} class="sr-only">의견 보내기</h2>
+  ) : (<>
+    <h2 id={`${uid}-h`} class="fb-q">이 페이지에서 고칠 점이 있나요?</h2>
+    <div class="fb-btns">
+      <button type="button" class="fb-open" data-fb-open="wrong" aria-expanded="false" aria-controls={`${uid}-form`}><Icon name="flag" size={18} />정보가 틀렸어요</button>
+      <button type="button" class="fb-open" data-fb-open="etc" aria-expanded="false" aria-controls={`${uid}-form`}><Icon name="message-circle" size={18} />의견 보내기</button>
+    </div>
+  </>)}
+  <form id={`${uid}-form`} class="fb-form" hidden={!open} novalidate data-max={FEEDBACK.maxLen}>
+    <fieldset class="fb-kinds">
+      <legend class="fb-lb">어떤 의견인가요?</legend>
+      <div class="fb-chips">
+        {kinds.map((k) => (
+          <label class="fb-chip"><input type="radio" name="kind" value={k.v} checked={k.v === (open ? 'etc' : 'wrong')} /><span>{k.t}</span></label>
+        ))}
+      </div>
+    </fieldset>
+    <label class="fb-lb" for={`${uid}-msg`}>자세히 알려 주세요 <span class="fb-req">(필수)</span></label>
+    <textarea id={`${uid}-msg`} name="message" rows="4" maxlength={FEEDBACK.maxLen} required aria-describedby={`${uid}-cnt ${uid}-err`}
+      placeholder={open ? '하고 싶은 말을 자유롭게 적어 주세요.' : '예: 운영시간이 바뀌었어요. 지금은 평일 9시부터 6시까지예요.'}></textarea>
+    <p id={`${uid}-cnt`} class="fb-cnt" aria-live="off"><span data-fb-cnt>0</span> / {FEEDBACK.maxLen.toLocaleString('ko-KR')}자</p>
+
+    <label class="fb-lb" for={`${uid}-mail`}>답장 받을 이메일 <span class="fb-opt">(선택)</span></label>
+    <input id={`${uid}-mail`} name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="답장이 필요할 때만 적어 주세요" aria-describedby={`${uid}-err`} />
+    <label class="fb-agree" hidden data-fb-agree><input type="checkbox" name="agree" value="1" />
+      <span>답장을 위해 이메일을 받는 데 동의해요. 받은 날부터 1년 뒤 지워요. 동의하지 않으면 이메일 칸을 비워 주세요.</span></label>
+
+    <div class="fb-hp" aria-hidden="true"><label>웹사이트<input type="text" name="website" tabindex="-1" autocomplete="off" /></label></div>
+
+    <p class="fb-note">{!open && '이 페이지 주소와 제목이 함께 전달돼요. '} 이름·전화번호 같은 개인정보는 적지 말아 주세요. <a href="/privacy/#feedback">개인정보 처리 안내</a></p>
+    <div class="fb-ts" data-fb-ts></div>
+    <p id={`${uid}-err`} class="fb-err" role="alert" data-fb-err></p>
+    <div class="fb-act">
+      <button type="submit" class="fb-send">보내기</button>
+      {!open && <button type="button" class="fb-close" data-fb-close>닫기</button>}
+    </div>
+    <noscript><p class="fb-err">의견을 보내려면 브라우저에서 자바스크립트를 켜 주세요.</p></noscript>
+  </form>
+  <div class="fb-done" hidden data-fb-done tabindex="-1">
+    <p class="fb-done-t"><Icon name="check" size={20} />고마워요, 잘 받았어요.</p>
+    <p class="fb-done-s" data-fb-done-s>확인하고 고칠게요.</p>
+    <button type="button" class="fb-again" data-fb-again>다른 의견 보내기</button>
+  </div>
+</section>
+)}
+
+<style>
+  .fb { margin: 0 0 20px; padding: 16px; border-radius: 16px; background: var(--color-subtle); color: var(--color-ink); font-size: var(--text-cap); line-height: 1.5; }
+  .fb-page { margin: 0 0 32px; padding: 0; background: none; }
+  .fb-q { font-size: var(--text-cap); font-weight: 700; color: var(--color-ink); }
+  .fb-h { font-size: var(--text-h2); font-weight: 700; color: var(--color-ink); margin-bottom: 12px; }
+  .fb-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .fb-open { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 12px; background: #fff; color: var(--color-ink); font-weight: 600; box-shadow: 0 1px 3px rgb(15 23 42 / .08); }
+  .fb-open:hover { background: var(--color-brand-weak); color: var(--color-brand); }
+  .fb-open[aria-expanded="true"] { background: var(--color-brand-weak); color: var(--color-brand); box-shadow: none; }
+  .fb-form { margin-top: 14px; display: grid; gap: 6px; }
+  .fb-page .fb-form { margin-top: 0; }
+  .fb-form[hidden] { display: none; }
+  .fb-kinds { border: 0; margin: 0 0 8px; padding: 0; min-width: 0; }
+  .fb-lb { display: block; font-weight: 700; color: var(--color-ink); margin-top: 6px; }
+  .fb-kinds .fb-lb { margin: 0 0 6px; padding: 0; }
+  .fb-req, .fb-opt { font-weight: 500; color: var(--color-ink-3); }
+  .fb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fb-chip { position: relative; display: inline-flex; }
+  .fb-chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .fb-chip span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #fff; color: var(--color-ink-2); font-weight: 600; box-shadow: 0 1px 3px rgb(15 23 42 / .08); }
+  .fb-chip input:checked + span { background: var(--color-brand); color: #fff; box-shadow: none; }
+  .fb-chip input:focus-visible + span { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+  .fb textarea, .fb input[type="email"] { width: 100%; padding: 12px 14px; border: 1px solid transparent; border-radius: 12px; background: #fff; color: var(--color-ink); font: inherit; font-size: max(16px, var(--text-body)); line-height: 1.55; box-shadow: 0 1px 3px rgb(15 23 42 / .08); }
+  .fb-page textarea, .fb-page input[type="email"] { background: var(--color-bg); box-shadow: none; }
+  .fb input[type="email"] { min-height: 48px; }
+  .fb textarea { min-height: 120px; resize: vertical; }
+  .fb textarea::placeholder, .fb input::placeholder { color: #6B7684; }
+  .fb textarea:focus-visible, .fb input[type="email"]:focus-visible { outline: none; border-color: var(--color-brand); box-shadow: 0 0 0 3px rgb(107 31 87 / .14); }
+  .fb [aria-invalid="true"] { border-color: #B42318 !important; }
+  .fb-cnt { text-align: right; color: var(--color-ink-3); font-size: calc(13px * var(--fs, 1)); }
+  .fb-agree { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; padding: 8px 0; color: var(--color-ink-2); cursor: pointer; }
+  .fb-agree[hidden] { display: none; }
+  .fb-agree input { flex: none; width: 22px; height: 22px; margin-top: 1px; accent-color: var(--color-brand); }
+  .fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .fb-note { margin-top: 4px; color: var(--color-ink-3); font-size: calc(14px * var(--fs, 1)); }
+  .fb-note a { color: var(--color-ink-2); text-decoration: underline; text-underline-offset: 2px; }
+  .fb-ts:empty { display: none; }
+  .fb-err { color: #B42318; font-weight: 600; }
+  .fb-err:empty { display: none; }
+  .fb-act { display: flex; gap: 8px; margin-top: 8px; }
+  .fb-send { flex: 1; min-height: 48px; border-radius: 12px; background: var(--color-brand); color: #fff; font-weight: 700; font-size: var(--text-body); }
+  .fb-send:hover { background: #5A1A49; }
+  .fb-send[aria-disabled="true"] { opacity: .6; cursor: progress; }
+  .fb-close, .fb-again { min-height: 48px; padding: 0 18px; border-radius: 12px; background: #fff; color: var(--color-ink-2); font-weight: 600; box-shadow: 0 1px 3px rgb(15 23 42 / .08); }
+  .fb-page .fb-again { background: var(--color-bg); box-shadow: none; }
+  .fb-done[hidden] { display: none; }
+  .fb-done { margin-top: 12px; }
+  .fb-done:focus { outline: none; }
+  .fb-done-t { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--color-ok); font-size: var(--text-body); }
+  .fb-done-s { margin: 2px 0 10px; color: var(--color-ink-2); }
+</style>
+
+<script>
+  // 문서 전체에 한 번만 건다(지도 화면 안 이동으로 본문이 바뀌어도 그대로 동작)
+  type TS = { render: (el: HTMLElement, o: Record<string, unknown>) => string; reset: (id: string) => void; remove: (id: string) => void };
+  const w = window as unknown as { turnstile?: TS; __fbInit?: boolean };
+  const HINT: Record<string, string> = {
+    wrong: '예: 운영시간이 바뀌었어요. 지금은 평일 9시부터 6시까지예요.',
+    hard: '예: 지도에서 동을 고르기가 어려웠어요.',
+    wish: '예: 주차장 요금을 시간별로 비교해 보고 싶어요.',
+    etc: '하고 싶은 말을 자유롭게 적어 주세요.',
+  };
+  const ERR: Record<string, string> = {
+    message: '의견을 두 글자 이상 적어 주세요.',
+    email: '이메일 주소 형식을 확인해 주세요. 답장이 필요 없으면 비워 두셔도 돼요.',
+    agree: '이메일을 적었다면 동의 칸을 눌러 주세요. 동의하지 않으면 이메일 칸을 비워 주세요.',
+    captcha: '자동 입력 방지 확인이 끝나지 않았어요. 잠시 뒤 다시 보내 주세요.',
+    not_configured: '지금은 의견을 받을 수 없어요. 잠시 뒤 다시 시도해 주세요.',
+    deliver: '보내지 못했어요. 잠시 뒤 다시 보내 주세요.',
+    network: '인터넷 연결을 확인하고 다시 보내 주세요.',
+  };
+
+  let tsLoad: Promise<TS> | null = null;
+  const loadTs = () => tsLoad ??= new Promise<TS>((ok, no) => {
+    if (w.turnstile) return ok(w.turnstile);
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    s.async = true;
+    s.onload = () => (w.turnstile ? ok(w.turnstile) : no());
+    s.onerror = () => { tsLoad = null; no(); };
+    document.head.appendChild(s);
+  });
+
+  type St = { id?: string; token?: string; wait?: (t: string) => void };
+  const state = new WeakMap<HTMLElement, St>();
+  const st = (box: HTMLElement) => { let s = state.get(box); if (!s) state.set(box, (s = {})); return s; };
+
+  function mountTs(box: HTMLElement) {
+    const s = st(box);
+    if (s.id) return;
+    const slot = box.querySelector<HTMLElement>('[data-fb-ts]');
+    if (!slot) return;
+    s.id = 'pending';
+    loadTs().then((ts) => {
+      s.id = ts.render(slot, {
+        sitekey: box.dataset.sitekey, language: 'ko', appearance: 'interaction-only', size: 'flexible', action: 'feedback',
+        callback: (t: string) => { s.token = t; s.wait?.(t); s.wait = undefined; },
+        'expired-callback': () => { s.token = undefined; },
+        'error-callback': () => { s.token = undefined; },
+      });
+    }).catch(() => { s.id = undefined; });
+  }
+
+  const tokenOf = (box: HTMLElement) => {
+    const s = st(box);
+    if (s.token) return Promise.resolve(s.token);
+    mountTs(box);
+    return new Promise<string>((ok) => {
+      const t = setTimeout(() => { s.wait = undefined; ok(''); }, 15000);
+      s.wait = (v) => { clearTimeout(t); ok(v); };
+    });
+  };
+
+  function setHint(form: HTMLFormElement) {
+    const k = (form.querySelector<HTMLInputElement>('input[name="kind"]:checked')?.value) ?? 'etc';
+    const ta = form.querySelector('textarea');
+    if (ta) ta.placeholder = HINT[k] ?? HINT.etc;
+  }
+
+  function openBox(box: HTMLElement, kind: string) {
+    const form = box.querySelector<HTMLFormElement>('.fb-form');
+    if (!form) return;
+    box.querySelector<HTMLElement>('[data-fb-done]')!.hidden = true;
+    form.hidden = false;
+    const r = form.querySelector<HTMLInputElement>(`input[name="kind"][value="${kind}"]`);
+    if (r) r.checked = true;
+    setHint(form);
+    box.querySelectorAll<HTMLElement>('[data-fb-open]').forEach((b) => b.setAttribute('aria-expanded', String(b.dataset.fbOpen === kind)));
+    mountTs(box);
+    form.querySelector('textarea')?.focus();
+  }
+
+  function closeBox(box: HTMLElement) {
+    const form = box.querySelector<HTMLFormElement>('.fb-form');
+    if (form) form.hidden = true;
+    box.querySelectorAll<HTMLElement>('[data-fb-open]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    box.querySelector<HTMLElement>('[data-fb-open]')?.focus();
+  }
+
+  const showErr = (form: HTMLFormElement, code: string, field?: HTMLElement | null) => {
+    const e = form.querySelector<HTMLElement>('[data-fb-err]');
+    if (e) e.textContent = code ? (ERR[code] ?? ERR.deliver) : '';
+    form.querySelectorAll('[aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+    if (field) { field.setAttribute('aria-invalid', 'true'); field.focus(); }
+  };
+
+  async function send(form: HTMLFormElement) {
+    const box = form.closest<HTMLElement>('[data-fb]')!;
+    const btn = form.querySelector<HTMLButtonElement>('.fb-send')!;
+    if (btn.getAttribute('aria-disabled') === 'true') return;
+    const fd = new FormData(form);
+    const msg = String(fd.get('message') ?? '').trim();
+    const email = String(fd.get('email') ?? '').trim();
+    if (msg.length < 2) return showErr(form, 'message', form.querySelector('textarea'));
+    const mailEl = form.querySelector<HTMLInputElement>('input[type="email"]')!;
+    if (email && !mailEl.checkValidity()) return showErr(form, 'email', mailEl);
+    if (email && !fd.get('agree')) return showErr(form, 'agree', form.querySelector<HTMLInputElement>('[data-fb-agree] input'));
+    showErr(form, '');
+    btn.setAttribute('aria-disabled', 'true');
+    btn.textContent = '보내는 중…';
+    try {
+      const token = await tokenOf(box);
+      if (!token) { showErr(form, 'captcha'); return; }
+      const body = {
+        kind: fd.get('kind'), message: msg, email, agree: !!fd.get('agree'), website: fd.get('website') ?? '',
+        page: location.pathname, title: document.title.replace(/\s*\|\s*동네콕콕\s*$/, ''), 'cf-turnstile-response': token,
+      };
+      let res: Response;
+      try { res = await fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); }
+      catch { showErr(form, 'network'); return; }
+      const out = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!out.ok) { showErr(form, out.error ?? 'deliver'); return; }
+      form.reset();
+      form.hidden = true;
+      form.querySelector<HTMLElement>('[data-fb-agree]')!.hidden = true;
+      form.querySelector<HTMLElement>('[data-fb-cnt]')!.textContent = '0';
+      box.querySelectorAll<HTMLElement>('[data-fb-open]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+      const done = box.querySelector<HTMLElement>('[data-fb-done]')!;
+      done.querySelector<HTMLElement>('[data-fb-done-s]')!.textContent = email ? '확인하고 적어 주신 이메일로 답장할게요.' : '확인하고 고칠게요.';
+      done.hidden = false;
+      done.focus();
+    } finally {
+      const s = st(box);
+      s.token = undefined;
+      if (s.id && s.id !== 'pending') w.turnstile?.reset(s.id);
+      btn.removeAttribute('aria-disabled');
+      btn.textContent = '보내기';
+    }
+  }
+
+  if (!w.__fbInit) {
+    w.__fbInit = true;
+    document.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const box = t.closest<HTMLElement>('[data-fb]');
+      if (!box) return;
+      const o = t.closest<HTMLElement>('[data-fb-open]');
+      if (o) {
+        const form = box.querySelector<HTMLFormElement>('.fb-form');
+        if (o.getAttribute('aria-expanded') === 'true' && form && !form.hidden) closeBox(box);
+        else openBox(box, o.dataset.fbOpen ?? 'etc');
+        return;
+      }
+      if (t.closest('[data-fb-close]')) return closeBox(box);
+      if (t.closest('[data-fb-again]')) {
+        const form = box.querySelector<HTMLFormElement>('.fb-form')!;
+        openBox(box, form.querySelector<HTMLInputElement>('input[name="kind"]:checked')?.value ?? 'etc');
+      }
+    });
+    document.addEventListener('change', (e) => {
+      const t = e.target as HTMLInputElement;
+      const form = t.closest<HTMLFormElement>('[data-fb] .fb-form');
+      if (form && t.name === 'kind') setHint(form);
+    });
+    document.addEventListener('input', (e) => {
+      const t = e.target as HTMLInputElement | HTMLTextAreaElement;
+      const form = t.closest<HTMLFormElement>('[data-fb] .fb-form');
+      if (!form) return;
+      t.removeAttribute('aria-invalid');
+      if (t.name === 'message') form.querySelector<HTMLElement>('[data-fb-cnt]')!.textContent = String(t.value.length);
+      if (t.name === 'email') {
+        const ag = form.querySelector<HTMLElement>('[data-fb-agree]')!;
+        ag.hidden = !t.value.trim();
+      }
+    });
+    // 폼을 펼친 채로 보여 주는 /contact/ 는 들어오자마자 Turnstile을 준비한다
+    document.addEventListener('focusin', (e) => {
+      const box = (e.target as HTMLElement).closest?.<HTMLElement>('[data-fb]');
+      if (box && !box.querySelector<HTMLFormElement>('.fb-form')?.hidden) mountTs(box);
+    });
+    document.addEventListener('submit', (e) => {
+      const form = (e.target as HTMLElement).closest<HTMLFormElement>('[data-fb] .fb-form');
+      if (!form) return;
+      e.preventDefault();
+      send(form);
+    });
+  }
+</script>

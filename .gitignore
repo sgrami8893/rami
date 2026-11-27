@@ -8,3 +8,4 @@ scripts/fixtures/out/
 .env*
 .dev.vars
 .cache/
+.wrangler/
