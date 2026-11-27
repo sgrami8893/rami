@@ -36,6 +36,11 @@ export const RENT_REQUIRED: (keyof typeof RENT_FIELD)[] = ['code', 'dong', 'y', 
 const num = (v: unknown) => { const n = Number(String(v ?? '').replace(/[,\s]/g, '')); return Number.isFinite(n) ? n : NaN; };
 const pick = (item: Record<string, unknown>, f: keyof typeof RENT_FIELD) => { for (const k of RENT_FIELD[f]) if (k in item) return item[k]; return undefined; };
 
+/** 캐시에 남길 필드(2026-11-27): RENT_FIELD에 있는 것만. 층(floor)·계약일(dealDay)·계약기간 등은 캐시에도 쓰지 않는다
+ *  (자동 갱신 캐시는 GitHub에 보관되므로 원본을 그대로 두지 않는다) */
+const KEEP = new Set<string>(Object.values(RENT_FIELD).flat());
+export const slimItem = (item: Record<string, unknown>) => Object.fromEntries(Object.entries(item).filter(([k]) => KEEP.has(k)));
+
 export function missingFields(item: Record<string, unknown>) {
   return RENT_REQUIRED.filter((f) => pick(item, f) === undefined);
 }

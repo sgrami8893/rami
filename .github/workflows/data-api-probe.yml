@@ -1,0 +1,26 @@
+# 정부 데이터 API가 GitHub Actions(해외 서버)에서 열리는지 확인만 한다. 인증키를 쓰지 않는다.
+# 자동 갱신(data-refresh.yml)을 바꿀 때와 '지금 실행'(Run workflow)으로 돌릴 수 있다.
+name: 데이터 API 접속 확인
+on:
+  pull_request:
+    paths: ['.github/workflows/data-*.yml', 'scripts/fetch-*.ts', 'scripts/check-data.ts']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 접속 확인(키 없이 호출하면 '인증키 없음' 응답이 와야 정상)
+        run: |
+          ok=1
+          for u in \
+            "https://apis.data.go.kr/1613000/RTMSDataSvcRHRent/getRTMSDataSvcRHRent?LAWD_CD=11680&DEAL_YMD=202610" \
+            "https://apis.data.go.kr/1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent?LAWD_CD=11680&DEAL_YMD=202610" \
+            "https://api.data.go.kr/openapi/tn_pubr_prkplce_info_api?type=json&numOfRows=1" ; do
+            code=$(curl -s -m 30 -o body.txt -w '%{http_code} %{time_total}s' "$u" || true)
+            echo "${u%%\?*} → HTTP $code"; head -c 300 body.txt; echo; echo
+            case "$code" in 000*) ok=0;; esac
+          done
+          if [ "$ok" = 1 ]; then echo "### ✓ 정부 API에 접속돼요" >> "$GITHUB_STEP_SUMMARY"; else echo "### ✗ 정부 API 접속이 막혀 있어요" >> "$GITHUB_STEP_SUMMARY"; exit 1; fi
