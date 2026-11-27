@@ -2,6 +2,7 @@
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/parking/MockBanner.astro';
 import BottomActionBar from '../../../../../components/BottomActionBar.astro';
+import { kakaoTo, kakaoSearch, naverSearch } from '../../../../../lib/format.ts';
 import MapView from '../../../../../components/v2/MapView.astro';
 import MapPill from '../../../../../components/v2/MapPill.astro';
 import PlaceBar from '../../../../../components/v2/PlaceBar.astro';
@@ -34,6 +35,12 @@ const info: [string, string][] = [
   <p class="mt-3 text-cap font-semibold text-ink-3">{FEE_LABEL[l.fee.type]} · {l.kind === 'private' ? '민영 · ' : ''}{LOT_TYPE[l.lotType]}{l.spaces !== null && ` · ${l.spaces}면`}</p>
   <h1 class="v-h1 mt-1">{l.name}</h1>
   <p class="mt-2 text-body text-ink-2">{l.roadAddress || l.jibunAddress}</p>
+  {/* PC: 하단 바가 없으니 주소 바로 아래에 같은 링크(모바일은 하단 고정 바) */}
+  <div class="mt-3 hidden gap-2 lg:flex">
+    <a class="v-btn pri !min-h-11 !px-4" href={l.lat !== null && l.lng !== null ? kakaoTo(l.name, l.lat, l.lng) : kakaoSearch(l.roadAddress || l.jibunAddress || l.name)} target="_blank" rel="noopener noreferrer">{l.lat !== null && l.lng !== null ? '카카오맵 길찾기' : '카카오맵에서 보기'}<span class="sr-only">(새 창)</span></a>
+    <a class="v-btn sec !min-h-11 !px-4" href={naverSearch(l.roadAddress || l.jibunAddress || '', l.name)} target="_blank" rel="noopener noreferrer">네이버 지도<span class="sr-only">(새 창)</span></a>
+    {(l.roadAddress || l.jibunAddress) && <button type="button" class="v-btn sec !min-h-11 !px-4" data-copy={l.roadAddress || l.jibunAddress}>주소 복사</button>}
+  </div>
   {l.flags.includes('feeConflict') && <p class="mt-3 rounded-xl bg-bg px-4 py-3 text-cap text-warn">원천 데이터의 요금 정보가 서로 맞지 않아 요금 구분을 '확인 필요'로 표시했어요. 관리기관에 확인해 주세요.</p>}
   <FeeCalculator l={l} />
   <section class="mt-6">
