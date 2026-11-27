@@ -17,9 +17,13 @@ export async function createMap(canvas: HTMLElement) {
   const area = L.latLngBounds(AREA);
   const map = L.map(canvas, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, maxBounds: area, maxBoundsViscosity: 1,
     minZoom: 8, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 100 });
+  // 넓은 화면에서 최대로 줄이면 수도권 범위(AREA)보다 화면이 커져 타일 없는 빈 칸·회색 판이 보였다(2026-11-27 사용자)
+  // → 범위가 화면을 늘 꽉 채우는 단계까지만 줄어들게 한다
+  const fitMin = () => { const s = map.getSize(); if (!s.x || !s.y) return; map.setMinZoom(Math.max(8, Math.ceil(map.getBoundsZoom(area, true) * 4) / 4)); };
+  fitMin(); map.on('resize', fitMin);
   map.attributionControl.setPrefix('Leaflet');
   L.control.zoom({ position: 'bottomright', zoomInTitle: '지도 확대', zoomOutTitle: '지도 축소' }).addTo(map);
-  const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 8, bounds: area, keepBuffer: 4, updateWhenZooming: false, updateWhenIdle: L.Browser.mobile }).addTo(map);
+  const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 8, bounds: area.pad(0.05), keepBuffer: 4, updateWhenZooming: false, updateWhenIdle: L.Browser.mobile }).addTo(map);
   let failed = 0;
   tiles.on('tileerror', () => {
     if (++failed !== 12) return;
