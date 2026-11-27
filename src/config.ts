@@ -43,6 +43,8 @@ export const REPORT_FORM = {
 
 /** 개인정보처리방침 문의처. 공개 전 실제 주소로 교체. */
 export const CONTACT_EMAIL = '[운영자 이메일 주소]';
+/** 실제 주소를 넣기 전에는 화면에 자리표시 글자를 드러내지 않는다(2026-11-27) */
+export const CONTACT_READY = /^[^\s@\[]+@[^\s@]+\.[^\s@]+$/.test(CONTACT_EMAIL);
 
 /** 도구별 데이터 출처(푸터·소개에 표기). TODO: 실제 내려받은 페이지 URL과 이용허락 유형 확인 후 확정. */
 export const DATA_SOURCES: Record<string, { name: string; url: string }> = {
@@ -117,3 +119,18 @@ export const SITE_VERIFICATION = { google: verification('GOOGLE_SITE_VERIFICATIO
  * - 켜기 전 확인: 이용약관(출처 표기 문구), 브라우저 직접 호출 허용(CORS) 여부, 일일 호출 한도.
  */
 export const JUSO = { key: env('PUBLIC_JUSO_KEY'), enabled: !!env('PUBLIC_JUSO_KEY'), url: 'https://business.juso.go.kr/addrlink/addrLinkApi.do', name: '행정안전부 도로명주소 검색 API', policyUrl: 'https://business.juso.go.kr' } as const;
+
+/**
+ * 의견 보내기(2026-11-27). 바닥글 '이 페이지 의견 보내기'와 /contact/ 폼.
+ * 흐름: 브라우저 → 우리 Pages Function(/api/feedback, functions/api/feedback.ts) → Turnstile 확인 → 운영자 구글 시트(Apps Script 웹 앱)에 한 줄 추가 + 운영자 메일 알림.
+ * - 빌드 환경변수 PUBLIC_TURNSTILE_SITE_KEY(브라우저용 공개 키)가 있을 때만 폼이 보인다. 없으면 바닥글에 아무것도 안 보이고 /contact/는 안내만.
+ * - 함수 환경변수(비밀, 암호화): TURNSTILE_SECRET_KEY, FEEDBACK_WEBHOOK_URL(Apps Script 웹 앱 주소), FEEDBACK_SECRET(Apps Script와 맞춘 비밀값).
+ * - 받는 것: 의견 종류·본문(필수), 답장 이메일(선택), 보낸 페이지 주소·제목, 받은 시각. IP·기기 정보는 시트에 남기지 않는다.
+ * - 보관: 받은 날부터 retentionDays가 지나면 Apps Script가 매일 지운다(scripts/feedback/apps-script.gs). 개인정보처리방침과 숫자를 맞출 것.
+ */
+export const FEEDBACK = {
+  siteKey: env('PUBLIC_TURNSTILE_SITE_KEY'),
+  enabled: !!env('PUBLIC_TURNSTILE_SITE_KEY'),
+  retentionDays: 365,
+  maxLen: 2000,
+} as const;
