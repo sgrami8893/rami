@@ -24,7 +24,9 @@ const COLORS = ['#FDF0C4', '#FBCB7A', '#F59A4E', '#E4634A', '#B23A5B', '#6B1F57'
 const LOWC = '#E3E6EA';
 /** 첫 화면 범위에서 뺄 먼 섬 지역 */
 const FAR = new Set(['incheon__ongjin-gun']);
-const DIM = { fillColor: '#DDE1E6', fillOpacity: 0.28, color: '#FFFFFF', weight: 1, opacity: 0.9 };
+// 경계선(2026-11-27 사용자 '외곽선이 너무 하얘서 안 보임'): 흰 선 → 옅은 잉크 회색 가는 선. 고른 곳은 자두색. 굵기는 그대로 가늘게
+const LINE = { color: '#3D4652', opacity: 0.45, weight: 1 };
+const DIM = { fillColor: '#DDE1E6', fillOpacity: 0.28, color: '#8B95A1', weight: 1, opacity: 0.55 };
 const short = (v: number) => (v >= 10000 ? `${(Math.round(v / 1000) / 10).toString()}억` : `${v.toLocaleString('ko-KR')}만`);
 const fmt = (v: number, k: 'j' | 'w') => (k === 'j' ? short(v) : `월 ${v}만`);
 
@@ -82,22 +84,22 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   const sggStyle = (p: SggP): Leaflet.PathOptions => {
     if (!sggActive(p.f)) {
       // 지금 시·군·구(동 단계)는 채우지 않고 바깥 테두리만(동 칸이 위에 깔림)
-      if (p.f === fileOf()) return { fillOpacity: 0, color: '#FFFFFF', weight: 2.5, opacity: 1, className: 'rm-edge' }; // 검정 테두리 없음(2026-11-26 사용자)
+      if (p.f === fileOf()) return { fillOpacity: 0, color: '#6B1F57', weight: 2, opacity: 0.75, className: 'rm-edge' }; // 검정 테두리 없음(2026-11-26 사용자)
       return DIM;
     }
     if (budget && level() === 'home') {
       const c = counts?.get(p.f) ?? 0;
-      return { fillColor: c ? ROOM_COLORS[countStep(c)] : OVER, fillOpacity: c ? 0.5 : 0.45, color: '#FFFFFF', weight: 1.5, opacity: 1 };
+      return { fillColor: c ? ROOM_COLORS[countStep(c)] : OVER, fillOpacity: c ? 0.5 : 0.45, ...LINE };
     }
     const v = valueOf(p);
-    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : 0.5, color: '#FFFFFF', weight: 1.5, opacity: 1 };
+    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : 0.5, ...LINE };
   };
   const dongStyle = (p: DongP): Leaflet.PathOptions => {
     const v = valueOf(p);
     const sel = focus.dong === p.k;
     // 동 단계(건물 알약이 주인공)는 칸을 옅게: 알약·배경지도가 묻히지 않게
-    if (level() === 'dong') return { fillColor: colorOf(v), fillOpacity: sel ? 0.25 : 0.3, color: '#FFFFFF', weight: 1.5, opacity: 1 };
-    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : sel ? 0.75 : 0.5, color: '#FFFFFF', weight: 1.5, opacity: 1 };
+    if (level() === 'dong') return { fillColor: colorOf(v), fillOpacity: sel ? 0.25 : 0.3, ...LINE };
+    return { fillColor: colorOf(v), fillOpacity: v === null ? 0.45 : sel ? 0.75 : 0.5, ...LINE };
   };
 
   // 강조선(마우스·고른 동): 맨 위 칸에 흰 3px + 그림자. 누를 수 없음
@@ -105,7 +107,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   let ghost: Leaflet.Layer | null = null;
   let selLine: Leaflet.Layer | null = null;
   const outline = (g: GeoJSON.Geometry, sel: boolean) => L.geoJSON(g as GeoJSON.GeoJsonObject, { pane: 'v2-line', interactive: false,
-    style: { color: '#FFFFFF', weight: sel ? 3.5 : 2.5, opacity: 1, fill: false, className: sel ? 'rm-sel' : 'rm-hov' } });
+    style: { color: sel ? '#6B1F57' : '#191F28', weight: sel ? 2.5 : 2, opacity: sel ? 1 : 0.7, fill: false, className: sel ? 'rm-sel' : 'rm-hov' } });
   // 고른 동·마우스 칸: 검정선 대신 흰 선 + 은은한 그림자(고른 동은 자두색 번짐)로 '떠오른' 느낌(2026-11-26 사용자 '검정 외곽선 구려')
 
   // ---- 라벨 ----

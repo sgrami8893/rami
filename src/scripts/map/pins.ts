@@ -6,6 +6,10 @@ import type * as Leaflet from 'leaflet';
 import { createMap, esc, LG, meIcon } from './base.ts';
 import type { Ctx, Layer } from './shell.ts';
 
+// 핀을 눌러 다른 주차장 상세로 넘어갈 때 지도 확대·위치를 이어 간다(2026-11-27 사용자 '누를 때마다 줌인이 반복'):
+// 페이지마다 지도를 새로 그리면서 16단계로 돌아가 묶음이 다시 생기고, 또 확대되던 문제.
+let lastView: { lat: number; lng: number; z: number; t: number } | null = null;
+
 type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
 
 export async function mount(ctx: Ctx): Promise<Layer> {
@@ -29,7 +33,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   let shown = new Set(points.map((p) => p.id));
   let active: string | null = canvas.dataset.focusId ?? null;
   let hoverEl: HTMLElement | null = null;
-  const paint = (id: string) => markers.get(id)?.getElement()?.classList.toggle('is-active', id === active);
+  const paint = (id: string) => { const m = markers.get(id); m?.getElement()?.classList.toggle('is-active', id === active); m?.setZIndexOffset(id === active ? 5000 : 0); }; // 고른 핀(이름 붙은 큰 알약)은 이웃 핀 위로
 
   for (const p of points) {
     const m = L.marker([p.lat, p.lng], { icon: pinOf(p), title: p.name, keyboard: true, alt: p.name, tone: p.tone } as Leaflet.MarkerOptions);
@@ -39,6 +43,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     m.on('click', (e) => {
       L.DomEvent.stopPropagation(e);
       const prev = active; active = p.id; if (prev) paint(prev); paint(p.id);
+      const c = map.getCenter(); lastView = { lat: c.lat, lng: c.lng, z: map.getZoom(), t: Date.now() };
       ctx.pick({ key: p.id, title: p.name, sub: p.addr, value: p.meta, note: p.badge, href: p.href }, (e as Leaflet.LeafletMouseEvent).originalEvent instanceof KeyboardEvent);
       // 모바일: 아래 요약 카드에 가리거나 화면 끝에 잘리지 않게 고른 핀을 보이는 곳으로 살짝 옮긴다
       if (!LG.matches) requestAnimationFrame(() => {
@@ -80,8 +85,8 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     const rings = (g: GeoJSON.Geometry) => (g.type === 'Polygon' ? [g.coordinates[0]] : g.type === 'MultiPolygon' ? g.coordinates.map((p) => p[0]) : []);
     const world = [[124, 36], [129, 36], [129, 39], [124, 39], [124, 36]];
     L.geoJSON({ type: 'Polygon', coordinates: [world, ...rings(target)] } as GeoJSON.Polygon, { interactive: false, style: { stroke: false, fillColor: '#191F28', fillOpacity: 0.07 } }).addTo(map);
-    if (parent) L.geoJSON(parent as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#FFFFFF', weight: 2, opacity: 0.85, fill: false, className: 'rm-edge' } }).addTo(map);
-    const sel = L.geoJSON(target as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#FFFFFF', weight: 3, opacity: 1, fillColor: '#6B1F57', fillOpacity: 0.05, className: 'rm-sel' } }).addTo(map);
+    if (parent) L.geoJSON(parent as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#4E5968', weight: 1.5, opacity: 0.6, fill: false, className: 'rm-edge' } }).addTo(map);
+    const sel = L.geoJSON(target as GeoJSON.GeoJsonObject, { interactive: false, style: { color: '#6B1F57', weight: 2.5, opacity: 1, fillColor: '#6B1F57', fillOpacity: 0.05, className: 'rm-sel' } }).addTo(map);
     // 목록 화면은 고른 지역 전체(경계 + 핀)가 보이게 맞춘다. 상세 화면(active)은 그 핀 자리 그대로
     if (!active) {
       const b = sel.getBounds();
@@ -91,9 +96,16 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   };
   // 첫 화면 범위: 서해 먼 섬(옹진군, 동경 126.35도 서쪽)까지 넣으면 육지가 작게 보여서 잘라 낸다(2026-11-27 사용자)
   const land = (b: Leaflet.LatLngBounds) => (b.getWest() < 126.35 && b.getEast() > 126.6 ? L.latLngBounds([b.getSouth(), 126.35], [b.getNorth(), b.getEast()]) : b);
+  let kept = false;
   const fit = () => {
     const f = active ? byId.get(active) : null;
-    if (f) { map.setView([f.lat, f.lng], 16); return; }
+    if (f) {
+      // 방금 지도에서 핀을 눌러 왔으면 그 확대·위치 그대로(고른 핀이 화면 안일 때)
+      const v = lastView && Date.now() - lastView.t < 15000 ? lastView : null;
+      lastView = null;
+      if (v) { map.setView([v.lat, v.lng], v.z, { animate: false }); if (map.getBounds().contains([f.lat, f.lng])) { kept = true; return; } }
+      map.setView([f.lat, f.lng], 17); return;
+    }
     if (!points.length) return;
     const b = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
     if (points.length === 1) { map.setView(b.getCenter(), 16); return; }
@@ -103,7 +115,7 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   };
   fit();
   void drawArea();
-  if (active) { const m = markers.get(active); if (m) cluster.zoomToShowLayer(m, () => paint(active!)); }
+  if (active) { const m = markers.get(active); if (m) { if (kept && cluster.getVisibleParent(m) === m) paint(active); else cluster.zoomToShowLayer(m, () => paint(active!)); } }
 
   let meMarker: Leaflet.Marker | null = null;
   return {

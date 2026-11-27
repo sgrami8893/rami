@@ -209,7 +209,7 @@ input[type="search"]:focus-visible { outline: none; }
 .leaflet-container path.rm-glow { filter: drop-shadow(0 1px 3px rgb(15 23 42 / 0.28)); }
 .leaflet-container path.rm-hov { filter: drop-shadow(0 1px 4px rgb(15 23 42 / 0.22)); }
 .leaflet-container path.rm-sel { filter: drop-shadow(0 0 6px rgb(107 31 87 / 0.45)) drop-shadow(0 2px 8px rgb(15 23 42 / 0.18)); }
-.leaflet-container path.rm-edge { filter: drop-shadow(0 0 3px rgb(15 23 42 / 0.18)); }
+.leaflet-container path.rm-edge { filter: drop-shadow(0 0 2px rgb(255 255 255 / 0.9)); }
 .rent-map path.leaflet-interactive { transition: fill-opacity .15s ease; }
 /* 지역 틀(map-frame.ts): 중간 회청색 외곽선에 아주 옅은 그림자(검은 선·파란 빛 없음) */
 .leaflet-container path.map-frame-line { filter: drop-shadow(0 1px 2px rgb(15 23 42 / 0.18)); }
