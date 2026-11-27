@@ -48,7 +48,7 @@ export function buildBuildings(all: Deal[], coord: (code: string, dong: string, 
     const [lat, lng] = ll ? ll.split(',').map(Number) : [null, null];
     if (ll) located++;
     const units = new Map<number, Deal[]>();
-    for (const d of ds) { const a = Math.round(d.area * 10) / 10; units.set(a, [...(units.get(a) ?? []), d]); }
+    for (const d of ds) { const a = Math.round(d.area * 10) / 10; const u = units.get(a); if (u) u.push(d); else units.set(a, [d]); }
     const u: Unit[] = [...units.entries()].sort((a, b) => a[0] - b[0]).map(([a, xs]) =>
       [a, ...xs.sort((x, y) => x.ym.localeCompare(y.ym) || x.deposit - y.deposit).flatMap((x) => [monthIndex(from, x.ym), x.deposit, x.monthly])]);
     const f = files.get(sido) ?? { v: 1, sido, from, to, generatedAt: new Date().toISOString(), isMock, b: [] };
@@ -61,11 +61,14 @@ export function buildBuildings(all: Deal[], coord: (code: string, dong: string, 
 
 /** 지난번 건물 파일의 좌표로 찾기(2026-11-27, 자동 갱신용). 주소정보 DB가 없는 곳(GitHub Actions)에서도
  *  이미 좌표를 찾은 건물은 그대로 쓰고, 새로 나타난 건물만 좌표 없이 남는다(PC에서 다시 돌리면 채워짐). */
-export function prevCoords(files: Pick<BuildingFile, 'sido' | 'b'>[]) {
+//  파일은 하나씩 add()로 넣고 버린다(건물 파일 전체를 메모리에 들고 있지 않게)
+export function prevCoords(files: Pick<BuildingFile, 'sido' | 'b'>[] = []) {
   const m = new Map<string, [number, number]>();
-  for (const f of files) for (const r of f.b) if (r[6] !== null && r[7] !== null) m.set(`${f.sido}|${r[0]}|${r[1]}|${r[2]}`, [r[6], r[7]]);
+  const add = (f: Pick<BuildingFile, 'sido' | 'b'>) => { for (const r of f.b) if (r[6] !== null && r[7] !== null) m.set(`${f.sido}|${r[0]}|${r[1]}|${r[2]}`, [r[6], r[7]]); };
+  files.forEach(add);
   return {
-    size: m.size,
+    add,
+    get size() { return m.size; },
     lookup(code: string, dong: string, jibun: string): [number, number] | null {
       const r = regionOfDeal(code, dong);
       return r ? m.get(`${r.sido}|${r.sigungu}|${dong}|${jibun}`) ?? null : null;

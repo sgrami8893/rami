@@ -224,9 +224,8 @@ async function main() {
   const geo = await loadJusoGeo(JUSO, need, (s) => console.log(s));
   // 지난번 건물 파일 좌표(주소 DB가 없을 때·DB에서 못 찾은 지번의 대체). 아래에서 예전 파일을 지우기 전에 읽는다
   const { readdir: rd, unlink } = await import('node:fs/promises');
-  const prevFiles: BuildingFile[] = [];
-  for (const f of await rd(BOUT).catch(() => [] as string[])) if (/\.json$/.test(f)) { try { prevFiles.push(JSON.parse(await readFile(`${BOUT}/${f}`, 'utf8'))); } catch { /* 깨진 파일은 무시 */ } }
-  const prev = prevCoords(prevFiles);
+  const prev = prevCoords();
+  for (const f of await rd(BOUT).catch(() => [] as string[])) if (/\.json$/.test(f)) { try { prev.add(JSON.parse(await readFile(`${BOUT}/${f}`, 'utf8')) as BuildingFile); } catch { /* 깨진 파일은 무시 */ } }
   if (!geo.files.length) console.log(`  ${JUSO}/ 에 주소 파일이 없어 지난번 건물 파일 좌표 ${prev.size.toLocaleString('ko-KR')}곳을 이어받아요(새 건물은 좌표 없이 목록만).`);
   let fromPrev = 0;
   const bld = buildBuildings(deals, (c, d, j) => { const a = geo.lookup(c, d, j); if (a) return a; const b = prev.lookup(c, d, j); if (b) fromPrev++; return b; });
@@ -241,7 +240,7 @@ async function main() {
     bsizes[f.sido] = Math.round(whole.length / 1024);
     if (whole.length <= LIMIT) { await writeFile(`${BOUT}/${f.sido}.json`, whole); continue; }
     const bySgg = new Map<string, typeof f.b>();
-    for (const r of f.b) bySgg.set(r[0], [...(bySgg.get(r[0]) ?? []), r]);
+    for (const r of f.b) { const xs = bySgg.get(r[0]); if (xs) xs.push(r); else bySgg.set(r[0], [r]); }
     const parts: (typeof f.b)[] = [[]]; let size = 0;
     for (const rows of bySgg.values()) {
       const n = JSON.stringify(rows).length;
