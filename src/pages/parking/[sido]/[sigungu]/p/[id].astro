@@ -63,7 +63,7 @@ const info: [string, string][] = [
     <p class="mt-2 text-cap text-ink-3">데이터 기준일 {l.baseDate ?? '미상'}</p>
   </section>
   <MapPill />
-  {mapOn(near) && l.lat !== null && <MapView slot="map" kind="pins" points={near.map(toPoint)} focusId={l.id} title={`${l.name} 주변 지도`} />}
+  {mapOn(near) && l.lat !== null && <MapView slot="map" kind="pins" points={near.map(toPoint)} focusId={l.id} title={`${l.name} 주변 지도`} area={{ sido: l.sido, slug: l.sigungu, dong: l.dong }} />}
   <BottomActionBar slot="bottom" name={l.name} address={l.roadAddress || l.jibunAddress} lat={l.lat} lng={l.lng} label="길찾기·주소 복사" />
 </BaseLayout>
 

@@ -3,7 +3,7 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()
   Strict-Transport-Security: max-age=31536000
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   # 다른 사이트가 우리 파일(글꼴·스크립트 등)을 직접 끌어다 쓰는 것(핫링크)을 브라우저 단에서 막는다

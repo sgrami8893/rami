@@ -683,3 +683,15 @@ body:has([data-bottom-bar]) .v-pill:not(.mv-back) { bottom: calc(92px + env(safe
 @media (max-width:1023px){.map-pane:has(.mv-card:not([hidden])) .leaflet-control-zoom{display:none}
   .map-pane .v-pill.mv-back{bottom:calc(18px + env(safe-area-inset-bottom))}
   .mv-card{bottom:calc(80px + env(safe-area-inset-bottom))}}
+
+/* '내 주변' 실패 안내(2026-11-27 사용자 '설명 좀 자세히'): 이유 + 이 기기에 맞는 단계 + 다시 시도 + 위치 없이 찾는 길 */
+.near-help{margin-top:10px;padding:14px 16px 16px;border-radius:16px;background:#fff;box-shadow:var(--sh-1),inset 0 0 0 1px rgb(107 31 87/.1)}
+.near-help[hidden]{display:none}
+.near-help .nh-t{font-size:calc(16px*var(--fs,1));font-weight:800;color:var(--color-ink)}
+.near-help .nh-steps{margin:8px 0 0;padding:0;list-style:none;counter-reset:nh}
+.near-help .nh-steps li{position:relative;padding-left:28px;margin-top:6px;font-size:calc(15px*var(--fs,1));line-height:1.5;color:var(--color-ink-2);word-break:keep-all;overflow-wrap:anywhere}
+.near-help .nh-steps li::before{counter-increment:nh;content:counter(nh);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:7px;background:var(--color-brand-weak);color:var(--color-brand);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.near-help .nh-note,.near-help .nh-alt{margin-top:10px;font-size:calc(14px*var(--fs,1));line-height:1.5;color:var(--color-ink-3);word-break:keep-all}
+.near-help .nh-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.near-help .nh-retry{min-height:44px;padding:0 18px;background:var(--color-brand);color:#fff;box-shadow:none}
+.near-help .nh-acts .v-chip{min-height:44px}

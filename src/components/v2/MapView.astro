@@ -8,8 +8,8 @@ import { MAP } from '../../config.ts';
 import Icon from '../Icon.astro';
 import { HAS_BUILDINGS } from '../../lib/rent-buildings.ts';
 type Pt = { id: string; name: string; lat: number; lng: number; href: string; meta?: string; badge?: string; addr?: string; tag?: string; tone?: string };
-interface Props { kind: 'rent' | 'pins'; title?: string; focus?: Record<string, string | null | undefined>; points?: Pt[]; focusId?: string; note?: string; emptyNote?: string }
-const { kind, title = kind === 'rent' ? '전월세 시세 지도' : '지도', focus = {}, points = [], focusId, note, emptyNote } = Astro.props;
+interface Props { kind: 'rent' | 'pins'; title?: string; focus?: Record<string, string | null | undefined>; points?: Pt[]; focusId?: string; note?: string; emptyNote?: string; area?: { sido: string; slug?: string; dong?: string | null } }
+const { kind, title = kind === 'rent' ? '전월세 시세 지도' : '지도', focus = {}, points = [], focusId, note, emptyNote, area } = Astro.props;
 // 핀이 하나도 없는 지역(좌표 없는 공공데이터)도 지도 칸은 둔다: PC 오른쪽이 빈 칸으로 남지 않게, '내 주변'으로 가까운 핀을 더할 수 있게(2026-11-27)
 const noPins = kind === 'pins' && points.length === 0 && !!emptyNote;
 const show = MAP.enabled && (kind === 'rent' || points.length > 0 || noPins);
@@ -26,7 +26,7 @@ const src = kind === 'rent' ? '최근 12개월 실거래 중위값 · 경계: �
     <div class="relative min-h-0 flex-1">
       <div class="map-canvas absolute inset-0" data-kind={kind} data-src="/geo/rent/" data-bsrc={kind === 'rent' && HAS_BUILDINGS ? '/geo/rent-b/' : undefined}
         data-cfg={JSON.stringify(cfg)} data-focus={kind === 'rent' ? JSON.stringify(cleanFocus) : undefined}
-        data-points={kind === 'pins' ? JSON.stringify(points) : undefined} data-focus-id={focusId}>
+        data-points={kind === 'pins' ? JSON.stringify(points) : undefined} data-focus-id={focusId} data-area={kind === 'pins' && area ? JSON.stringify(area) : undefined}>
         <p class="map-loading flex h-full flex-col items-center justify-center gap-2 text-cap text-ink-3" role="status"><svg class="ml-pin" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><defs><linearGradient id="mlgr" x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#6B1F57"/><stop offset="1" stop-color="#B23A5B"/></linearGradient></defs><path d="M12 23.2 8.7 19.4H6.4A4.4 4.4 0 0 1 2 15V6.4A4.4 4.4 0 0 1 6.4 2h11.2A4.4 4.4 0 0 1 22 6.4V15a4.4 4.4 0 0 1-4.4 4.4h-2.3Z" fill="url(#mlgr)"/><circle cx="12" cy="10.7" r="4" fill="#fff"/><circle class="ml-dot" cx="12" cy="10.7" r="1.7" fill="#F59A4E"/></svg><span class="ml-t">지도 불러오는 중</span></p>
       </div>
       {kind === 'rent' && (
