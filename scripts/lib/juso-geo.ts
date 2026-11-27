@@ -55,26 +55,45 @@ export function wgs84ToUtmk(latDeg: number, lonDeg: number): [number, number] {
 }
 
 // ===== 한 줄 읽기 =====
-export interface JusoRow { code5: string; dong: string; jibun: string; road: string | null; xy: [number, number] | null }
+export interface JusoRow { code5: string; dong: string; jibun: string | null; road: string | null; xy: [number, number] | null }
 const isX = (v: number) => v > 600_000 && v < 1_500_000;
 const isY = (v: number) => v > 1_300_000 && v < 2_300_000;
 const numOrNaN = (s: string | undefined) => (s && /^-?\d+(\.\d+)?$/.test(s.trim()) ? Number(s) : NaN);
 
+/** 한 줄 → 지번(있으면)·도로명 건물 키·좌표(있으면).
+ *  2026-11 내비게이션용DB에서 match_build_*(건물 중심 좌표, 지번 없음)가 0줄로 읽혀 좌표가 하나도 안 붙었다(사용자 PC).
+ *  그래서 지번 열이 없는 줄도 '도로명코드(12자리) + 지하여부 + 건물본번 + 부번'과 좌표만 있으면 받는다.
+ *  도로명코드 뒤에 도로명 글자가 있는 형식·없는 형식을 모두 받는다. 열 위치는 외우지 않고 모양으로 찾는다. */
 export function parseJusoLine(line: string): JusoRow | null {
-  const f = line.split('|');
-  const i = f.slice(0, 3).findIndex((x) => /^\d{10}$/.test(x.trim()));
-  if (i < 0) return null;
-  const code = f[i].trim(), emd = (f[i + 3] ?? '').trim(), ri = (f[i + 4] ?? '').trim(), san = (f[i + 5] ?? '').trim();
-  if (!emd || (san !== '0' && san !== '1') || !/^\d+$/.test((f[i + 6] ?? '').trim())) return null;
-  const jibun = jibunKey(`${san === '1' ? '산' : ''}${f[i + 6].trim()}-${(f[i + 7] ?? '0').trim() || '0'}`);
-  if (!jibun) return null;
-  const road = /^\d{12}$/.test((f[i + 8] ?? '').trim()) ? [f[i + 8], f[i + 10], f[i + 11], f[i + 12]].map((x) => (x ?? '').trim()).join('/') : null;
+  const f = line.split('|').map((x) => x.trim());
+  if (f.length < 6) return null;
+  // 도로명 건물 키
+  let road: string | null = null, after = -1;
+  const r = f.findIndex((x, j) => j > 0 && /^\d{12}$/.test(x));
+  if (r > 0) {
+    let k = r + 1;
+    if (f[k] !== undefined && !/^\d+$/.test(f[k])) k++; // 도로명 글자
+    if ((f[k] === '0' || f[k] === '1') && /^\d+$/.test(f[k + 1] ?? '') && /^\d*$/.test(f[k + 2] ?? '')) {
+      road = `${f[r]}/${f[k]}/${Number(f[k + 1])}/${Number(f[k + 2] || 0)}`;
+      after = k + 3;
+    }
+  }
+  // 좌표: 도로명 건물 번호 뒤에서 UTM-K 범위 숫자 두 개가 나란히 있는 첫 자리(건물 중심점)
   let xy: [number, number] | null = null;
-  for (let j = i + 13; j < f.length - 1; j++) {
+  for (let j = Math.max(after, 1); j < f.length - 1; j++) {
     const x = numOrNaN(f[j]), y = numOrNaN(f[j + 1]);
     if (isX(x) && isY(y)) { xy = [x, y]; break; }
   }
-  return { code5: code.slice(0, 5), dong: ri ? `${emd} ${ri}` : emd, jibun, road, xy };
+  // 지번(관련지번 파일): 법정동코드(10) | 시도 | 시군구 | 읍면동 | 리 | 산여부 | 본번 | 부번
+  const i = f.slice(0, 3).findIndex((x) => /^\d{10}$/.test(x));
+  let code5 = '', dong = '', jibun: string | null = null;
+  if (i >= 0) {
+    const emd = f[i + 3] ?? '', ri = f[i + 4] ?? '', san = f[i + 5] ?? '';
+    code5 = f[i].slice(0, 5); dong = ri ? `${emd} ${ri}` : emd;
+    if (emd && (san === '0' || san === '1') && /^\d+$/.test(f[i + 6] ?? '')) jibun = jibunKey(`${san === '1' ? '산' : ''}${f[i + 6]}-${f[i + 7] || '0'}`);
+  }
+  if (!jibun && !(road && xy)) return null;
+  return { code5, dong, jibun, road, xy };
 }
 
 // ===== 파일 훑기 =====
@@ -122,6 +141,8 @@ export async function loadJusoGeo(dir: string, need: Set<string>, log: (s: strin
   const pending: { k: string; lk: string; road: string }[] = [];
   const needLoose = new Set([...need].map((k) => { const [c, d, j] = k.split('|'); return looseKey(c, d, j); }));
   let rows = 0, withXY = 0;
+  // 도로명 건물 좌표는 필요한 시·도(도로명코드 앞 2자리)만 기억한다(전국 파일을 다 풀어도 메모리가 넘치지 않게)
+  const sidoNeed = new Set([...need].map((k) => k.slice(0, 2)));
   const put = (k: string, lk: string, xy: [number, number]) => {
     const ll = utmkToWgs84(xy[0], xy[1]).map((v) => Math.round(v * 1e5) / 1e5) as [number, number];
     if (need.has(k) && !exact.has(k)) exact.set(k, ll);
@@ -129,21 +150,22 @@ export async function loadJusoGeo(dir: string, need: Set<string>, log: (s: strin
   };
   for (const file of files) {
     const enc = await detectEncoding(file);
-    let n = 0;
+    let n = 0, nxy = 0;
     await eachLine(file, enc, (line) => {
       const r = parseJusoLine(line);
       if (!r) return;
       rows++; n++;
+      if (r.xy) { withXY++; nxy++; if (r.road && sidoNeed.has(r.road.slice(0, 2)) && !roadXY.has(r.road)) roadXY.set(r.road, r.xy); }
+      if (!r.jibun) return; // 건물 파일(좌표만): 도로명 키로 아래에서 잇는다
       const k = placeKey(r.code5, r.dong, r.jibun), lk = looseKey(r.code5, r.dong, r.jibun);
-      if (r.xy) {
-        withXY++;
-        if (r.road && !roadXY.has(r.road)) roadXY.set(r.road, r.xy);
-        put(k, lk, r.xy);
-      } else if (r.road && (need.has(k) || needLoose.has(lk))) pending.push({ k, lk, road: r.road });
+      if (r.xy) put(k, lk, r.xy);
+      else if (r.road && (need.has(k) || needLoose.has(lk))) pending.push({ k, lk, road: r.road });
     });
-    log(`  ${file} (${enc}) ${n.toLocaleString('ko-KR')}줄`);
+    log(`  ${file} (${enc}) ${n.toLocaleString('ko-KR')}줄, 좌표 ${nxy.toLocaleString('ko-KR')}줄`);
   }
-  for (const p of pending) { const xy = roadXY.get(p.road); if (xy) put(p.k, p.lk, xy); }
+  let linked = 0;
+  for (const p of pending) { const xy = roadXY.get(p.road); if (xy) { put(p.k, p.lk, xy); linked++; } }
+  log(`  도로명 건물 좌표 ${roadXY.size.toLocaleString('ko-KR')}곳, 지번에 이은 것 ${linked.toLocaleString('ko-KR')}건`);
   return {
     files, rows, withXY,
     lookup(code5, dong, jibun) {

@@ -55,3 +55,13 @@ test('건물별 이력: 층은 저장하지 않고, 연월·금액·면적만', 
   const text = JSON.stringify(f);
   assert.ok(!/floor|"3층"|dealDay|"20"/.test(text));
 });
+
+test('내비게이션용DB 건물 파일(지번 없음, 도로명 + 좌표)도 읽고, 관련지번 줄과 같은 키를 만든다', () => {
+  const [x, y] = wgs84ToUtmk(37.556, 126.905);
+  // 건물 파일 모양(추정): 법정동코드 | 시도 | 시군구 | 읍면동 | 도로명코드 | 도로명 | 지하 | 본번 | 부번 | 우편번호 | 건물관리번호 | … | 중심 X | 중심 Y
+  const b = parseJusoLine(['1144012400', '서울특별시', '마포구', '망원동', '114403113012', '월드컵로', '0', '25', '0', '03951', '1144012400104120007000001', '망원하우스', '공동주택', '4', '0', String(x), String(y)].join('|'))!;
+  assert.equal(b.jibun, null); assert.equal(b.road, '114403113012/0/25/0'); assert.ok(b.xy && Math.abs(b.xy[0] - x) < 1);
+  // 관련지번 파일 모양: 지번 뒤 도로명코드 | 지하 | 본번 | 부번 (도로명 글자 없음)
+  const j = parseJusoLine(['1144012400', '서울특별시', '마포구', '망원동', '', '0', '412', '7', '114403113012', '0', '25', '0'].join('|'))!;
+  assert.equal(j.jibun, '412-7'); assert.equal(j.road, b.road); assert.equal(j.xy, null);
+});

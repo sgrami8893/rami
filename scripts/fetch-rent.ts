@@ -124,13 +124,17 @@ async function main() {
     const { readdir, readFile: rf } = await import('node:fs/promises');
     const files = (await readdir(JUSO, { recursive: true }).catch(() => [] as string[])).filter((f) => /\.txt$/i.test(String(f)));
     if (!files.length) fail(`${JUSO} 폴더에 .txt 파일이 없어요. 주소정보 내비게이션용DB 압축을 이 폴더에 풀어 주세요.`);
-    for (const f of files.slice(0, 6)) {
+    // 종류별(match_build·match_jibun·그 밖) 서울 파일을 먼저 보여 준다
+    const pickF = [...new Set([...files.filter((f) => /seoul/i.test(String(f))), ...files])].slice(0, 6);
+    for (const f of pickF) {
       const buf = await rf(`${JUSO}/${f}`);
       let text: string; try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(0, 200_000)); } catch { text = new TextDecoder('euc-kr').decode(buf.subarray(0, 200_000)); }
       const lines = text.split(/\r?\n/).slice(0, 400);
       const ok = lines.map(parseJusoLine).filter(Boolean);
       console.log(`\n[${f}] 앞 ${lines.length}줄 중 읽음 ${ok.length}줄, 좌표 있음 ${ok.filter((r) => r!.xy).length}줄`);
-      for (const r of ok.slice(0, 2)) console.log(`  ${r!.code5} ${r!.dong} ${r!.jibun}${r!.xy ? ` → ${utmkToWgs84(...r!.xy).map((v) => v.toFixed(5)).join(', ')}` : ' (좌표 없음)'}`);
+      // 형식 확인용: 첫 줄 원문(공개 주소 자료) 앞부분과 칸 수
+      console.log(`  첫 줄(${(lines[0] ?? '').split('|').length}칸): ${(lines[0] ?? '').slice(0, 240)}`);
+      for (const r of ok.slice(0, 2)) console.log(`  ${r!.code5} ${r!.dong} ${r!.jibun ?? '(지번 없음)'} ${r!.road ?? ''}${r!.xy ? ` → ${utmkToWgs84(...r!.xy).map((v) => v.toFixed(5)).join(', ')}` : ' (좌표 없음)'}`);
     }
     console.log('\n이 화면을 복사해 보내 주면 확인할게요.');
     return;
