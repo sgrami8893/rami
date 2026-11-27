@@ -8,7 +8,11 @@ const fileOf = (sido: string, slug: string) => `${sido}__${slug}`; // rent-geo.t
 const real = Object.values(import.meta.glob<BuildingFile>('../data/rent-buildings/*.json', { eager: true, import: 'default' }));
 const mock = Object.values(import.meta.glob<BuildingFile>('../data/rent-buildings.mock/*.json', { eager: true, import: 'default' }));
 const LIVE = TOOLS.find((t) => t.slug === 'rent')?.status === 'live';
-const files: BuildingFile[] = RENT_PREVIEW ? (real.length ? real : mock) : LIVE ? real : [];
+const picked: BuildingFile[] = RENT_PREVIEW ? (real.length ? real : mock) : LIVE ? real : [];
+// 한 시·도가 여러 파일로 나뉠 수 있다(seoul-1.json …). 예전 통파일(seoul.json)이 남아 있어도 겹치지 않게 시·도마다 가장 새로 만든 묶음만 쓴다
+const newest = new Map<string, string>();
+for (const f of picked) if ((newest.get(f.sido) ?? '') < f.generatedAt) newest.set(f.sido, f.generatedAt);
+const files = picked.filter((f) => f.generatedAt.slice(0, 13) === newest.get(f.sido)!.slice(0, 13));
 
 const bySgg = new Map<string, { from: string; to: string; rows: BuildingRow[] }>();
 for (const f of files) for (const r of f.b) {
