@@ -15,10 +15,10 @@ export async function createMap(canvas: HTMLElement) {
   (window as unknown as { L: typeof L }).L = L; // markercluster 1.x는 전역 L에 붙는다
   const area = L.latLngBounds(AREA);
   const map = L.map(canvas, { zoomControl: false, attributionControl: true, scrollWheelZoom: true, maxBounds: area, maxBoundsViscosity: 1,
-    minZoom: 9, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 100 });
+    minZoom: 8, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 100 });
   map.attributionControl.setPrefix('Leaflet');
   L.control.zoom({ position: 'bottomright', zoomInTitle: '지도 확대', zoomOutTitle: '지도 축소' }).addTo(map);
-  const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 9, bounds: area, keepBuffer: 4, updateWhenZooming: false, updateWhenIdle: L.Browser.mobile }).addTo(map);
+  const tiles = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, minZoom: 8, bounds: area, keepBuffer: 4, updateWhenZooming: false, updateWhenIdle: L.Browser.mobile }).addTo(map);
   let failed = 0;
   tiles.on('tileerror', () => {
     if (++failed !== 12) return;

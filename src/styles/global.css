@@ -392,7 +392,7 @@ body { font-size: calc(16px * var(--fs)); }
   border-radius: 9999px; background: var(--color-ink); color: #fff; font-size: calc(16px * var(--fs, 1)); font-weight: 700; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
 .v-pill[hidden] { display: none; }
 @media (min-width: 1024px) { .v-pill { display: none !important; } }
-.v-pill-space { height: 72px; }
+.v-pill-space { height: 128px; } /* 지도 알약이 마지막 줄을 가리지 않게 넉넉히(2026-11-27 제미나이 합의) */
 @media (min-width: 1024px) { .v-pill-space { display: none; } }
 /* 바닥글(패널 안·한 단 모두) */
 .v-foot { margin-top: 32px; padding: 16px 0 8px; border-top: 1px solid var(--color-line); font-size: calc(13px * var(--fs, 1)); line-height: 1.7; color: var(--color-ink-3); }
@@ -702,3 +702,11 @@ html.pill-tuck .v-pill:not(.mv-back):not(:focus-visible) { transform: translate(
 .near-help .nh-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .near-help .nh-retry{min-height:44px;padding:0 18px;background:var(--color-brand);color:#fff;box-shadow:none}
 .near-help .nh-acts .v-chip{min-height:44px}
+/* 동 상세 '요즘 전월세 거래가 많은 건물'(2026-11-27) */
+.busy-row { width: 100%; text-align: left; cursor: pointer; }
+.busy-row[hidden] { display: none; }
+.busy-row .t .n, .busy-row .t .s { display: block; }
+.busy-note { margin-top: 10px; font-weight: 500; color: var(--color-ink-3); }
+.busy-row .val { white-space: nowrap; }
+.busy-row .val small { display: inline; margin-left: 1px; }
+#tab-bld, .busy { scroll-margin-top: 72px; }

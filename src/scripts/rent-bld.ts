@@ -8,11 +8,11 @@ import { onPage } from './soft-nav.ts';
 
 export const BLD_MIN = 3;
 type Unit = { area: number; deals: { m: number; dep: number; mon: number }[] };
-export type Bld = { id: string; file: string; dong: string; jibun: string; name: string; t: 0 | 1; by: number; lat: number | null; lng: number | null; units: Unit[]; n: number; last: number };
-type Raw = { from: string; to: string; b: [string, string, string, 0 | 1, number, number | null, number | null, number[][]][] };
+export type Bld = { id: string; file: string; dong: string; jibun: string; name: string; t: 0 | 1 | 2; by: number; lat: number | null; lng: number | null; units: Unit[]; n: number; last: number };
+type Raw = { from: string; to: string; b: [string, string, string, 0 | 1 | 2, number, number | null, number | null, number[][]][] };
 export type BldFile = { from: string; span: number; list: Bld[] };
 
-const TYPE = ['빌라', '오피스텔'] as const;
+const TYPE = ['빌라', '오피스텔', '아파트'] as const;
 const STEP = 20, TABLE_STEP = 12;
 const cache = new Map<string, Promise<BldFile | null>>();
 export const bldId = (file: string, dong: string, jibun: string, t: number) => `${file}|${dong}|${jibun}|${t}`;

@@ -251,7 +251,10 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     }
     if (!b) b = sggLayer.getBounds();
     // 왼쪽 위 범례·오른쪽 아래 확대 버튼에 가리지 않게 여백
-    map.fitBounds(b, level() === 'home' || level() === 'sido' ? { paddingTopLeft: [24, 56], paddingBottomRight: [48, 16], animate } : { padding: [24, 24], animate });
+    const pad = { paddingTopLeft: L.point(24, 56), paddingBottomRight: L.point(48, 16) };
+    // 수도권 첫 화면: 확대 단계는 범례·버튼 여백을 빼고 정하되, 가운데는 수도권 범위의 한가운데(여백 때문에 한쪽으로 밀리지 않게, 2026-11-27 사용자)
+    if (level() === 'home') { map.setView(b.getCenter(), map.getBoundsZoom(b, false, pad.paddingTopLeft.add(pad.paddingBottomRight)), { animate }); return; }
+    map.fitBounds(b, level() === 'sido' ? { ...pad, animate } : { padding: [24, 24], animate });
   };
 
   const drawSel = () => {
@@ -312,10 +315,14 @@ export async function mount(ctx: Ctx): Promise<Layer> {
   }, sig);
   map.on('click', () => { /* 빈 곳: 아무것도 안 함 */ });
   let meMarker: Leaflet.Marker | null = null;
+  let touched = false;
+  map.on('dragstart', () => { touched = true; });
+  for (const ev of ['wheel', 'touchstart', 'keydown']) map.getContainer().addEventListener(ev, () => { touched = true; }, { passive: true, ...sig });
+  map.zoomControl?.getContainer()?.addEventListener('click', () => { touched = true; }, sig);
   await apply(false);
 
   return {
-    focus(f) { focus = f; showGhost(null); void apply(true); },
+    focus(f) { focus = f; touched = false; showGhost(null); void apply(true); },
     hover(key) {
       if (!key) { showGhost(null); return; }
       const d = dongByK.get(key) ?? (focus.sido ? sggByF.get(`${focus.sido}__${key}`) : undefined) ?? sggByF.get(key);
@@ -325,7 +332,8 @@ export async function mount(ctx: Ctx): Promise<Layer> {
       meMarker?.remove();
       meMarker = L.marker([pt.lat, pt.lng], { icon: meIcon(L), interactive: false, keyboard: false, zIndexOffset: 2000 }).addTo(map);
     },
-    resize() { map.invalidateSize(); },
+    // 모바일은 지도 화면이 열리면서 크기가 바뀐다: 아직 손대지 않았으면 새 크기로 다시 맞춘다(첫 화면이 확대돼 잘려 보이던 문제)
+    resize() { map.invalidateSize(); if (!touched) fit(false); },
     destroy() { ac.abort(); map.remove(); },
   };
 }

@@ -96,7 +96,10 @@ export async function mount(ctx: Ctx): Promise<Layer> {
     if (f) { map.setView([f.lat, f.lng], 16); return; }
     if (!points.length) return;
     const b = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-    if (points.length === 1) map.setView(b.getCenter(), 16); else map.fitBounds(land(b), { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
+    if (points.length === 1) { map.setView(b.getCenter(), 16); return; }
+    // 수도권 전체(지역을 고르지 않은 첫 화면)는 범위 한가운데를 화면 가운데로(전월세 지도와 같은 방식)
+    if (!area) { map.setView(land(b).getCenter(), Math.min(16, map.getBoundsZoom(land(b), false, L.point(88, 104)))); return; }
+    map.fitBounds(land(b), { paddingTopLeft: [32, 72], paddingBottomRight: [56, 32], maxZoom: 16 });
   };
   fit();
   void drawArea();

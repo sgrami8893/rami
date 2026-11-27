@@ -9,8 +9,9 @@ import { regionOfDeal } from './rent-lawd.ts';
 import { jibunKey } from './juso-geo.ts';
 import type { SidoSlug } from './regions.ts';
 
-export type HouseType = 'villa' | 'officetel';
-export const HOUSE_LABEL: Record<HouseType, string> = { villa: '빌라(연립·다세대)', officetel: '오피스텔' };
+// 아파트(apt)는 2026-11-27 추가: 건물별 이력·'요즘 거래 많은 건물'에만 쓰고, 동 통계(빌라·오피스텔 중위값)에는 넣지 않는다
+export type HouseType = 'villa' | 'officetel' | 'apt';
+export const HOUSE_LABEL: Record<HouseType, string> = { villa: '빌라(연립·다세대)', officetel: '오피스텔', apt: '아파트' };
 
 /** 정규화된 거래 1건(수집 중 메모리에만 존재. 저장하지 않음) */
 export interface Deal {
@@ -28,7 +29,7 @@ export const RENT_FIELD = {
   deposit: ['deposit', '보증금액', '보증금'], monthly: ['monthlyRent', '월세금액', '월세'],
   area: ['excluUseAr', '전용면적'], buildYear: ['buildYear', '건축년도'],
   contractType: ['contractType', '계약구분'], usedRight: ['useRRRight', '갱신요구권사용'],
-  jibun: ['jibun', '지번'], bname: ['mhouseNm', 'offiNm', '연립다세대', '단지', '단지명'],
+  jibun: ['jibun', '지번'], bname: ['mhouseNm', 'offiNm', 'aptNm', '연립다세대', '단지', '단지명'],
 } as const;
 export const RENT_REQUIRED: (keyof typeof RENT_FIELD)[] = ['code', 'dong', 'y', 'm', 'deposit', 'monthly', 'area'];
 

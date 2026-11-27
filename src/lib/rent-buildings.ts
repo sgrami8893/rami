@@ -40,3 +40,25 @@ export function buildingSplit(file: string, dong: string) {
   }
   return { many, few };
 }
+
+/** 동 상세 '요즘 전월세 거래가 많은 건물'(2026-11-27 제미나이 합의, 기간은 클로드 수정).
+ *  원자료가 계약 '연월'까지라 30일 단위로 셀 수 없고, 마지막 달은 신고 기한(계약 후 30일) 때문에 덜 잡힌다 → 최근 3개월로 센다.
+ *  3건 이상인 건물만, 건수 많은 순. 표시는 건수(사실 숫자)만, 판정어·층 없음. */
+export const BUSY_MONTHS = 3, BUSY_MIN = 3;
+export type Busy = { id: string; name: string; jibun: string; t: 0 | 1 | 2; by: number; n: number };
+export function busyBuildings(file: string, dong: string) {
+  const g = bySgg.get(file);
+  if (!g) return { list: [] as Busy[], from: '', to: '' };
+  const span = (Number(g.to.slice(0, 4)) - Number(g.from.slice(0, 4))) * 12 + Number(g.to.slice(5, 7)) - Number(g.from.slice(5, 7));
+  const min = span - BUSY_MONTHS + 1;
+  const list: Busy[] = [];
+  for (const r of g.rows) {
+    if (r[1] !== dong) continue;
+    let n = 0;
+    for (const u of r[8] as number[][]) for (let i = 1; i + 2 < u.length; i += 3) if (u[i] >= min) n++;
+    if (n >= BUSY_MIN) list.push({ id: `${file}|${r[1]}|${r[2]}|${r[4]}`, name: r[3] as string, jibun: r[2] as string, t: r[4] as 0 | 1 | 2, by: r[5] as number, n });
+  }
+  list.sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, 'ko'));
+  const ym = (k: number) => { const t = Number(g.from.slice(0, 4)) * 12 + Number(g.from.slice(5, 7)) - 1 + k; return `${Math.floor(t / 12)}.${String((t % 12) + 1).padStart(2, '0')}`; };
+  return { list: list.slice(0, 10), from: ym(min), to: ym(span) };
+}
