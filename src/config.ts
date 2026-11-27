@@ -6,7 +6,11 @@ export const PROD_URL = 'https://dongnekokkok.kr';
  * canonical·sitemap·robots.txt 기준 주소. 빌드 환경변수 SITE_URL 로 덮어쓴다.
  * 1차 확인용: Cloudflare Pages 환경변수에 SITE_URL=https://<프로젝트>.pages.dev 지정.
  */
-export const SITE_URL = (globalThis.process?.env?.SITE_URL || PROD_URL).replace(/\/$/, '');
+// 2026-11-27: Cloudflare 환경변수 SITE_URL이 옛 프로젝트 주소(dongnenow.pages.dev)로 남아 있어 공유 이미지·canonical이 옛 주소로 나갔다.
+// 옛 주소가 들어오면 지금 주소로 바꾼다(환경변수를 고친 뒤에도 그대로 두어도 무해).
+const OLD_HOSTS: Record<string, string> = { 'dongnenow.pages.dev': 'https://dongnekokkok.pages.dev' };
+const rawSite = (globalThis.process?.env?.SITE_URL || PROD_URL).trim().replace(/\/$/, '');
+export const SITE_URL = OLD_HOSTS[new URL(rawSite).hostname] ?? rawSite;
 /** 정식 도메인이 아닌 주소(*.pages.dev 등)로 빌드하면 검색엔진 수집을 막는다(임시 주소 색인·중복 방지). */
 export const NOINDEX_ALL = new URL(SITE_URL).hostname !== new URL(PROD_URL).hostname;
 export const SITE_DESC = '서울·경기·인천 무인민원발급기 2,100여 곳의 운영시간과 위치, 24시간·주말 운영 기기를 지역별로 찾아보세요. 동네 생활 공공정보를 모아 보여 주는 민간 서비스예요.';
