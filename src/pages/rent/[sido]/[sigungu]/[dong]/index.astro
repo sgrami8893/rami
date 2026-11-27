@@ -11,6 +11,7 @@ import RentNotes from '../../../../../components/rent/RentNotes.astro';
 import RentBands from '../../../../../components/rent/RentBands.astro';
 import RentRange from '../../../../../components/rent/RentRange.astro';
 import RentBusy from '../../../../../components/rent/RentBusy.astro';
+import RentSummary from '../../../../../components/rent/RentSummary.astro';
 import RentQuarters from '../../../../../components/rent/RentQuarters.astro';
 import PlaceBar from '../../../../../components/v2/PlaceBar.astro';
 import RentMode from '../../../../../components/v2/RentMode.astro';
@@ -97,6 +98,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
       <a href={x.href} class="v-tool" data-t={x.ic === 'square-parking' ? 'parking' : 'muin'}><span class="ic" aria-hidden="true"><Icon name={x.ic} size={22} /></span><span class="t"><b>{x.t}</b><span>{x.s}</span></span><Icon name="chevron-right" size={18} class="chev" /></a>
     ))}</div>
   </>}
+  <RentSummary a={a} place={`${a.sigunguName} ${dong}`} parent={sg} parentName={a.sigunguName} />
   <div class="v-folds"><RentNotes /></div>
   <MapPill />
   {RENT_MAP && <MapView slot="map" kind="rent" focus={{ sido, slug: a.sigungu, dong }} title={`${dong} 주변 전월세 지도`} />}

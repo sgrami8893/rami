@@ -1,0 +1,39 @@
+---
+// '숫자 정리' 문단(2026-11-27 제미나이 합의: 애드센스·검색 대비, 숫자 나열만 있는 화면에 그 지역만의 문장).
+// 모두 사실 문장(건수·중위값·비율·가장 많은 면적대)만. '비싸다·싸다·추천' 같은 판정 없음.
+import type { RentArea } from '../../../scripts/lib/rent.ts';
+import { amt } from '../../lib/rent-view.ts';
+import { periodText } from '../../lib/rent.ts';
+interface Props { a: RentArea; place: string; parent?: RentArea; parentName?: string; dongs?: RentArea[] }
+const { a, place, parent, parentName, dongs = [] } = Astro.props;
+const n = (x: number) => x.toLocaleString('ko-KR');
+const v = a.byType.villa, o = a.byType.officetel;
+const s: string[] = [];
+s.push(`${periodText()} ${place}에서 신고된 빌라·오피스텔 전월세 실거래는 ${n(a.n)}건이에요${v && o ? `(빌라 ${n(v.n)}건, 오피스텔 ${n(o.n)}건)` : ''}.`);
+const main = v && (!o || v.n >= o.n) ? ['빌라', v] as const : o ? ['오피스텔', o] as const : null;
+if (main) {
+  const [lb, t] = main;
+  const j = t.jeonse?.n ?? 0, w = t.wolse?.n ?? 0;
+  if (j + w) s.push(`${lb} 거래 중 전세는 ${Math.round((j / (j + w)) * 100)}%, 월세는 ${Math.round((w / (j + w)) * 100)}%예요.`);
+  if (t.jeonse) {
+    const pj = parent?.byType[lb === '빌라' ? 'villa' : 'officetel']?.jeonse?.median;
+    s.push(`${lb} 전세 보증금 중위값은 ${amt(t.jeonse.median)}${pj && parentName ? `이고, ${parentName} 전체는 ${amt(pj)}이에요` : '이에요'}.`);
+  }
+  const band = [...t.bands].sort((x, y) => y.n - x.n)[0];
+  if (band?.n) s.push(`${lb} 거래가 가장 많은 전용면적대는 ${band.label}(${n(band.n)}건)예요.`);
+  const nr = t.newCount + t.renewCount;
+  if (nr >= 30) s.push(`계약 구분이 적힌 ${lb} 거래 중 갱신 계약은 ${Math.round((t.renewCount / nr) * 100)}%예요.`);
+}
+if (dongs.length >= 3) {
+  const top = [...dongs].sort((x, y) => y.n - x.n).slice(0, 3);
+  s.push(`거래가 많은 동은 ${top.map((d) => `${d.dong}(${n(d.n)}건)`).join(', ')} 순이에요.`);
+}
+---
+<section class="v-sum" aria-labelledby="v-sum-h">
+  <h2 id="v-sum-h" class="v-cap" style="margin-top:0">숫자로 정리하면</h2>
+  <p>{s.join(' ')}</p>
+</section>
+<style>
+  .v-sum { margin-top: 28px; padding: 16px 18px; border-radius: 16px; background: var(--color-bg); }
+  .v-sum p { margin-top: 6px; font-size: calc(15px * var(--fs, 1)); line-height: 1.7; color: var(--color-ink-2); word-break: keep-all; }
+</style>
