@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Feedback from '../components/Feedback.astro';
-import { SITE_NAME, CONTACT_EMAIL, CONTACT_READY, FEEDBACK } from '../config.ts';
+import Email from '../components/Email.astro';
+import { SITE_NAME, CONTACT_READY, FEEDBACK } from '../config.ts';
 ---
 <BaseLayout title={`의견·문의 | ${SITE_NAME}`} description={`${SITE_NAME}에 틀린 정보, 불편한 점, 바라는 기능을 알려 주세요.`}>
   <div class="mx-auto max-w-xl space-y-6 py-2">
@@ -10,7 +11,7 @@ import { SITE_NAME, CONTACT_EMAIL, CONTACT_READY, FEEDBACK } from '../config.ts'
       <p class="mt-2 text-body text-ink-2">틀린 정보, 쓰기 불편한 점, 있었으면 하는 기능을 알려 주세요. 보내 주신 의견은 하나하나 읽고 고치는 데 써요.</p>
     </header>
     {FEEDBACK.enabled ? <Feedback open /> : (
-      <p class="rounded-2xl bg-subtle p-4 text-body text-ink-2">의견 보내기 창구를 준비하고 있어요.{CONTACT_READY && <> 그동안은 <a class="underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>로 보내 주세요.</>}</p>
+      <p class="rounded-2xl bg-subtle p-4 text-body text-ink-2">의견 보내기 창구를 준비하고 있어요.{CONTACT_READY && <> 그동안은 <Email />로 보내 주세요.</>}</p>
     )}
     <section class="space-y-2 text-cap text-ink-2">
       <h2 class="text-body font-bold text-ink">알아 두면 좋아요</h2>
@@ -18,7 +19,7 @@ import { SITE_NAME, CONTACT_EMAIL, CONTACT_READY, FEEDBACK } from '../config.ts'
         <li>동네·주차장·발급기 정보가 실제와 다르면, 그 페이지 맨 아래 <b class="text-ink">'정보가 틀렸어요'</b>를 눌러 주세요. 어느 페이지인지 자동으로 함께 전달돼요.</li>
         <li>지도의 건물 실거래 정보를 고치거나 지우고 싶으면 건물 이름과 지번을 적어 주세요.</li>
         <li>민원 서류 발급, 주차장 이용, 임대차 계약 자체에 관한 문의는 각 관리기관에 해 주세요. {SITE_NAME}은 공공데이터를 모아 보여 주는 민간 서비스예요.</li>
-        {CONTACT_READY && FEEDBACK.enabled && <li>이메일로 보내고 싶으면 <a class="underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>}
+        {CONTACT_READY && FEEDBACK.enabled && <li>이메일로 보내고 싶으면 <Email />로 보내 주세요.</li>}
       </ul>
     </section>
   </div>
