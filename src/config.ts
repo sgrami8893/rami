@@ -41,8 +41,10 @@ export const REPORT_FORM = {
   entries: { id: '', name: '' }, // e.g. 'entry.123456'
 };
 
-/** 개인정보처리방침 문의처. 공개 전 실제 주소로 교체. */
-export const CONTACT_EMAIL = '[운영자 이메일 주소]';
+/** 문의처·개인정보 보호책임자 연락처(2026-11-27 사용자 결정). 화면에는 components/Email.astro로 난독화해 보인다 */
+export const CONTACT_EMAIL = 'sgrami8893@gmail.com';
+/** 개인정보 보호책임자 표기(성명 대신 직함, 2026-11-27 사용자 결정) */
+export const PRIVACY_OFFICER = '동네콕콕 운영자';
 /** 실제 주소를 넣기 전에는 화면에 자리표시 글자를 드러내지 않는다(2026-11-27) */
 export const CONTACT_READY = /^[^\s@\[]+@[^\s@]+\.[^\s@]+$/.test(CONTACT_EMAIL);
 

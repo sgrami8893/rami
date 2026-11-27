@@ -1,0 +1,19 @@
+---
+// 이메일 주소 난독화(2026-11-27): HTML에는 주소를 그대로 두지 않고 거꾸로 쪼개 넣는다. 스크립트가 켜지면 mailto 링크로 바꾼다.
+// 수집 봇이 HTML에서 주소를 바로 긁어 가는 것을 줄이는 정도(완전 차단은 아님). 스크립트가 없으면 'id [at] domain'으로 보인다.
+import { CONTACT_EMAIL } from '../config.ts';
+const [user, domain] = CONTACT_EMAIL.split('@');
+const rev = (s: string) => [...s].reverse().join('');
+---
+<a class="underline" data-em-u={rev(user)} data-em-d={rev(domain)} href="/contact/">{user} [at] {domain}</a>
+<script>
+  const fix = () => document.querySelectorAll<HTMLAnchorElement>('a[data-em-u]').forEach((a) => {
+    const r = (s = '') => [...s].reverse().join('');
+    const m = `${r(a.dataset.emU)}@${r(a.dataset.emD)}`;
+    a.href = `mailto:${m}`;
+    a.textContent = m;
+    a.removeAttribute('data-em-u');
+  });
+  fix();
+  document.addEventListener('dnkk:swap', fix);
+</script>
