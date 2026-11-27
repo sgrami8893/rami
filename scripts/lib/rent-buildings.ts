@@ -12,7 +12,8 @@ export const BUILDING_MONTHS = 36;
 /** 면적 하나: [전용면적㎡(소수 1자리), 월 순번, 보증금, 월세, 월 순번, 보증금, 월세, …] (월 순번 = from부터 센 달 수, 0부터) */
 export type Unit = number[];
 /** 건물 한 곳: [시군구 slug, 법정동, 지번, 건물명, 유형(0 빌라·1 오피스텔), 건축년도(0=모름), 위도|null, 경도|null, 면적들] */
-export type BuildingRow = [string, string, string, string, 0 | 1, number, number | null, number | null, Unit[]];
+/** 유형: 0 빌라, 1 오피스텔, 2 아파트 */
+export type BuildingRow = [string, string, string, string, 0 | 1 | 2, number, number | null, number | null, Unit[]];
 export interface BuildingFile { v: 1; sido: SidoSlug; from: string; to: string; generatedAt: string; isMock: boolean; b: BuildingRow[] }
 
 export const monthIndex = (from: string, ym: string) => (Number(ym.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(ym.slice(5, 7)) - Number(from.slice(5, 7));
@@ -51,7 +52,7 @@ export function buildBuildings(all: Deal[], coord: (code: string, dong: string, 
     const u: Unit[] = [...units.entries()].sort((a, b) => a[0] - b[0]).map(([a, xs]) =>
       [a, ...xs.sort((x, y) => x.ym.localeCompare(y.ym) || x.deposit - y.deposit).flatMap((x) => [monthIndex(from, x.ym), x.deposit, x.monthly])]);
     const f = files.get(sido) ?? { v: 1, sido, from, to, generatedAt: new Date().toISOString(), isMock, b: [] };
-    f.b.push([slug, d0.dong, d0.jibun!, name, d0.type === 'villa' ? 0 : 1, by, lat, lng, u]);
+    f.b.push([slug, d0.dong, d0.jibun!, name, d0.type === 'villa' ? 0 : d0.type === 'officetel' ? 1 : 2, by, lat, lng, u]);
     files.set(sido, f);
   }
   for (const f of files.values()) f.b.sort((a, b) => `${a[0]}/${a[1]}/${a[2]}`.localeCompare(`${b[0]}/${b[1]}/${b[2]}`, 'ko'));

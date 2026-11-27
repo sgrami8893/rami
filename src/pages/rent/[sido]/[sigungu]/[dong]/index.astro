@@ -2,6 +2,7 @@
 // 전월세 동 상세(v2): "이 동네 보통 얼마고, 어느 건물이 얼마였어요?" ① 위치 줄 ② 답 카드 ③ 탭 [시세 | 건물별 거래 | 계산] ④ 접힘.
 // 동 페이지: 최근 12개월 거래 PAGE_MIN건 이상인 법정동만 생성. 색인은 INDEX_MIN건 이상 + 시·군·구의 90% 이하.
 import Near from '../../../../../components/v2/Near.astro';
+import { rentOg } from '../../../../../lib/og.ts';
 import BaseLayout from '../../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../../components/rent/MockBanner.astro';
 import MapView from '../../../../../components/v2/MapView.astro';
@@ -9,6 +10,7 @@ import RentCalculator from '../../../../../components/rent/RentCalculator.astro'
 import RentNotes from '../../../../../components/rent/RentNotes.astro';
 import RentBands from '../../../../../components/rent/RentBands.astro';
 import RentRange from '../../../../../components/rent/RentRange.astro';
+import RentBusy from '../../../../../components/rent/RentBusy.astro';
 import RentQuarters from '../../../../../components/rent/RentQuarters.astro';
 import PlaceBar from '../../../../../components/v2/PlaceBar.astro';
 import RentMode from '../../../../../components/v2/RentMode.astro';
@@ -52,7 +54,7 @@ const links = [
 ];
 const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' }, { name: SIDO[sido].aliases[0], href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }, { name: dong, href: rentPath(sido, a.sigungu, dong) }];
 ---
-<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description={rentDescription(`${a.sigunguName} ${dong}`, a)} crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} tool="rent" sources={RENT_SOURCES}>
+<BaseLayout title={`${a.sigunguName} ${dong} 빌라·오피스텔 전월세 실거래 시세 | 최근 12개월 ${a.n}건`} description={rentDescription(`${a.sigunguName} ${dong}`, a)} crumbs={crumbs} noindex={IS_MOCK || !dongIndexable(stats, a)} tool="rent" ogImage={rentOg(a.sido, a.sigungu)} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <PlaceBar levels={rentPlace(sido, a.sigungu, dong)} />
   <h1 class="v-h1">{a.sigunguName} {dong} 빌라·오피스텔 전월세</h1>
@@ -63,6 +65,7 @@ const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' 
   <section id="tab-sise" role="tabpanel" class="v-panel">
     <h2 class="sr-only">{dong} 시세</h2>
     <RentRange a={a} />
+    {bs.many > 0 && <RentBusy file={file} dong={dong} />}
     <p class="v-cap">면적별 중위값</p>
     <RentBands a={a} />
     <div class="v-folds" style="margin-top:12px"><Fold title="분기별 흐름·계약 정보"><RentQuarters a={a} /></Fold></div>

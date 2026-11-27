@@ -1,6 +1,7 @@
 ---
 // 전월세 시·군·구(v2): "이 지역 안에서 어디가 싸고 어디가 비싸요?" ① 위치 줄 ② 답 카드 ③ [빌라|오피스텔][전세|월세] + 동 목록(거래 많은 순) ④ 접힘.
 import Near from '../../../../components/v2/Near.astro';
+import { rentOg } from '../../../../lib/og.ts';
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import MockBanner from '../../../../components/rent/MockBanner.astro';
 import MapView from "../../../../components/v2/MapView.astro";
@@ -26,7 +27,7 @@ const main = dongs.filter((d) => d.n >= LOW_N);
 const few = dongs.filter((d) => d.n < LOW_N);
 const crumbs = [{ name: '홈', href: '/' }, { name: '전월세', href: '/rent/' }, { name: SIDO[sido].aliases[0], href: rentPath(sido) }, { name: a.sigunguName, href: rentPath(sido, a.sigungu) }];
 ---
-<BaseLayout title={`${a.sigunguName} 빌라·오피스텔 전월세 실거래 시세 ${a.n}건 | 동별 전세·월세`} description={rentDescription(a.sigunguName, a)} crumbs={crumbs} noindex={IS_MOCK || !sigunguIndexable(a)} tool="rent" sources={RENT_SOURCES}>
+<BaseLayout title={`${a.sigunguName} 빌라·오피스텔 전월세 실거래 시세 ${a.n}건 | 동별 전세·월세`} description={rentDescription(a.sigunguName, a)} crumbs={crumbs} noindex={IS_MOCK || !sigunguIndexable(a)} tool="rent" ogImage={rentOg(a.sido, a.sigungu)} sources={RENT_SOURCES}>
   {IS_MOCK && <MockBanner />}
   <PlaceBar levels={rentPlace(sido, a.sigungu)} />
   <h1 class="v-h1">{a.sigunguName}{subGuText(sido, a.sigungu)} 빌라·오피스텔 전월세</h1>

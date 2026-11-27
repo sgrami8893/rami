@@ -26,6 +26,11 @@ https://:project.pages.dev/*
   ! X-Robots-Tag
   Cross-Origin-Resource-Policy: cross-origin
   Cache-Control: public, max-age=86400
+/og/*
+  ! Cross-Origin-Resource-Policy
+  ! X-Robots-Tag
+  Cross-Origin-Resource-Policy: cross-origin
+  Cache-Control: public, max-age=86400
 /apple-touch-icon.png
   ! Cross-Origin-Resource-Policy
   Cross-Origin-Resource-Policy: cross-origin

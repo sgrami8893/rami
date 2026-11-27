@@ -26,6 +26,8 @@ import { loadJusoGeo, parseJusoLine, utmkToWgs84 } from './lib/juso-geo.ts';
 export const RENT_API: Record<HouseType, string> = {
   villa: 'https://apis.data.go.kr/1613000/RTMSDataSvcRHRent/getRTMSDataSvcRHRent',
   officetel: 'https://apis.data.go.kr/1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent',
+  // 아파트 전월세(데이터 15126474, --apt 일 때만). 같은 DATA_GO_KR_KEY로 '활용신청'이 따로 승인돼 있어야 한다
+  apt: 'https://apis.data.go.kr/1613000/RTMSDataSvcAptRent/getRTMSDataSvcAptRent',
 };
 
 const args = process.argv.slice(2);
@@ -77,7 +79,8 @@ const ymList = (n: number) => {
   for (let i = 0; i < n; i++) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1)); out.push(`${x.getUTCFullYear()}${String(x.getUTCMonth() + 1).padStart(2, '0')}`); }
   return out.reverse();
 };
-const TYPES: HouseType[] = ['villa', 'officetel'];
+// --apt: 아파트 전월세도 받아 건물별 이력에 넣는다(동 통계에는 안 넣음). 호출 수가 약 1.5배가 된다
+const TYPES: HouseType[] = ['villa', 'officetel', ...(process.argv.includes('--apt') ? ['apt' as HouseType] : [])];
 
 /** 개편 지역의 새 코드 찾기: PROBE_RANGES 안에서 지난달 거래가 있는 코드. 결과는 .cache/rent/codes.json 에 저장해 다시 쓰고, --reprobe 로 새로 찾는다 */
 async function discoverCodes(verbose = false): Promise<string[]> {
@@ -169,7 +172,7 @@ async function main() {
   let calls = 0, bad = 0, raw = 0;
   const extra = await discoverCodes();
   const codes = [...LAWD.map((l) => l.code), ...extra];
-  console.log(`지역코드 ${codes.length}개(개편 지역 새 코드 ${extra.length}개 포함) × ${months.length}개월 × 2종류`);
+  console.log(`지역코드 ${codes.length}개(개편 지역 새 코드 ${extra.length}개 포함) × ${months.length}개월 × ${TYPES.length}종류`);
   for (const t of TYPES) for (const code of codes) for (const ym of months) {
     const l = { code };
     const file = `${CACHE}/${t}-${l.code}-${ym}.json`;
@@ -183,7 +186,8 @@ async function main() {
   console.log('');
   if (bad / Math.max(raw, 1) > 0.05 && !flag('--force')) fail(`정규화 실패 ${bad}건(${((bad / raw) * 100).toFixed(1)}%)`);
 
-  const { stats, unknown } = aggregate(deals, { months: 12 });
+  // 동 통계(빌라·오피스텔 중위값)는 아파트를 빼고 만든다
+  const { stats, unknown } = aggregate(deals.filter((d) => d.type !== 'apt'), { months: 12 });
   if (existsSync(OUT) && !flag('--force')) {
     const prev = JSON.parse(await readFile(OUT, 'utf8'));
     const n = (s: typeof stats) => s.areas.filter((a) => a.dong === null).reduce((x, a) => x + a.n, 0);
